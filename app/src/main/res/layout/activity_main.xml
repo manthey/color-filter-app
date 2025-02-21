@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- This TextureView will display the camera preview or the image -->
+    <TextureView
+        android:id="@+id/texture_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- A layout overlay for controls -->
+    <LinearLayout
+        android:id="@+id/controlPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#66000000"
+        android:layout_alignParentBottom="true"
+        android:padding="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            
+            <Button
+                android:id="@+id/switchCameraBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Switch Camera" />
+
+            <ToggleButton
+                android:id="@+id/filterToggleBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textOff="Filter Off"
+                android:textOn="Filter On" />
+
+            <!-- You could also add a toggle or radio group to choose "Include" vs. "Exclude" -->
+            <ToggleButton
+                android:id="@+id/includeExcludeToggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textOff="Exclude"
+                android:textOn="Include" />
+        </LinearLayout>
+
+        <!-- SeekBars for hue, hue width, saturation, luminance -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hue" />
+        <SeekBar
+            android:id="@+id/hueSeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="360" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hue Width" />
+        <SeekBar
+            android:id="@+id/hueWidthSeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="180" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Saturation Threshold" />
+        <SeekBar
+            android:id="@+id/saturationSeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="255" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Luminance Threshold" />
+        <SeekBar
+            android:id="@+id/luminanceSeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="255" />
+    </LinearLayout>
+
+</RelativeLayout>
+
