@@ -3,19 +3,16 @@ package com.orbitals.colorfilter;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.hardware.Camera;
-import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import android.util.Log;
-import android.view.ScaleGestureDetector;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Button;
@@ -30,28 +27,68 @@ import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
-import java.io.IOException;
+import android.content.Context;
+import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.RectF;
+import android.graphics.SurfaceTexture;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
+import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.Image;
+import android.media.ImageReader;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.util.Size;
+import android.view.MotionEvent;
+import android.view.Surface;
+import android.view.TextureView;
+import android.view.View;
 
-public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
+import org.opencv.core.CvType;
 
-    private static final String TAG = "MainActivity";
-    private static final int CAMERA_PERMISSION_REQUEST = 1;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.Semaphore;
+
+public class MainActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener {
+
+    private static final String TAG = "Color Filter";
+    private static final int REQUEST_CAMERA_PERMISSION = 200;
 
     // UI elements
-    private SurfaceView surfaceView;
-    private Button switchCameraBtn, filterButton, loadImageButton;
+    private TextureView textureView;
+    private Button switchCameraButton, filterButton, loadImageButton;
     private TextView filterButtonText;
     private SeekBar hueSeekBar, hueWidthSeekBar, saturationSeekBar, luminanceSeekBar;
 
-    private SurfaceView cameraPreview;
-    private SurfaceHolder surfaceHolder;
-    private Camera camera;
-    private int currentCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
-    private Bitmap currentBitmap;
 
-    // Variables for pinch zoom
-    private ScaleGestureDetector scaleGestureDetector;
-    private float currentZoom = 1f; // This is a simplified zoom control value
+    private CameraDevice cameraDevice;
+    private CameraCaptureSession cameraCaptureSession;
+    private CaptureRequest.Builder captureRequestBuilder;
+    private Size imageDimension;
+    private ImageReader imageReader;
+    private HandlerThread backgroundThread;
+    private Handler backgroundHandler;
+    private String cameraId;
+    private boolean isFrontCamera = false;  // Flag for front/back camera
+    private Semaphore cameraOpenCloseLock = new Semaphore(1);
+
+    // Pinch to zoom variables
+    private float mScaleFactor = 1.0f;
+    private float mMinZoom;
+    private float mMaxZoom;
+    private float mLastTouchDistance = -1f;
 
     // Filter parameters (default values)
     private int hue = 0, hueWidth = 30, satThreshold = 100, lumThreshold = 100;
@@ -71,38 +108,18 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Obtain references to UI elements
-        surfaceView = findViewById(R.id.texture_view);
-        switchCameraBtn = findViewById(R.id.switchCameraBtn);
-        filterButton = findViewById(R.id.filterButton);
-        filterButtonText = findViewById(R.id.filterButton);
-        loadImageButton = findViewById(R.id.loadImageButton);
-        hueSeekBar = findViewById(R.id.hueSeekBar);
-        hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
-        saturationSeekBar = findViewById(R.id.saturationSeekBar);
-        luminanceSeekBar = findViewById(R.id.luminanceSeekBar);
+        textureView = findViewById(R.id.textureView);
+        textureView.setSurfaceTextureListener(this);
 
-        surfaceHolder = surfaceView.getHolder();
-        surfaceHolder.addCallback(this);
-        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-
-        // Set up pinch zoom detector
-        scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        switchCameraButton = findViewById(R.id.switchCameraButton);
+        switchCameraButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public boolean onScale(ScaleGestureDetector detector) {
-                currentZoom *= detector.getScaleFactor();
-                currentZoom = Math.max(1f, Math.min(currentZoom, 5f)); // clamp zoom value to [1,5]
-                updateZoom();
-                return true;
+            public void onClick(View v) {
+                switchCamera();
             }
         });
-        surfaceView.setOnTouchListener((v, event) -> {
-            scaleGestureDetector.onTouchEvent(event);
-            return true;  // return true to indicate the touch events are handled
-        });
-
-        // Set up button to switch cameras
-        switchCameraBtn.setOnClickListener(view -> switchCamera());
+        filterButton = findViewById(R.id.filterButton);
+        filterButtonText = findViewById(R.id.filterButton);
         filterButton.setOnClickListener(v -> {
             if (!filterOn) {
                 filterOn = true;
@@ -115,16 +132,20 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 filterOn = false;
                 filterButtonText.setText("Off");
             }
-            applyFilter(); // Re-apply filter on toggle
+            // applyFilter(); // Re-apply filter on toggle
         });
-
+        loadImageButton = findViewById(R.id.loadImageButton);
+        hueSeekBar = findViewById(R.id.hueSeekBar);
+        hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
+        saturationSeekBar = findViewById(R.id.saturationSeekBar);
+        luminanceSeekBar = findViewById(R.id.luminanceSeekBar);
         // Set up SeekBars to update filter parameters
         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hue = progress;
                 if (filterOn) {
-                    applyFilter();
+                    // applyFilter();
                 }
             }
         });
@@ -133,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hueWidth = progress;
                 if (filterOn) {
-                    applyFilter();
+                    // applyFilter();
                 }
             }
         });
@@ -142,7 +163,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 satThreshold = progress;
                 if (filterOn) {
-                    applyFilter();
+                    // applyFilter();
                 }
             }
         });
@@ -151,18 +172,219 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 lumThreshold = progress;
                 if (filterOn) {
-                    applyFilter();
+                    // applyFilter();
                 }
             }
         });
-        checkCameraPermission();
+
+        // Pinch-to-zoom setup (add touch listener)
+        textureView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return handlePinchToZoom(event);
+            }
+        });
     }
 
-    private void checkCameraPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST);
+    private boolean handlePinchToZoom(MotionEvent event) {
+        int action = event.getAction() & MotionEvent.ACTION_MASK;
+
+        if (event.getPointerCount() == 2) {
+            // Two-finger touch (pinch)
+            float currentDistance = getDistance(event);
+
+            if (mLastTouchDistance != -1f) {
+                // Calculate scale factor
+                mScaleFactor *= currentDistance / mLastTouchDistance;
+                mScaleFactor = Math.max(mMinZoom, Math.min(mScaleFactor, mMaxZoom));
+
+                // Apply zoom to camera
+                applyZoom(mScaleFactor);
+            }
+            mLastTouchDistance = currentDistance;
+            return true; // Consume the event
+        } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP) {
+            // Reset last touch distance when fingers are lifted
+            mLastTouchDistance = -1f;
+        }
+
+        return false; // Don't consume single-finger events
+    }
+
+    private float getDistance(MotionEvent event) {
+        float x = event.getX(0) - event.getX(1);
+        float y = event.getY(0) - event.getY(1);
+        return (float) Math.sqrt(x * x + y * y);
+    }
+
+    private void applyZoom(float scale) {
+        if (cameraDevice == null || cameraCaptureSession == null) {
+            return;
+        }
+        try {
+            CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+
+            //Get the max zoom
+            if (mMaxZoom == 0) // Only set once.
+                mMaxZoom = characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
+
+            Rect m = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+            int deltaX = (int) ((m.width() - m.width() / scale) / 2);
+            int deltaY = (int) ((m.height() - m.height() / scale) / 2);
+            Rect zoomRect = new Rect(deltaX, deltaY, m.width() - deltaX, m.height() - deltaY);
+
+            captureRequestBuilder.set(CaptureRequest.SCALER_CROP_REGION, zoomRect);
+            cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
+
+
+        } catch (CameraAccessException e) {
+            Log.e(TAG, "Failed to apply zoom", e);
+        }
+    }
+
+    private void switchCamera() {
+        isFrontCamera = !isFrontCamera;
+        closeCamera();
+        openCamera();
+    }
+
+    @Override
+    public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+        openCamera();
+    }
+
+    @Override
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+        configureTransform(width, height);
+    }
+
+    @Override
+    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+        return true;
+    }
+
+    @Override
+    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+    }
+
+    private void openCamera() {
+        CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        Log.e(TAG, "is camera open");
+        try {
+            cameraId = isFrontCamera ? manager.getCameraIdList()[1] : manager.getCameraIdList()[0]; // Select camera
+
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            assert map != null;
+            imageDimension = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class), textureView.getWidth(), textureView.getHeight());
+
+            // Add permission for camera and let user grant the permission
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+                return;
+            }
+
+            // Get min/max zoom
+            mMinZoom = 1.0f; // Minimum zoom is no zoom
+            mMaxZoom = characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
+
+            cameraOpenCloseLock.acquire(); //Acquire before opening the camera.
+            manager.openCamera(cameraId, stateCallback, null);
+            Log.d(TAG, "openCamera opened");
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
+        }
+
+    }
+
+    private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
+        @Override
+        public void onOpened(CameraDevice camera) {
+            cameraOpenCloseLock.release(); //Release on opening.
+            Log.d(TAG, "onOpened");
+            cameraDevice = camera;
+            createCameraPreview();
+        }
+
+        @Override
+        public void onDisconnected(CameraDevice camera) {
+            cameraOpenCloseLock.release();
+            cameraDevice.close();
+            cameraDevice = null; // Set to null when closed
+        }
+
+        @Override
+        public void onError(CameraDevice camera, int error) {
+            cameraOpenCloseLock.release();
+            if (cameraDevice != null) { // Check for null before closing
+                cameraDevice.close();
+                cameraDevice = null;
+            }
+        }
+    };
+
+    private Size chooseOptimalSize(Size[] choices, int width, int height) {
+        List<Size> bigEnough = new ArrayList<>();
+        for (Size option : choices) {
+            if (option.getHeight() == option.getWidth() * height / width &&
+                    option.getWidth() >= width && option.getHeight() >= height) {
+                bigEnough.add(option);
+            }
+        }
+        if (bigEnough.size() > 0) {
+            return Collections.min(bigEnough, new CompareSizesByArea());
         } else {
-            startCamera(); // Permission already granted, start camera
+            Log.e(TAG, "Couldn't find any suitable preview size");
+            return choices[0];
+        }
+    }
+
+    static class CompareSizesByArea implements Comparator<Size> {
+        @Override
+        public int compare(Size lhs, Size rhs) {
+            return Long.signum((long) lhs.getWidth() * lhs.getHeight() -
+                    (long) rhs.getWidth() * rhs.getHeight());
+        }
+    }
+
+    protected void createCameraPreview() {
+        try {
+            SurfaceTexture texture = textureView.getSurfaceTexture();
+            assert texture != null;
+            texture.setDefaultBufferSize(imageDimension.getWidth(), imageDimension.getHeight());
+            Surface surface = new Surface(texture);
+            captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            captureRequestBuilder.addTarget(surface);
+
+            // Set up ImageReader for processing frames
+            imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(),
+                    ImageFormat.YUV_420_888, 2);  // Use YUV for efficiency with OpenCV
+            imageReader.setOnImageAvailableListener(imageAvailableListener, backgroundHandler);
+            captureRequestBuilder.addTarget(imageReader.getSurface());
+
+
+            cameraDevice.createCaptureSession(Arrays.asList(surface, imageReader.getSurface()), new CameraCaptureSession.StateCallback() {
+                @Override
+                public void onConfigured(@NonNull CameraCaptureSession session) {
+                    //The camera is already closed
+                    if (null == cameraDevice) {
+                        return;
+                    }
+                    // When the session is ready, we start displaying the preview.
+                    cameraCaptureSession = session;
+                    updatePreview();
+                }
+
+                @Override
+                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+                    Toast.makeText(MainActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
+                }
+            }, null);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
         }
     }
 
@@ -177,254 +399,255 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
     }
 
-    private void applyFilter() {
-        if (currentBitmap == null) {
-            return; // Nothing to filter
+    private final ImageReader.OnImageAvailableListener imageAvailableListener = new ImageReader.OnImageAvailableListener() {
+        @Override
+        public void onImageAvailable(ImageReader reader) {
+            Image image = null;
+            try {
+                image = reader.acquireLatestImage();
+                if (image == null) {
+                    return;
+                }
+
+                // Convert YUV image to OpenCV Mat
+                Mat yuvMat = yuvImageToMat(image);
+                Mat rgbMat = new Mat();
+                Imgproc.cvtColor(yuvMat, rgbMat, Imgproc.COLOR_YUV2RGB_I420);
+
+                // Process the image
+                Mat processedMat = processImage(rgbMat);
+
+                // Convert back to Bitmap for display
+                Bitmap bmp = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
+                Utils.matToBitmap(processedMat, bmp);
+
+                // Display the bitmap on the TextureView
+                Canvas canvas = textureView.lockCanvas();
+                if (canvas != null) {
+                    canvas.drawBitmap(bmp, 0, 0, null);
+                    textureView.unlockCanvasAndPost(canvas);
+                }
+
+                rgbMat.release(); // Release resources
+                processedMat.release();
+                yuvMat.release();
+
+            } finally {
+                if (image != null) {
+                    image.close();
+                }
+            }
+        }
+    };
+
+    private Mat yuvImageToMat(Image image) {
+        if (image.getFormat() != ImageFormat.YUV_420_888) {
+            throw new IllegalArgumentException("Invalid image format");
         }
 
-        new FilterTask().execute(currentBitmap); // Run filtering in background
+        Image.Plane[] planes = image.getPlanes();
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        // Y plane
+        ByteBuffer yBuffer = planes[0].getBuffer();
+        int ySize = yBuffer.remaining();
+
+        // U, V plane
+        ByteBuffer uBuffer = planes[1].getBuffer();
+        int uSize = uBuffer.remaining();
+        ByteBuffer vBuffer = planes[2].getBuffer();
+        int vSize = vBuffer.remaining();
+
+        byte[] nv21 = new byte[ySize + uSize + vSize];
+
+        // Copy Y plane
+        yBuffer.get(nv21, 0, ySize);
+
+        // The U/V planes are guaranteed to have the same row stride and pixel stride.  The
+        // U/V planes are interleaved and have a 2x2 subsampling.
+        // The chroma plane (U/V) has a pixel stride of 2 so we need to read one byte at a time.
+        // V data follows U data, so we need to read V data first.
+        // For I420, we can get away by using one chroma buffer, for NV21 we need separate U and V buffers.
+
+        vBuffer.get(nv21, ySize, vSize);
+        uBuffer.get(nv21, ySize + vSize, uSize);
+
+
+        Mat yuvMat = new Mat(height + height / 2, width, CvType.CV_8UC1);
+        yuvMat.put(0, 0, nv21);
+        return yuvMat;
     }
-    
-    /*
 
-    // TextureView listener to know when the preview is available
-    private TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
+    private Mat processImage(Mat input) {
+        Mat hsv = new Mat();
+        Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGBA2RGB);
+        Imgproc.cvtColor(hsv, hsv, Imgproc.COLOR_RGB2HSV);
 
-        @Override
-        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-            startCamera();
+        // Define lower and upper bounds for the hue range.
+        // Note: OpenCV’s Hue range is typically 0..180.
+        // Convert the slider values accordingly.
+        int lowerHue = (int) (hue / 2.0 - hueWidth / 2.0);
+        int upperHue = (int) (hue / 2.0 + hueWidth / 2.0);
+        int lowerHueLimit = Math.max(0, lowerHue);
+        int upperHueLimit = Math.min(180, upperHue);
+        // Lower saturation and value thresholds.
+        Scalar lowerb = new Scalar(lowerHueLimit, satThreshold, lumThreshold);
+        Scalar upperb = new Scalar(upperHueLimit, 255, 255);
+
+        Mat mask = new Mat();
+        Core.inRange(hsv, lowerb, upperb, mask);
+        if (lowerHue < 0 || upperHue > 180) {
+            if (lowerHue < 0) {
+                lowerHueLimit = lowerHue + 180;
+                upperHueLimit = 180;
+            } else {
+                lowerHueLimit = 0;
+                upperHueLimit = upperHue - 180;
+            }
+            lowerb = new Scalar(lowerHueLimit, satThreshold, lumThreshold);
+            upperb = new Scalar(upperHueLimit, 255, 255);
+            Mat mask2 = new Mat();
+            Core.inRange(hsv, lowerb, upperb, mask2);
+            Core.bitwise_or(mask, mask2, mask);
+            mask2.release();
         }
 
-        @Override
-        public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+        Mat output = Mat.zeros(input.size(), input.type());
+        if (!filterOn) {
+            input.copyTo(output);
+        }
+        if (includeMode) {
+            input.copyTo(output, mask);
+        } else {
+            Core.bitwise_not(mask, mask);
+            input.copyTo(output, mask);
         }
 
-        @Override
-        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-            if (cameraDevice != null) {
+        mask.release();
+        return output;
+    }
+
+    protected void updatePreview() {
+        if (null == cameraDevice) {
+            Log.e(TAG, "updatePreview error, return");
+        }
+
+        // Apply zoom to the capture request
+        applyZoom(mScaleFactor);
+
+        captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+        try {
+            cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void configureTransform(int viewWidth, int viewHeight) {
+        if (null == textureView || null == imageDimension) {
+            return;
+        }
+        int rotation = getWindowManager().getDefaultDisplay().getRotation();
+        Matrix matrix = new Matrix();
+        RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
+        RectF bufferRect = new RectF(0, 0, imageDimension.getHeight(), imageDimension.getWidth()); //Swapped for rotation
+        float centerX = viewRect.centerX();
+        float centerY = viewRect.centerY();
+        if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
+            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
+            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
+            float scale = Math.max(
+                    (float) viewHeight / imageDimension.getHeight(),
+                    (float) viewWidth / imageDimension.getWidth());
+            matrix.postScale(scale, scale, centerX, centerY);
+            matrix.postRotate(90 * (rotation - 2), centerX, centerY);
+
+        }
+        textureView.setTransform(matrix);
+
+    }
+
+    private void closeCamera() {
+        try {
+            cameraOpenCloseLock.acquire();
+            if (null != cameraCaptureSession) {
+                cameraCaptureSession.close();
+                cameraCaptureSession = null;
+            }
+            if (null != cameraDevice) {
                 cameraDevice.close();
                 cameraDevice = null;
             }
-            return true;
-        }
-
-        @Override
-        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-            // Each time the texture updates, you might grab the image and run your filter processing.
-            if (filterOn) {
-                // You’d typically retrieve the camera frame as a Bitmap and convert it to OpenCV Mat.
-                // For demonstration, suppose we capture the current frame:
-                final android.graphics.Bitmap bmp = surfaceView.getBitmap();
-                if (bmp != null) {
-                    Mat mat = new Mat(bmp.getHeight(), bmp.getWidth(), CvType.CV_8UC4);
-                    org.opencv.android.Utils.bitmapToMat(bmp, mat);
-                    Mat processed = processFrame(mat);
-                    // Convert the processed Mat back to Bitmap and display (for example, on an ImageView overlay)
-                    // Alternatively, you can draw directly to the TextureView’s Canvas.
-                    // This code is kept simple for illustration.
-                    org.opencv.android.Utils.matToBitmap(processed, bmp);
-                    Canvas canvas = surfaceView.lockCanvas();
-                    if (canvas != null) {
-                        canvas.drawBitmap(bmp, 0, 0, null);
-                        surfaceView.unlockCanvasAndPost(canvas);
-                    }
-                }
+            if (null != imageReader) {
+                imageReader.close();
+                imageReader = null;
             }
-        }
-    };
-    */
-
-    // Open the chosen camera
-    private void startCamera() {
-        try {
-            if (camera != null) {
-                stopCameraPreview();
-                camera.release();
-                camera = null;
-            }
-            camera = Camera.open(currentCameraId);
-            camera.setDisplayOrientation(90); // Adjust orientation as needed
-            camera.setPreviewDisplay(surfaceHolder);
-            camera.startPreview();
-        } catch (IOException e) {
-            Log.e(TAG, "Error starting camera preview: " + e.getMessage());
-            Toast.makeText(this, "Error starting camera.", Toast.LENGTH_SHORT).show();
-        } catch (RuntimeException e) { // Catch RuntimeException for camera issues
-            Log.e(TAG, "Camera open failed: " + e.getMessage());
-            Toast.makeText(this, "Camera open failed.", Toast.LENGTH_SHORT).show();
-        }    
-    }
-
-    private void stopCameraPreview() {
-        if (camera != null) {
-            camera.stopPreview();
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Interrupted while trying to lock camera closing.", e);
+        } finally {
+            cameraOpenCloseLock.release();
         }
     }
 
-    private void switchCamera() {
-        if (Camera.getNumberOfCameras() > 1) {
-            currentCameraId = (currentCameraId == Camera.CameraInfo.CAMERA_FACING_BACK) ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK;
-            startCamera();
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.e(TAG, "onResume");
+        startBackgroundThread();
+        if (textureView.isAvailable()) {
+            openCamera();
         } else {
-            Toast.makeText(this, "Only one camera available.", Toast.LENGTH_SHORT).show();
+            textureView.setSurfaceTextureListener(this);
         }
     }
 
-    /*
-    // Callback for CameraDevice state changes.
-    private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
-        @Override
-        public void onOpened(@NonNull CameraDevice camera) {
-            cameraDevice = camera;
-            createCameraPreview();
-        }
+    @Override
+    protected void onPause() {
+        Log.e(TAG, "onPause");
+        closeCamera();
+        stopBackgroundThread();
+        super.onPause();
+    }
 
-        @Override
-        public void onDisconnected(@NonNull CameraDevice camera) {
-            cameraDevice.close();
-        }
+    protected void startBackgroundThread() {
+        backgroundThread = new HandlerThread("Camera Background");
+        backgroundThread.start();
+        backgroundHandler = new Handler(backgroundThread.getLooper());
+    }
 
+    protected void stopBackgroundThread() {
+        if (backgroundThread != null) {
+            backgroundThread.quitSafely();
+            try {
+                backgroundThread.join();
+                backgroundThread = null;
+                backgroundHandler = null;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    //Empty capture callback (needed for applyZoom)
+    private CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
         @Override
-        public void onError(@NonNull CameraDevice camera, int error) {
-            cameraDevice.close();
-            cameraDevice = null;
+        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+            super.onCaptureCompleted(session, request, result);
         }
     };
-    */
 
-    // Dummy function to illustrate zoom rectangle (you must calculate based on sensor active array size)
-    private android.graphics.Rect getZoomRect() {
-        // For a “real” app, query CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE.
-        // This is a placeholder that returns a fixed region based on currentZoom.
-        int left = 100;
-        int top = 100;
-        int right = 500;
-        int bottom = 500;
-        // Adjust crop by zoom factor.
-        int dx = (int) ((right - left) * (currentZoom - 1) / 2);
-        int dy = (int) ((bottom - top) * (currentZoom - 1) / 2);
-        return new android.graphics.Rect(left + dx, top + dy, right - dx, bottom - dy);
-    }
-
-    private void updateZoom() {
-        // if (cameraDevice == null || captureSession == null || previewRequestBuilder == null) return;
-        // updatePreview();
-    }
-
-     private class FilterTask extends AsyncTask<Bitmap, Void, Bitmap> {
-
-        @Override
-        protected Bitmap doInBackground(Bitmap... bitmaps) {
-            Bitmap originalBitmap = bitmaps[0];
-            Mat input = new Mat();
-            Utils.bitmapToMat(originalBitmap, input);
-            Mat hsv = new Mat();
-            Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGBA2RGB);
-            Imgproc.cvtColor(hsv, hsv, Imgproc.COLOR_RGB2HSV);
-
-            // Define lower and upper bounds for the hue range.
-            // Note: OpenCV’s Hue range is typically 0..180.
-            // Convert the slider values accordingly.
-            int lowerHue = (int)(hue / 2.0 - hueWidth / 2.0);
-            int upperHue = (int)(hue / 2.0 + hueWidth / 2.0);
-            int lowerHueLimit = Math.max(0, lowerHue);
-            int upperHueLimit = Math.min(180, upperHue);
-            // Lower saturation and value thresholds.
-            Scalar lowerb = new Scalar(lowerHueLimit, satThreshold, lumThreshold);
-            Scalar upperb = new Scalar(upperHueLimit, 255, 255);
-
-            Mat mask = new Mat();
-            Core.inRange(hsv, lowerb, upperb, mask);
-            if (lowerHue < 0 || upperHue > 180) {
-                if (lowerHue < 0) {
-                    lowerHueLimit = lowerHue + 180;
-                    upperHueLimit = 180;
-                } else {
-                    lowerHueLimit = 0;
-                    upperHueLimit = upperHue - 180;
-                }
-                lowerb = new Scalar(lowerHueLimit, satThreshold, lumThreshold);
-                upperb = new Scalar(upperHueLimit, 255, 255);
-                Mat mask2 = new Mat();
-                Core.inRange(hsv, lowerb, upperb, mask2);
-                Core.bitwise_or(mask, mask2, mask);
-                mask2.release();
-            }
-
-            Mat output = Mat.zeros(input.size(), input.type());
-            if (!filterOn) {
-                input.copyTo(output);
-            } if (includeMode) {
-                input.copyTo(output, mask);
-            } else {
-                Core.bitwise_not(mask, mask);
-                input.copyTo(output, mask);
-            }
-            input.release();
-            mask.release();
-            Bitmap filtered = Bitmap.createBitmap(originalBitmap.getWidth(), originalBitmap.getHeight(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(output, filtered);
-            output.release(); 
-            return filtered;
-        }
-
-        @Override
-        protected void onPostExecute(Bitmap resultBitmap) {
-            if (surfaceHolder.getSurface() != null) {
-                Canvas canvas = null;
-                try {
-                    canvas = surfaceHolder.lockCanvas(null);
-                    synchronized (surfaceHolder) {
-                        canvas.drawBitmap(resultBitmap, 0, 0, null);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                } finally {
-                    if (canvas != null) {
-                        surfaceHolder.unlockCanvasAndPost(canvas);
-                    }
-                }
-            }
-        }
-    }
-
-    // --- SurfaceHolder.Callback methods ---
-    @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-        startCamera();
-    }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        if (surfaceHolder.getSurface() == null) {
-            return; // Surface not ready
-        }
-        stopCameraPreview();
-        startCamera(); // Restart preview after surface changes
-    }
-
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        if (camera != null) {
-            stopCameraPreview();
-            camera.release();
-            camera = null;
-        }
-    }
-
-
-    // Handle camera permission results.
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String permissions[],
-                                           @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == CAMERA_PERMISSION_REQUEST) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startCamera();
-            } else {
-                // Handle permission denial gracefully.
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
+                // close the app
+                Toast.makeText(MainActivity.this, "Sorry!!!, you can't use this app without granting permission", Toast.LENGTH_LONG).show();
+                finish();
             }
         }
     }
+
 }
