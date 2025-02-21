@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout 
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- This TextureView will display the camera preview or the image -->
-    <TextureView
+    <SurfaceView
         android:id="@+id/texture_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_above="@+id/controlPanel"
+        android:scaleType="fitCenter" />
 
     <!-- A layout overlay for controls -->
     <LinearLayout
@@ -23,28 +24,26 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            
+            android:orientation="horizontal"
+            android:gravity="center">
+
             <Button
                 android:id="@+id/switchCameraBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Switch Camera" />
 
-            <ToggleButton
-                android:id="@+id/filterToggleBtn"
+            <Button
+                android:id="@+id/filterButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textOff="Filter Off"
-                android:textOn="Filter On" />
+                android:text="Off" />
 
-            <!-- You could also add a toggle or radio group to choose "Include" vs. "Exclude" -->
-            <ToggleButton
-                android:id="@+id/includeExcludeToggle"
+            <Button
+                android:id="@+id/loadImageButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textOff="Exclude"
-                android:textOn="Include" />
+                android:text="Image" />
         </LinearLayout>
 
         <!-- SeekBars for hue, hue width, saturation, luminance -->

@@ -1,60 +1,53 @@
 package com.orbitals.colorfilter;
 
 import android.Manifest;
-import android.app.Activity;
-import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Matrix;
-import android.graphics.SurfaceTexture;
-import android.hardware.camera2.*;
+import android.hardware.Camera;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import android.util.Log;
-import android.util.Size;
 import android.view.ScaleGestureDetector;
-import android.view.Surface;
-import android.view.TextureView;
-import android.view.View;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.widget.Button;
 import android.widget.SeekBar;
-import android.widget.ToggleButton;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
-import java.util.Arrays;
+import java.io.IOException;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
 
     private static final String TAG = "MainActivity";
-    private static final int CAMERA_PERMISSION_REQUEST_CODE = 1;
+    private static final int CAMERA_PERMISSION_REQUEST = 1;
 
     // UI elements
-    private TextureView textureView;
-    private Button switchCameraBtn;
-    private ToggleButton filterToggleBtn, includeExcludeToggle;
+    private SurfaceView surfaceView;
+    private Button switchCameraBtn, filterButton, loadImageButton;
+    private TextView filterButtonText;
     private SeekBar hueSeekBar, hueWidthSeekBar, saturationSeekBar, luminanceSeekBar;
 
-    // Camera2 API variables
-    private CameraDevice cameraDevice;
-    private CameraCaptureSession captureSession;
-    private CaptureRequest.Builder previewRequestBuilder;
-    private String cameraId;
-    private CameraManager cameraManager;
-    private Size previewSize;
-    private Handler backgroundHandler;
-    private HandlerThread backgroundThread;
+    private SurfaceView cameraPreview;
+    private SurfaceHolder surfaceHolder;
+    private Camera camera;
+    private int currentCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
+    private Bitmap currentBitmap;
 
     // Variables for pinch zoom
     private ScaleGestureDetector scaleGestureDetector;
@@ -67,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
     static {
         if (!OpenCVLoader.initDebug()) {
-            Log.e(TAG, "Unable to load OpenCV!");
+            Log.e(TAG, "Unable to load OpenCV");
         } else {
             Log.d(TAG, "OpenCV loaded successfully");
         }
@@ -79,26 +72,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // Obtain references to UI elements
-        textureView = findViewById(R.id.texture_view);
+        surfaceView = findViewById(R.id.texture_view);
         switchCameraBtn = findViewById(R.id.switchCameraBtn);
-        filterToggleBtn = findViewById(R.id.filterToggleBtn);
-        includeExcludeToggle = findViewById(R.id.includeExcludeToggle);
+        filterButton = findViewById(R.id.filterButton);
+        filterButtonText = findViewById(R.id.filterButton);
+        loadImageButton = findViewById(R.id.loadImageButton);
         hueSeekBar = findViewById(R.id.hueSeekBar);
         hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
         saturationSeekBar = findViewById(R.id.saturationSeekBar);
         luminanceSeekBar = findViewById(R.id.luminanceSeekBar);
 
-        cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-
-        // Set initial camera. We pick the first camera id.
-        try {
-            cameraId = cameraManager.getCameraIdList()[0];
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-
-        // Set up TextureView listener
-        textureView.setSurfaceTextureListener(textureListener);
+        surfaceHolder = surfaceView.getHolder();
+        surfaceHolder.addCallback(this);
+        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
         // Set up pinch zoom detector
         scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -110,43 +96,74 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
-        textureView.setOnTouchListener((v, event) -> {
+        surfaceView.setOnTouchListener((v, event) -> {
             scaleGestureDetector.onTouchEvent(event);
             return true;  // return true to indicate the touch events are handled
         });
 
         // Set up button to switch cameras
         switchCameraBtn.setOnClickListener(view -> switchCamera());
-
-        // Set up filter toggle controls
-        filterToggleBtn.setOnCheckedChangeListener((buttonView, isChecked) -> filterOn = isChecked);
-        includeExcludeToggle.setOnCheckedChangeListener((buttonView, isChecked) -> includeMode = isChecked);
+        filterButton.setOnClickListener(v -> {
+            if (!filterOn) {
+                filterOn = true;
+                includeMode = true;
+                filterButtonText.setText("Include");
+            } else if (includeMode) {
+                includeMode = false;
+                filterButtonText.setText("Exclude");
+            } else {
+                filterOn = false;
+                filterButtonText.setText("Off");
+            }
+            applyFilter(); // Re-apply filter on toggle
+        });
 
         // Set up SeekBars to update filter parameters
         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hue = progress;
+                if (filterOn) {
+                    applyFilter();
+                }
             }
         });
         hueWidthSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hueWidth = progress;
+                if (filterOn) {
+                    applyFilter();
+                }
             }
         });
         saturationSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 satThreshold = progress;
+                if (filterOn) {
+                    applyFilter();
+                }
             }
         });
         luminanceSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 lumThreshold = progress;
+                if (filterOn) {
+                    applyFilter();
+                }
             }
         });
+        checkCameraPermission();
+    }
+
+    private void checkCameraPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST);
+        } else {
+            startCamera(); // Permission already granted, start camera
+        }
     }
 
     // Simple SeekBarChangeListener base class so you only override what you need.
@@ -160,14 +177,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void applyFilter() {
+        if (currentBitmap == null) {
+            return; // Nothing to filter
+        }
+
+        new FilterTask().execute(currentBitmap); // Run filtering in background
+    }
+    
+    /*
+
     // TextureView listener to know when the preview is available
     private TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
 
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-            // Start background thread and open camera when texture is available
-            startBackgroundThread();
-            openCamera();
+            startCamera();
         }
 
         @Override
@@ -180,7 +205,6 @@ public class MainActivity extends AppCompatActivity {
                 cameraDevice.close();
                 cameraDevice = null;
             }
-            stopBackgroundThread();
             return true;
         }
 
@@ -190,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
             if (filterOn) {
                 // You’d typically retrieve the camera frame as a Bitmap and convert it to OpenCV Mat.
                 // For demonstration, suppose we capture the current frame:
-                final android.graphics.Bitmap bmp = textureView.getBitmap();
+                final android.graphics.Bitmap bmp = surfaceView.getBitmap();
                 if (bmp != null) {
                     Mat mat = new Mat(bmp.getHeight(), bmp.getWidth(), CvType.CV_8UC4);
                     org.opencv.android.Utils.bitmapToMat(bmp, mat);
@@ -199,31 +223,54 @@ public class MainActivity extends AppCompatActivity {
                     // Alternatively, you can draw directly to the TextureView’s Canvas.
                     // This code is kept simple for illustration.
                     org.opencv.android.Utils.matToBitmap(processed, bmp);
-                    Canvas canvas = textureView.lockCanvas();
+                    Canvas canvas = surfaceView.lockCanvas();
                     if (canvas != null) {
                         canvas.drawBitmap(bmp, 0, 0, null);
-                        textureView.unlockCanvasAndPost(canvas);
+                        surfaceView.unlockCanvasAndPost(canvas);
                     }
                 }
             }
         }
     };
+    */
 
     // Open the chosen camera
-    private void openCamera() {
+    private void startCamera() {
         try {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
-                return;
+            if (camera != null) {
+                stopCameraPreview();
+                camera.release();
+                camera = null;
             }
-            // You might choose an appropriate previewSize here (omitted for brevity)
-            cameraManager.openCamera(cameraId, stateCallback, backgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
+            camera = Camera.open(currentCameraId);
+            camera.setDisplayOrientation(90); // Adjust orientation as needed
+            camera.setPreviewDisplay(surfaceHolder);
+            camera.startPreview();
+        } catch (IOException e) {
+            Log.e(TAG, "Error starting camera preview: " + e.getMessage());
+            Toast.makeText(this, "Error starting camera.", Toast.LENGTH_SHORT).show();
+        } catch (RuntimeException e) { // Catch RuntimeException for camera issues
+            Log.e(TAG, "Camera open failed: " + e.getMessage());
+            Toast.makeText(this, "Camera open failed.", Toast.LENGTH_SHORT).show();
+        }    
+    }
+
+    private void stopCameraPreview() {
+        if (camera != null) {
+            camera.stopPreview();
         }
     }
 
+    private void switchCamera() {
+        if (Camera.getNumberOfCameras() > 1) {
+            currentCameraId = (currentCameraId == Camera.CameraInfo.CAMERA_FACING_BACK) ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK;
+            startCamera();
+        } else {
+            Toast.makeText(this, "Only one camera available.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /*
     // Callback for CameraDevice state changes.
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
@@ -243,47 +290,7 @@ public class MainActivity extends AppCompatActivity {
             cameraDevice = null;
         }
     };
-
-    // Set up and start the camera preview.
-    private void createCameraPreview() {
-        try {
-            SurfaceTexture texture = textureView.getSurfaceTexture();
-            if (texture == null) return;
-            // Configure buffer size if needed (example: previewSize.width x previewSize.height)
-            // texture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
-            Surface surface = new Surface(texture);
-            previewRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            previewRequestBuilder.addTarget(surface);
-
-            cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback() {
-                @Override
-                public void onConfigured(@NonNull CameraCaptureSession session) {
-                    if (cameraDevice == null) return;
-                    captureSession = session;
-                    updatePreview();
-                }
-
-                @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-                    Log.e(TAG, "Configuration change");
-                }
-            }, backgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void updatePreview() {
-        try {
-            // Add zoom to the capture request if supported.
-            // (A real implementation would query the camera's zoom capabilities and set the proper RECT)
-            previewRequestBuilder.set(CaptureRequest.SCALER_CROP_REGION, getZoomRect());
-            previewRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-            captureSession.setRepeatingRequest(previewRequestBuilder.build(), null, backgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
+    */
 
     // Dummy function to illustrate zoom rectangle (you must calculate based on sensor active array size)
     private android.graphics.Rect getZoomRect() {
@@ -300,110 +307,121 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateZoom() {
-        if (cameraDevice == null || captureSession == null || previewRequestBuilder == null) return;
-        updatePreview();
+        // if (cameraDevice == null || captureSession == null || previewRequestBuilder == null) return;
+        // updatePreview();
     }
 
-    // Switch camera, for example toggling between front and back.
-    private void switchCamera() {
-        try {
-            String[] cameraIds = cameraManager.getCameraIdList();
-            //  Simple approach: choose the next available camera
-            for (String id : cameraIds) {
-                if (!id.equals(cameraId)) {
-                    cameraId = id;
-                    break;
+     private class FilterTask extends AsyncTask<Bitmap, Void, Bitmap> {
+
+        @Override
+        protected Bitmap doInBackground(Bitmap... bitmaps) {
+            Bitmap originalBitmap = bitmaps[0];
+            Mat input = new Mat();
+            Utils.bitmapToMat(originalBitmap, input);
+            Mat hsv = new Mat();
+            Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGBA2RGB);
+            Imgproc.cvtColor(hsv, hsv, Imgproc.COLOR_RGB2HSV);
+
+            // Define lower and upper bounds for the hue range.
+            // Note: OpenCV’s Hue range is typically 0..180.
+            // Convert the slider values accordingly.
+            int lowerHue = (int)(hue / 2.0 - hueWidth / 2.0);
+            int upperHue = (int)(hue / 2.0 + hueWidth / 2.0);
+            int lowerHueLimit = Math.max(0, lowerHue);
+            int upperHueLimit = Math.min(180, upperHue);
+            // Lower saturation and value thresholds.
+            Scalar lowerb = new Scalar(lowerHueLimit, satThreshold, lumThreshold);
+            Scalar upperb = new Scalar(upperHueLimit, 255, 255);
+
+            Mat mask = new Mat();
+            Core.inRange(hsv, lowerb, upperb, mask);
+            if (lowerHue < 0 || upperHue > 180) {
+                if (lowerHue < 0) {
+                    lowerHueLimit = lowerHue + 180;
+                    upperHueLimit = 180;
+                } else {
+                    lowerHueLimit = 0;
+                    upperHueLimit = upperHue - 180;
+                }
+                lowerb = new Scalar(lowerHueLimit, satThreshold, lumThreshold);
+                upperb = new Scalar(upperHueLimit, 255, 255);
+                Mat mask2 = new Mat();
+                Core.inRange(hsv, lowerb, upperb, mask2);
+                Core.bitwise_or(mask, mask2, mask);
+                mask2.release();
+            }
+
+            Mat output = Mat.zeros(input.size(), input.type());
+            if (!filterOn) {
+                input.copyTo(output);
+            } if (includeMode) {
+                input.copyTo(output, mask);
+            } else {
+                Core.bitwise_not(mask, mask);
+                input.copyTo(output, mask);
+            }
+            input.release();
+            mask.release();
+            Bitmap filtered = Bitmap.createBitmap(originalBitmap.getWidth(), originalBitmap.getHeight(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(output, filtered);
+            output.release(); 
+            return filtered;
+        }
+
+        @Override
+        protected void onPostExecute(Bitmap resultBitmap) {
+            if (surfaceHolder.getSurface() != null) {
+                Canvas canvas = null;
+                try {
+                    canvas = surfaceHolder.lockCanvas(null);
+                    synchronized (surfaceHolder) {
+                        canvas.drawBitmap(resultBitmap, 0, 0, null);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    if (canvas != null) {
+                        surfaceHolder.unlockCanvasAndPost(canvas);
+                    }
                 }
             }
-            if (cameraDevice != null) {
-                cameraDevice.close();
-            }
-            openCamera();
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
         }
     }
 
-    // Process the image frame using OpenCV.
-    // When filterOn is true, we apply either an “include” or “exclude” filter.
-    private Mat processFrame(Mat input) {
-        Mat hsv = new Mat();
-        Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGBA2RGB);
-        Imgproc.cvtColor(hsv, hsv, Imgproc.COLOR_RGB2HSV);
-
-        // Define lower and upper bounds for the hue range.
-        // Note: OpenCV’s Hue range is typically 0..180.
-        // Convert the slider values accordingly.
-        int lowerHue = (int) (hue / 2.0 - hueWidth / 2.0);
-        int upperHue = (int) (hue / 2.0 + hueWidth / 2.0);
-        // Lower saturation and value thresholds.
-        Scalar lowerb = new Scalar(lowerHue, satThreshold, lumThreshold);
-        Scalar upperb = new Scalar(upperHue, 255, 255);
-
-        Mat mask = new Mat();
-        Core.inRange(hsv, lowerb, upperb, mask);
-
-        Mat output = Mat.zeros(input.size(), input.type());
-        if (includeMode) {
-            // For include mode: copy pixels where mask is nonzero.
-            input.copyTo(output, mask);
-        } else {
-            // For exclude mode: invert mask and copy.
-            Mat invertedMask = new Mat();
-            Core.bitwise_not(mask, invertedMask);
-            input.copyTo(output, invertedMask);
-        }
-        return output;
-    }
-
-    // Background thread management
-    private void startBackgroundThread() {
-        backgroundThread = new HandlerThread("CameraBackground");
-        backgroundThread.start();
-        backgroundHandler = new Handler(backgroundThread.getLooper());
-    }
-
-    private void stopBackgroundThread() {
-        if (backgroundThread != null) {
-            backgroundThread.quitSafely();
-            try {
-                backgroundThread.join();
-                backgroundThread = null;
-                backgroundHandler = null;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+    // --- SurfaceHolder.Callback methods ---
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        startCamera();
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        startBackgroundThread();
-        if (textureView.isAvailable()) {
-            openCamera();
-        } else {
-            textureView.setSurfaceTextureListener(textureListener);
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        if (surfaceHolder.getSurface() == null) {
+            return; // Surface not ready
         }
+        stopCameraPreview();
+        startCamera(); // Restart preview after surface changes
     }
 
     @Override
-    protected void onPause() {
-        if (cameraDevice != null) {
-            cameraDevice.close();
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        if (camera != null) {
+            stopCameraPreview();
+            camera.release();
+            camera = null;
         }
-        stopBackgroundThread();
-        super.onPause();
     }
+
 
     // Handle camera permission results.
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String permissions[],
                                            @NonNull int[] grantResults) {
-        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_PERMISSION_REQUEST) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openCamera();
+                startCamera();
             } else {
                 // Handle permission denial gracefully.
             }
