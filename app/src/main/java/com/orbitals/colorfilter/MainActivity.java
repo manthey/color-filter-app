@@ -611,10 +611,19 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         if (requestCode == REQUEST_CAMERA_PERMISSION) {
             if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
                 // close the app
-                Toast.makeText(MainActivity.this, "Sorry!!!, you can't use this app without granting permission", Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "Permission is required for basic function", Toast.LENGTH_LONG).show();
                 finish();
             }
         }
     }
 
 }
+
+// TODO:
+// - camera scale
+// - camera orientation
+// - camera zoom
+// - focus
+// - load image
+// - icon
+// - remember settings
