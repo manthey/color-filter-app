@@ -270,7 +270,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private void openCamera() {
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-        Log.e(TAG, "is camera open");
+        Log.d(TAG, "is camera open");
         try {
             cameraId = isFrontCamera ? manager.getCameraIdList()[1] : manager.getCameraIdList()[0]; // Select camera
 
@@ -588,7 +588,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     @Override
     protected void onResume() {
         super.onResume();
-        Log.e(TAG, "onResume");
+        Log.i(TAG, "onResume");
         startBackgroundThread();
         if (textureView.isAvailable()) {
             openCamera();
@@ -599,7 +599,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     protected void onPause() {
-        Log.e(TAG, "onPause");
+        Log.i(TAG, "onPause");
         closeCamera();
         stopBackgroundThread();
         super.onPause();
