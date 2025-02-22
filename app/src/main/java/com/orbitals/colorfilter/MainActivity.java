@@ -5,7 +5,6 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
-import android.hardware.Camera;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -13,8 +12,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.util.Log;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -83,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private String cameraId;
     private boolean isFrontCamera = false;  // Flag for front/back camera
     private Semaphore cameraOpenCloseLock = new Semaphore(1);
+    private boolean surfaceAvailable = false;
 
     // Pinch to zoom variables
     private float mScaleFactor = 1.0f;
@@ -251,6 +249,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+        surfaceAvailable = true;
         openCamera();
     }
 
@@ -261,6 +260,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+        surfaceAvailable = false;
         return true;
     }
 
@@ -270,7 +270,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private void openCamera() {
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-        Log.e(TAG, "is camera open");
+        Log.d(TAG, "is camera open");
         try {
             cameraId = isFrontCamera ? manager.getCameraIdList()[1] : manager.getCameraIdList()[0]; // Select camera
 
@@ -329,7 +329,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private Size chooseOptimalSize(Size[] choices, int width, int height) {
         List<Size> bigEnough = new ArrayList<>();
         for (Size option : choices) {
-            if (option.getHeight() == option.getWidth() * height / width &&
+            Log.e(TAG, String.format("Preview %d %d %d %d", width, height, option.getWidth(), option.getHeight()));
+            if (option.getHeight() * width == option.getWidth() * height &&
                     option.getWidth() >= width && option.getHeight() >= height) {
                 bigEnough.add(option);
             }
@@ -352,12 +353,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     protected void createCameraPreview() {
         try {
-            SurfaceTexture texture = textureView.getSurfaceTexture();
-            assert texture != null;
-            texture.setDefaultBufferSize(imageDimension.getWidth(), imageDimension.getHeight());
-            Surface surface = new Surface(texture);
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            captureRequestBuilder.addTarget(surface);
 
             // Set up ImageReader for processing frames
             imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(),
@@ -365,12 +361,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             imageReader.setOnImageAvailableListener(imageAvailableListener, backgroundHandler);
             captureRequestBuilder.addTarget(imageReader.getSurface());
 
-
-            cameraDevice.createCaptureSession(Arrays.asList(surface, imageReader.getSurface()), new CameraCaptureSession.StateCallback() {
+            cameraDevice.createCaptureSession(Arrays.asList(imageReader.getSurface()), new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession session) {
                     //The camera is already closed
-                    if (null == cameraDevice) {
+                    if (cameraDevice == null) {
                         return;
                     }
                     // When the session is ready, we start displaying the preview.
@@ -593,7 +588,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     @Override
     protected void onResume() {
         super.onResume();
-        Log.e(TAG, "onResume");
+        Log.i(TAG, "onResume");
         startBackgroundThread();
         if (textureView.isAvailable()) {
             openCamera();
@@ -604,7 +599,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     protected void onPause() {
-        Log.e(TAG, "onPause");
+        Log.i(TAG, "onPause");
         closeCamera();
         stopBackgroundThread();
         super.onPause();
