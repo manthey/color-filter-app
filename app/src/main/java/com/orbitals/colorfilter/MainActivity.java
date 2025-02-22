@@ -49,8 +49,6 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 
-import org.opencv.core.CvType;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,6 +61,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private static final String TAG = "Color Filter";
     private static final int REQUEST_CAMERA_PERMISSION = 200;
+
+    public enum FilterMode {
+        NONE,
+        INCLUDE,
+        EXCLUDE,
+        BINARY
+    }
 
     // UI elements
     private TextureView textureView;
@@ -81,7 +86,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private String cameraId;
     private boolean isFrontCamera = false;  // Flag for front/back camera
     private Semaphore cameraOpenCloseLock = new Semaphore(1);
-    private boolean surfaceAvailable = false;
 
     // Pinch to zoom variables
     private float mScaleFactor = 1.0f;
@@ -91,8 +95,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     // Filter parameters (default values)
     private int hue = 0, hueWidth = 30, satThreshold = 100, lumThreshold = 100;
-    private boolean filterOn = false;
-    private boolean includeMode = true;
+    private FilterMode filterMode = FilterMode.NONE;
 
     static {
         if (!OpenCVLoader.initDebug()) {
@@ -120,18 +123,24 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         filterButton = findViewById(R.id.filterButton);
         filterButtonText = findViewById(R.id.filterButton);
         filterButton.setOnClickListener(v -> {
-            if (!filterOn) {
-                filterOn = true;
-                includeMode = true;
-                filterButtonText.setText("Include");
-            } else if (includeMode) {
-                includeMode = false;
-                filterButtonText.setText("Exclude");
-            } else {
-                filterOn = false;
-                filterButtonText.setText("Off");
+            switch (filterMode) {
+                case NONE:
+                    filterMode = FilterMode.INCLUDE;
+                    filterButtonText.setText("Include");
+                    break;
+                case INCLUDE:
+                    filterMode = FilterMode.EXCLUDE;
+                    filterButtonText.setText("Exclude");
+                    break;
+                case EXCLUDE:
+                    filterMode = FilterMode.BINARY;
+                    filterButtonText.setText("Binary");
+                    break;
+                case BINARY:
+                    filterMode = FilterMode.NONE;
+                    filterButtonText.setText("Off");
+                    break;
             }
-            // applyFilter(); // Re-apply filter on toggle
         });
         loadImageButton = findViewById(R.id.loadImageButton);
         hueSeekBar = findViewById(R.id.hueSeekBar);
@@ -238,7 +247,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-        surfaceAvailable = true;
         openCamera();
     }
 
@@ -249,7 +257,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-        surfaceAvailable = false;
         return true;
     }
 
@@ -398,11 +405,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 buffer.get(bytes);
 
                 // Convert JPEG bytes to Bitmap
-                Bitmap inbmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                Bitmap inputBmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
 
                 // Convert Bitmap to Mat for processing
                 Mat rgbMat = new Mat();
-                Utils.bitmapToMat(inbmp, rgbMat);
+                Utils.bitmapToMat(inputBmp, rgbMat);
 
                 // Process the image
                 Mat processedMat = processImage(rgbMat);
@@ -428,45 +435,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     };
 
-    private Mat yuvImageToMat(Image image) {
-        if (image.getFormat() != ImageFormat.YUV_420_888) {
-            throw new IllegalArgumentException("Invalid image format");
-        }
-
-        Image.Plane[] planes = image.getPlanes();
-        int width = image.getWidth();
-        int height = image.getHeight();
-
-        // Y plane
-        ByteBuffer yBuffer = planes[0].getBuffer();
-        int ySize = yBuffer.remaining();
-
-        // U, V plane
-        ByteBuffer uBuffer = planes[1].getBuffer();
-        int uSize = uBuffer.remaining();
-        ByteBuffer vBuffer = planes[2].getBuffer();
-        int vSize = vBuffer.remaining();
-
-        byte[] nv21 = new byte[ySize + uSize + vSize];
-
-        // Copy Y plane
-        yBuffer.get(nv21, 0, ySize);
-
-        // The U/V planes are guaranteed to have the same row stride and pixel stride.  The
-        // U/V planes are interleaved and have a 2x2 subsampling.
-        // The chroma plane (U/V) has a pixel stride of 2 so we need to read one byte at a time.
-        // V data follows U data, so we need to read V data first.
-        // For I420, we can get away by using one chroma buffer, for NV21 we need separate U and V buffers.
-
-        vBuffer.get(nv21, ySize, vSize);
-        uBuffer.get(nv21, ySize + vSize, uSize);
-
-
-        Mat yuvMat = new Mat(height + height / 2, width, CvType.CV_8UC1);
-        yuvMat.put(0, 0, nv21);
-        return yuvMat;
-    }
-
     private Mat processImage(Mat input) {
         Mat hsv = new Mat();
         Imgproc.cvtColor(input, input, Imgproc.COLOR_RGBA2RGB);
@@ -482,11 +450,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         int lowerHueLimit = Math.max(0, lowerHue);
         int upperHueLimit = Math.min(180, upperHue);
         // Lower saturation and value thresholds.
-        Scalar lowerb = new Scalar(lowerHueLimit, satThreshold, lumThreshold);
-        Scalar upperb = new Scalar(upperHueLimit, 255, 255);
+        Scalar lowerBound = new Scalar(lowerHueLimit, satThreshold, lumThreshold);
+        Scalar upperBound = new Scalar(upperHueLimit, 255, 255);
 
         Mat mask = new Mat();
-        Core.inRange(hsv, lowerb, upperb, mask);
+        Core.inRange(hsv, lowerBound, upperBound, mask);
         if (lowerHue < 0 || upperHue > 180) {
             if (lowerHue < 0) {
                 lowerHueLimit = lowerHue + 180;
@@ -495,24 +463,33 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 lowerHueLimit = 0;
                 upperHueLimit = upperHue - 180;
             }
-            lowerb = new Scalar(lowerHueLimit, satThreshold, lumThreshold);
-            upperb = new Scalar(upperHueLimit, 255, 255);
+            lowerBound = new Scalar(lowerHueLimit, satThreshold, lumThreshold);
+            upperBound = new Scalar(upperHueLimit, 255, 255);
             Mat mask2 = new Mat();
-            Core.inRange(hsv, lowerb, upperb, mask2);
+            Core.inRange(hsv, lowerBound, upperBound, mask2);
             Core.bitwise_or(mask, mask2, mask);
             mask2.release();
         }
 
         Mat output = Mat.zeros(input.size(), input.type());
-        if (!filterOn) {
-            input.copyTo(output);
-        }
-        if (includeMode) {
-            input.copyTo(output, mask);
-        } else {
-            Core.bitwise_not(mask, mask);
-            output.setTo(new Scalar(255, 255, 255));
-            input.copyTo(output, mask);
+        switch (filterMode) {
+            case NONE:
+                input.copyTo(output);
+                break;
+            case INCLUDE:
+                input.copyTo(output, mask);
+                break;
+            case EXCLUDE:
+                Core.bitwise_not(mask, mask);
+                output.setTo(new Scalar(255, 255, 255));
+                input.copyTo(output, mask);
+                break;
+            case BINARY:
+                Mat ones = Mat.zeros(input.size(), input.type());
+                ones.setTo(new Scalar(255, 255, 255));
+                ones.copyTo(output, mask);
+                ones.release();
+                break;
         }
         mask.release();
         return output;
