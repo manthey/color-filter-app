@@ -143,36 +143,24 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hue = progress;
-                if (filterOn) {
-                    // applyFilter();
-                }
             }
         });
         hueWidthSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hueWidth = progress;
-                if (filterOn) {
-                    // applyFilter();
-                }
             }
         });
         saturationSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 satThreshold = progress;
-                if (filterOn) {
-                    // applyFilter();
-                }
             }
         });
         luminanceSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 lumThreshold = progress;
-                if (filterOn) {
-                    // applyFilter();
-                }
             }
         });
 
