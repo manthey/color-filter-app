@@ -17,7 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="#66000000"
+        android:background="#66BBBBBB"
         android:layout_alignParentBottom="true"
         android:padding="8dp">
 
@@ -31,18 +31,21 @@
                 android:id="@+id/switchCameraButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/black"
                 android:text="Camera" />
 
             <Button
                 android:id="@+id/filterButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/black"
                 android:text="Off" />
 
             <Button
                 android:id="@+id/loadImageButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/black"
                 android:text="Image" />
         </LinearLayout>
 
@@ -50,41 +53,57 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/black"
             android:text="Hue" />
         <SeekBar
             android:id="@+id/hueSeekBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:progressTint="@color/black"
+            android:thumb="@drawable/seekbar_thumb"
+            android:thumbOffset="9dp"
             android:max="360" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/black"
             android:text="Hue Width" />
         <SeekBar
             android:id="@+id/hueWidthSeekBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:progressTint="@color/black"
+            android:thumb="@drawable/seekbar_thumb"
+            android:thumbOffset="9dp"
             android:max="180" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/black"
             android:text="Saturation Threshold" />
         <SeekBar
             android:id="@+id/saturationSeekBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:progressTint="@color/black"
+            android:thumb="@drawable/seekbar_thumb"
+            android:thumbOffset="9dp"
             android:max="255" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/black"
             android:text="Luminance Threshold" />
         <SeekBar
             android:id="@+id/luminanceSeekBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:progressTint="@color/black"
+            android:thumb="@drawable/seekbar_thumb"
+            android:thumbOffset="9dp"
             android:max="255" />
     </LinearLayout>
 
