@@ -3,6 +3,7 @@ package com.orbitals.colorfilter;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Bundle;
@@ -142,36 +143,24 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hue = progress;
-                if (filterOn) {
-                    // applyFilter();
-                }
             }
         });
         hueWidthSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hueWidth = progress;
-                if (filterOn) {
-                    // applyFilter();
-                }
             }
         });
         saturationSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 satThreshold = progress;
-                if (filterOn) {
-                    // applyFilter();
-                }
             }
         });
         luminanceSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 lumThreshold = progress;
-                if (filterOn) {
-                    // applyFilter();
-                }
             }
         });
 
@@ -357,7 +346,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
             // Set up ImageReader for processing frames
             imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(),
-                    ImageFormat.YUV_420_888, 2);  // Use YUV for efficiency with OpenCV
+                    ImageFormat.JPEG, 2);  // Use YUV for efficiency with OpenCV
             imageReader.setOnImageAvailableListener(imageAvailableListener, backgroundHandler);
             captureRequestBuilder.addTarget(imageReader.getSurface());
 
@@ -404,10 +393,16 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     return;
                 }
 
-                // Convert YUV image to OpenCV Mat
-                Mat yuvMat = yuvImageToMat(image);
+                ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                byte[] bytes = new byte[buffer.capacity()];
+                buffer.get(bytes);
+
+                // Convert JPEG bytes to Bitmap
+                Bitmap inbmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+
+                // Convert Bitmap to Mat for processing
                 Mat rgbMat = new Mat();
-                Imgproc.cvtColor(yuvMat, rgbMat, Imgproc.COLOR_YUV2RGB_I420);
+                Utils.bitmapToMat(inbmp, rgbMat);
 
                 // Process the image
                 Mat processedMat = processImage(rgbMat);
@@ -425,8 +420,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
                 rgbMat.release(); // Release resources
                 processedMat.release();
-                yuvMat.release();
-
             } finally {
                 if (image != null) {
                     image.close();
@@ -476,8 +469,10 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private Mat processImage(Mat input) {
         Mat hsv = new Mat();
-        Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGBA2RGB);
-        Imgproc.cvtColor(hsv, hsv, Imgproc.COLOR_RGB2HSV);
+        Imgproc.cvtColor(input, input, Imgproc.COLOR_RGBA2RGB);
+        Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGB2HSV);
+        //Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGBA2RGB);
+        //Imgproc.cvtColor(hsv, hsv, Imgproc.COLOR_RGB2HSV);
 
         // Define lower and upper bounds for the hue range.
         // Note: OpenCV’s Hue range is typically 0..180.
@@ -516,9 +511,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             input.copyTo(output, mask);
         } else {
             Core.bitwise_not(mask, mask);
+            output.setTo(new Scalar(255, 255, 255));
             input.copyTo(output, mask);
         }
-
         mask.release();
         return output;
     }
