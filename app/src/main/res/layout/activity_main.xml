@@ -54,6 +54,7 @@
 
         <!-- SeekBars for hue, hue width, saturation, luminance -->
         <TextView
+            android:id="@+id/hueLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/black"
@@ -68,6 +69,7 @@
             android:max="360" />
 
         <TextView
+            android:id="@+id/hueWidthLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/black"
@@ -82,10 +84,11 @@
             android:max="180" />
 
         <TextView
+            android:id="@+id/saturationLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/black"
-            android:text="Saturation Threshold" />
+            android:text="Saturation" />
         <SeekBar
             android:id="@+id/saturationSeekBar"
             android:layout_width="match_parent"
@@ -96,10 +99,11 @@
             android:max="255" />
 
         <TextView
+            android:id="@+id/luminanceLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/black"
-            android:text="Luminance Threshold" />
+            android:text="Luminance" />
         <SeekBar
             android:id="@+id/luminanceSeekBar"
             android:layout_width="match_parent"

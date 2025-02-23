@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
@@ -66,6 +67,43 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         EXCLUDE,
         BINARY
     }
+
+    private HashMap<Integer, String> coarseHueMap = new HashMap<Integer, String>() {{
+        put(0, "Red");
+        put(31, "Orange");
+        put(91, "Yellow");
+        put(151, "Green");
+        put(211, "Blue");
+        put(271, "Violet");
+        put(331, "Red");
+    }};
+
+    private HashMap<Integer, String> fineHueMap = new HashMap<Integer, String>() {{
+        put(0, "Crimson");
+        put(15, "Scarlet");
+        put(30, "Tangerine");
+        put(45, "Amber");
+        put(60, "Gold");
+        put(75, "Lemon");
+        put(90, "Lime");
+        put(105, "Mint");
+        put(120, "Emerald");
+        put(135, "Teal");
+        put(150, "Aqua");
+        put(165, "Cyan");
+        put(180, "Azure");
+        put(195, "Sapphire");
+        put(210, "Indigo");
+        put(225, "Royal Blue");
+        put(240, "Purple");
+        put(255, "Magenta");
+        put(270, "Orchid");
+        put(285, "Lavender");
+        put(300, "Plum");
+        put(315, "Rose");
+        put(330, "Ruby");
+        put(345, "Coral");
+    }};
 
     // UI elements
     private TextureView textureView;
@@ -154,24 +192,32 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hue = progress - (progress % 2);
+                TextView hueLabel = findViewById(R.id.hueLabel);
+                hueLabel.setText("Hue - " + hue + " - " + getColorName(hue, coarseHueMap) + " - " + getColorName(hue, fineHueMap));
             }
         });
         hueWidthSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hueWidth = (progress - progress % 2);
+                TextView hwLabel = findViewById(R.id.hueWidthLabel);
+                hwLabel.setText("Hue Width - " + hueWidth);
             }
         });
         saturationSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 satThreshold = progress;
+                TextView satLabel = findViewById(R.id.saturationLabel);
+                satLabel.setText("Saturation - " + satThreshold);
             }
         });
         luminanceSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 lumThreshold = progress;
+                TextView lumLabel = findViewById(R.id.luminanceLabel);
+                lumLabel.setText("Luminance - " + lumThreshold);
             }
         });
 
@@ -182,6 +228,20 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 return handlePinchToZoom(event);
             }
         });
+    }
+
+    private String getColorName(int hue, HashMap<Integer, String> hueMap) {
+        int closestHue = 0;
+        int minDistance = 360;
+
+        for (Integer keyHue : hueMap.keySet()) {
+            int distance = hue - keyHue;
+            if (distance >= 0 && distance < minDistance) {
+                minDistance = distance;
+                closestHue = keyHue;
+            }
+        }
+        return hueMap.get(closestHue);
     }
 
     private boolean handlePinchToZoom(MotionEvent event) {
