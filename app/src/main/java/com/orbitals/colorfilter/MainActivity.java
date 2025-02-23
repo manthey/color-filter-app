@@ -252,7 +252,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-        configureTransform(width, height);
     }
 
     @Override
@@ -374,7 +373,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 }
             }, null);
         } catch (CameraAccessException e) {
-            e.printStackTrace();
+            Log.e(TAG, "CameraAccessException", e);
         }
     }
 
@@ -517,32 +516,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         try {
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
         } catch (CameraAccessException e) {
-            e.printStackTrace();
+            Log.e(TAG, "CameraAccessException", e);
         }
-    }
-
-    private void configureTransform(int viewWidth, int viewHeight) {
-        if (null == textureView || null == imageDimension) {
-            return;
-        }
-        int rotation = getWindowManager().getDefaultDisplay().getRotation();
-        Matrix matrix = new Matrix();
-        RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
-        RectF bufferRect = new RectF(0, 0, imageDimension.getHeight(), imageDimension.getWidth()); //Swapped for rotation
-        float centerX = viewRect.centerX();
-        float centerY = viewRect.centerY();
-        if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
-            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
-            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
-            float scale = Math.max(
-                    (float) viewHeight / imageDimension.getHeight(),
-                    (float) viewWidth / imageDimension.getWidth());
-            matrix.postScale(scale, scale, centerX, centerY);
-            matrix.postRotate(90 * (rotation - 2), centerX, centerY);
-
-        }
-        textureView.setTransform(matrix);
-
     }
 
     private void closeCamera() {
@@ -601,7 +576,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 backgroundThread = null;
                 backgroundHandler = null;
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Log.e(TAG, "InterruptedException", e);
             }
         }
     }
@@ -630,10 +605,12 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 }
 
 // TODO:
-// - camera scale
 // - camera orientation
 // - camera zoom
 // - focus
 // - load image
 // - icon
 // - remember settings
+// - numerical values
+// - color names
+// - color swatches
