@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private FilterMode filterMode = FilterMode.NONE;
 
     static {
-        if (!OpenCVLoader.initDebug()) {
+        if (!OpenCVLoader.initLocal()) {
             Log.e(TAG, "Unable to load OpenCV");
         } else {
             Log.d(TAG, "OpenCV loaded successfully");
@@ -309,13 +309,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         public void onDisconnected(CameraDevice camera) {
             cameraOpenCloseLock.release();
             cameraDevice.close();
-            cameraDevice = null; // Set to null when closed
+            cameraDevice = null; 
         }
 
         @Override
         public void onError(CameraDevice camera, int error) {
             cameraOpenCloseLock.release();
-            if (cameraDevice != null) { // Check for null before closing
+            if (cameraDevice != null) {
                 cameraDevice.close();
                 cameraDevice = null;
             }
@@ -353,14 +353,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
             // Set up ImageReader for processing frames
             imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(),
-                    ImageFormat.JPEG, 2);  // Use YUV for efficiency with OpenCV
+                    ImageFormat.JPEG, 2);
             imageReader.setOnImageAvailableListener(imageAvailableListener, backgroundHandler);
             captureRequestBuilder.addTarget(imageReader.getSurface());
 
             cameraDevice.createCaptureSession(Arrays.asList(imageReader.getSurface()), new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession session) {
-                    //The camera is already closed
                     if (cameraDevice == null) {
                         return;
                     }
@@ -379,7 +378,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     }
 
-    // Simple SeekBarChangeListener base class so you only override what you need.
     private abstract class SimpleSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {
