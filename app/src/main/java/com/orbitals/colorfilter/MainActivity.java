@@ -70,9 +70,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private HashMap<Integer, String> coarseHueMap = new HashMap<Integer, String>() {{
         put(0, "Red");
-        put(31, "Orange");
-        put(91, "Yellow");
-        put(151, "Green");
+        put(31, "Yellow");
+        put(91, "Green");
+        put(151, "Blue-Green");
         put(211, "Blue");
         put(271, "Violet");
         put(331, "Red");
@@ -80,29 +80,30 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private HashMap<Integer, String> fineHueMap = new HashMap<Integer, String>() {{
         put(0, "Red");
-        put(15, "Scarlet");
-        put(30, "Tangerine");
-        put(45, "Amber");
-        put(60, "Orange");
-        put(75, "Lemon");
-        put(90, "Lime");
-        put(105, "Mint");
-        put(120, "Emerald");
-        put(135, "Teal");
-        put(150, "Aqua");
-        put(165, "Cyan");
-        put(180, "Azure");
-        put(195, "Sapphire");
-        put(210, "Indigo");
-        put(225, "Royal Blue");
-        put(240, "Purple");
-        put(255, "Magenta");
-        put(270, "Orchid");
-        put(285, "Lavender");
-        put(300, "Plum");
-        put(315, "Rose");
-        put(330, "Ruby");
-        put(345, "Coral");
+        put(10, "Tangerine");
+        put(25, "Orange");
+        put(40, "Amber");
+        put(55, "Gold");
+        put(75, "Yellow");
+        put(85, "Chartreuse");
+        put(100, "Lime");
+        put(115, "Green");
+        put(130, "Jade");
+        put(145, "Teal");
+        put(160, "Turquoise");
+        put(175, "Cyan");
+        put(190, "Ocean");
+        put(205, "Sky Blue");
+        put(220, "Sapphire");
+        put(235, "Blue");
+        put(250, "Violet");
+        put(265, "Purple");
+        put(280, "Magenta");
+        put(295, "Fuschia");
+        put(310, "Pink");
+        put(325, "Rose");
+        put(340, "Crison");
+        put(355, "Red");
     }};
 
     // UI elements
@@ -718,3 +719,4 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - better landscape mode
 // - don't revert to front camera on orientation change
 // - handle videos
+// - better color names
