@@ -5,7 +5,6 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Rect;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -28,7 +27,6 @@ import org.opencv.imgproc.Imgproc;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
-import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -71,10 +69,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     // UI elements
     private TextureView textureView;
-    private Button switchCameraButton, filterButton, loadImageButton;
     private TextView filterButtonText;
-    private SeekBar hueSeekBar, hueWidthSeekBar, saturationSeekBar, luminanceSeekBar;
-
 
     private CameraDevice cameraDevice;
     private CameraCaptureSession cameraCaptureSession;
@@ -107,6 +102,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Button switchCameraButton, filterButton, loadImageButton;
+        SeekBar hueSeekBar, hueWidthSeekBar, saturationSeekBar, luminanceSeekBar;
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -220,19 +218,21 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         try {
             CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            // Get the max zoom ratio
+            Float maxZoom = characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
+            if (maxZoom == null) {
+                Log.e(TAG, "Maximum zoom ratio not available.");
+                return;
+            }
+            // Limit the scale to the maximum zoom ratio
+            scale = Math.max(mMinZoom, Math.min(scale, maxZoom));
+            // Set the zoom ratio in the capture request
+            captureRequestBuilder.set(CaptureRequest.CONTROL_ZOOM_RATIO, scale);
+            // Trigger AF when zooming
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
 
-            //Get the max zoom
-            if (mMaxZoom == 0) // Only set once.
-                mMaxZoom = characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
-
-            Rect m = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-            int deltaX = (int) ((m.width() - m.width() / scale) / 2);
-            int deltaY = (int) ((m.height() - m.height() / scale) / 2);
-            Rect zoomRect = new Rect(deltaX, deltaY, m.width() - deltaX, m.height() - deltaY);
-
-            captureRequestBuilder.set(CaptureRequest.SCALER_CROP_REGION, zoomRect);
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
-
 
         } catch (CameraAccessException e) {
             Log.e(TAG, "Failed to apply zoom", e);
@@ -645,3 +645,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - numerical values
 // - color names
 // - color swatches
+// - better landscape mode
+// - don't revert to front camera on orientation change
+// - handle videos

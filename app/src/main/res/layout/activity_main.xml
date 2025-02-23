@@ -9,7 +9,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@+id/controlPanel"
-        android:scaleType="fitCenter" />
+        android:scaleType="fitCenter" 
+        android:clickable="true"
+        android:focusable="true"
+    />
 
     <!-- A layout overlay for controls -->
     <LinearLayout
