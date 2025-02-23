@@ -79,11 +79,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     }};
 
     private HashMap<Integer, String> fineHueMap = new HashMap<Integer, String>() {{
-        put(0, "Crimson");
+        put(0, "Red");
         put(15, "Scarlet");
         put(30, "Tangerine");
         put(45, "Amber");
-        put(60, "Gold");
+        put(60, "Orange");
         put(75, "Lemon");
         put(90, "Lime");
         put(105, "Mint");
@@ -187,37 +187,34 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         hueWidthSeekBar.setProgress(hueWidth);
         saturationSeekBar.setProgress(satThreshold);
         luminanceSeekBar.setProgress(lumThreshold);
+        updateSeekLabels();
         // Set up SeekBars to update filter parameters
         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hue = progress - (progress % 2);
-                TextView hueLabel = findViewById(R.id.hueLabel);
-                hueLabel.setText("Hue - " + hue + " - " + getColorName(hue, coarseHueMap) + " - " + getColorName(hue, fineHueMap));
+                updateSeekLabels();
             }
         });
         hueWidthSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 hueWidth = (progress - progress % 2);
-                TextView hwLabel = findViewById(R.id.hueWidthLabel);
-                hwLabel.setText("Hue Width - " + hueWidth);
+                updateSeekLabels();
             }
         });
         saturationSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 satThreshold = progress;
-                TextView satLabel = findViewById(R.id.saturationLabel);
-                satLabel.setText("Saturation - " + satThreshold);
+                updateSeekLabels();
             }
         });
         luminanceSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 lumThreshold = progress;
-                TextView lumLabel = findViewById(R.id.luminanceLabel);
-                lumLabel.setText("Luminance - " + lumThreshold);
+                updateSeekLabels();
             }
         });
 
@@ -228,6 +225,17 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 return handlePinchToZoom(event);
             }
         });
+    }
+
+    private void updateSeekLabels() {
+        TextView hueLabel = findViewById(R.id.hueLabel);
+        hueLabel.setText("Hue - " + hue + " - " + getColorName(hue, coarseHueMap) + " - " + getColorName(hue, fineHueMap));
+        TextView hwLabel = findViewById(R.id.hueWidthLabel);
+        hwLabel.setText("Hue Width - " + hueWidth);
+        TextView satLabel = findViewById(R.id.saturationLabel);
+        satLabel.setText("Saturation - " + satThreshold);
+        TextView lumLabel = findViewById(R.id.luminanceLabel);
+        lumLabel.setText("Luminance - " + lumThreshold);
     }
 
     private String getColorName(int hue, HashMap<Integer, String> hueMap) {
@@ -701,13 +709,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 }
 
 // TODO:
-// - camera zoom
-// - focus
+// - full camera zoom
+// - selective focus
 // - load image
 // - icon
 // - remember settings
-// - numerical values
-// - color names
 // - color swatches
 // - better landscape mode
 // - don't revert to front camera on orientation change
