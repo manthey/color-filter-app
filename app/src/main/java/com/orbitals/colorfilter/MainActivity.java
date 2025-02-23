@@ -419,7 +419,19 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 // Display the bitmap on the TextureView
                 Canvas canvas = textureView.lockCanvas();
                 if (canvas != null) {
-                    canvas.drawBitmap(bmp, 0, 0, null);
+                    float viewWidth = textureView.getWidth();
+                    float viewHeight = textureView.getHeight();
+                    float bmpWidth = bmp.getWidth();
+                    float bmpHeight = bmp.getHeight();
+                    float scale = Math.max(viewWidth / bmpWidth, viewHeight / bmpHeight);
+                    float dx = (viewWidth - bmpWidth * scale) / 2;
+                    float dy = (viewHeight - bmpHeight * scale) / 2;
+                    Matrix matrix = new Matrix();
+                    // matrix.postRotate(90, viewHeight / 2, viewWidth / 2);
+                    matrix.postScale(scale, scale);
+                    matrix.postTranslate(dx, dy);
+                    canvas.drawBitmap(bmp, matrix, null);
+                    // canvas.drawBitmap(bmp, 0, 0, null);
                     textureView.unlockCanvasAndPost(canvas);
                 }
 
