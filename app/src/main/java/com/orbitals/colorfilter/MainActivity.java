@@ -308,7 +308,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         public void onDisconnected(CameraDevice camera) {
             cameraOpenCloseLock.release();
             cameraDevice.close();
-            cameraDevice = null; 
+            cameraDevice = null;
         }
 
         @Override
@@ -391,26 +391,22 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         try {
             CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
-
-            // Get sensor orientation
             int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
-            // Get device rotation
             int deviceRotation = getWindowManager().getDefaultDisplay().getRotation();
             int degrees = 0;
             switch (deviceRotation) {
-                case Surface.ROTATION_0: degrees = 0; break;
-                case Surface.ROTATION_90: degrees = 90; break;
-                case Surface.ROTATION_180: degrees = 180; break;
-                case Surface.ROTATION_270: degrees = 270; break;
+                case Surface.ROTATION_90:
+                    degrees = 90;
+                    break;
+                case Surface.ROTATION_180:
+                    degrees = 180;
+                    break;
+                case Surface.ROTATION_270:
+                    degrees = 270;
+                    break;
             }
-
-            // Calculate correct rotation
-            if (isFrontCamera) {
-                return (sensorOrientation + degrees) % 360;
-            } else {
-                return (sensorOrientation - degrees + 360) % 360;
-            }
+            return (sensorOrientation - degrees + 360) % 360;
         } catch (CameraAccessException e) {
             Log.e(TAG, "Failed to get camera characteristics", e);
             return 0;
@@ -454,6 +450,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     float bmpHeight = bmp.getHeight();
                     Matrix matrix = new Matrix();
                     int rotation = getCorrectRotation();
+                    if (isFrontCamera) {
+                        matrix.postScale(1, -1, bmpWidth / 2, bmpHeight / 2);
+                    }
                     matrix.postRotate(rotation, bmpWidth / 2, bmpHeight / 2);
                     float scale = Math.min(viewWidth / bmpWidth, viewHeight / bmpHeight);
                     if (rotation == 90 || rotation == 270) {
@@ -638,7 +637,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 }
 
 // TODO:
-// - camera orientation
 // - camera zoom
 // - focus
 // - load image
