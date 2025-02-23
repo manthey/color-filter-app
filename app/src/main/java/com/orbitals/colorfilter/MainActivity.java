@@ -252,7 +252,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-        configureTransform(width, height);
     }
 
     @Override
@@ -374,7 +373,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 }
             }, null);
         } catch (CameraAccessException e) {
-            e.printStackTrace();
+            Log.e(TAG, "CameraAccessException", e);
         }
     }
 
@@ -419,7 +418,19 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 // Display the bitmap on the TextureView
                 Canvas canvas = textureView.lockCanvas();
                 if (canvas != null) {
-                    canvas.drawBitmap(bmp, 0, 0, null);
+                    float viewWidth = textureView.getWidth();
+                    float viewHeight = textureView.getHeight();
+                    float bmpWidth = bmp.getWidth();
+                    float bmpHeight = bmp.getHeight();
+                    float scale = Math.max(viewWidth / bmpWidth, viewHeight / bmpHeight);
+                    float dx = (viewWidth - bmpWidth * scale) / 2;
+                    float dy = (viewHeight - bmpHeight * scale) / 2;
+                    Matrix matrix = new Matrix();
+                    // matrix.postRotate(90, viewHeight / 2, viewWidth / 2);
+                    matrix.postScale(scale, scale);
+                    matrix.postTranslate(dx, dy);
+                    canvas.drawBitmap(bmp, matrix, null);
+                    // canvas.drawBitmap(bmp, 0, 0, null);
                     textureView.unlockCanvasAndPost(canvas);
                 }
 
@@ -505,32 +516,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         try {
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
         } catch (CameraAccessException e) {
-            e.printStackTrace();
+            Log.e(TAG, "CameraAccessException", e);
         }
-    }
-
-    private void configureTransform(int viewWidth, int viewHeight) {
-        if (null == textureView || null == imageDimension) {
-            return;
-        }
-        int rotation = getWindowManager().getDefaultDisplay().getRotation();
-        Matrix matrix = new Matrix();
-        RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
-        RectF bufferRect = new RectF(0, 0, imageDimension.getHeight(), imageDimension.getWidth()); //Swapped for rotation
-        float centerX = viewRect.centerX();
-        float centerY = viewRect.centerY();
-        if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
-            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
-            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
-            float scale = Math.max(
-                    (float) viewHeight / imageDimension.getHeight(),
-                    (float) viewWidth / imageDimension.getWidth());
-            matrix.postScale(scale, scale, centerX, centerY);
-            matrix.postRotate(90 * (rotation - 2), centerX, centerY);
-
-        }
-        textureView.setTransform(matrix);
-
     }
 
     private void closeCamera() {
@@ -589,7 +576,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 backgroundThread = null;
                 backgroundHandler = null;
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Log.e(TAG, "InterruptedException", e);
             }
         }
     }
@@ -618,10 +605,12 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 }
 
 // TODO:
-// - camera scale
 // - camera orientation
 // - camera zoom
 // - focus
 // - load image
 // - icon
 // - remember settings
+// - numerical values
+// - color names
+// - color swatches
