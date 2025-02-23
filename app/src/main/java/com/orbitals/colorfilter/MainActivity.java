@@ -645,3 +645,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - numerical values
 // - color names
 // - color swatches
+// - better landscape mode
+// - don't revert to front camera on orientation change
+// - handle videos
