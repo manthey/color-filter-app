@@ -68,46 +68,46 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         BINARY
     }
 
-    private HashMap<Integer, String> coarseHueMap = new HashMap<Integer, String>() {{
+    private final HashMap<Integer, String> coarseHueMap = new HashMap<Integer, String>() {{
         put(0, "Red");
-        put(31, "Orange");
-        put(91, "Yellow");
-        put(151, "Green");
-        put(211, "Blue");
-        put(271, "Violet");
-        put(331, "Red");
+        put(30, "Yellow");
+        put(90, "Green");
+        put(150, "Cyan/Aqua");
+        put(210, "Blue");
+        put(270, "Purple");
+        put(330, "Red");
     }};
 
-    private HashMap<Integer, String> fineHueMap = new HashMap<Integer, String>() {{
+    private final HashMap<Integer, String> fineHueMap = new HashMap<Integer, String>() {{
         put(0, "Red");
-        put(15, "Scarlet");
-        put(30, "Tangerine");
-        put(45, "Amber");
-        put(60, "Orange");
-        put(75, "Lemon");
-        put(90, "Lime");
-        put(105, "Mint");
-        put(120, "Emerald");
-        put(135, "Teal");
-        put(150, "Aqua");
-        put(165, "Cyan");
-        put(180, "Azure");
-        put(195, "Sapphire");
-        put(210, "Indigo");
-        put(225, "Royal Blue");
-        put(240, "Purple");
-        put(255, "Magenta");
-        put(270, "Orchid");
-        put(285, "Lavender");
-        put(300, "Plum");
-        put(315, "Rose");
-        put(330, "Ruby");
-        put(345, "Coral");
+        put(8, "Orange-Red");
+        put(23, "Orange");
+        put(38, "Gold");
+        put(53, "Yellow");
+        put(68, "Lime");
+        put(83, "Chartreuse");
+        put(98, "Neon Green");
+        put(113, "Green");
+        put(128, "Spring Green");
+        put(143, "Mint Green");
+        put(158, "Turquoise");
+        put(173, "Cyan/Aqua");
+        put(188, "Sky Blue");
+        put(203, "Royal Blue");
+        put(218, "Sapphire");
+        put(233, "Blue");
+        put(248, "Violet");
+        put(263, "Purple");
+        put(278, "Fuchsia");
+        put(293, "Magenta");
+        put(308, "Deep Pink");
+        put(323, "Rose");
+        put(338, "Scarlet");
+        put(353, "Red");
     }};
 
     // UI elements
     private TextureView textureView;
-    private TextView filterButtonText;
 
     private CameraDevice cameraDevice;
     private CameraCaptureSession cameraCaptureSession;
@@ -118,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private Handler backgroundHandler;
     private String cameraId;
     private boolean isFrontCamera = false;  // Flag for front/back camera
-    private Semaphore cameraOpenCloseLock = new Semaphore(1);
+    private final Semaphore cameraOpenCloseLock = new Semaphore(1);
 
     // Pinch to zoom variables
     private float mScaleFactor = 1.0f;
@@ -137,6 +137,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             Log.d(TAG, "OpenCV loaded successfully");
         }
     }
+
+    private final CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+            super.onCaptureCompleted(session, request, result);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -157,24 +164,23 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             }
         });
         filterButton = findViewById(R.id.filterButton);
-        filterButtonText = findViewById(R.id.filterButton);
         filterButton.setOnClickListener(v -> {
             switch (filterMode) {
                 case NONE:
                     filterMode = FilterMode.INCLUDE;
-                    filterButtonText.setText("Include");
+                    filterButton.setText("Include");
                     break;
                 case INCLUDE:
                     filterMode = FilterMode.EXCLUDE;
-                    filterButtonText.setText("Exclude");
+                    filterButton.setText("Exclude");
                     break;
                 case EXCLUDE:
                     filterMode = FilterMode.BINARY;
-                    filterButtonText.setText("Binary");
+                    filterButton.setText("Binary");
                     break;
                 case BINARY:
                     filterMode = FilterMode.NONE;
-                    filterButtonText.setText("Off");
+                    filterButton.setText("Off");
                     break;
             }
         });
@@ -318,21 +324,21 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     }
 
     @Override
-    public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+    public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
         openCamera();
     }
 
     @Override
-    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+    public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {
     }
 
     @Override
-    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+    public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
         return true;
     }
 
     @Override
-    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+    public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {
     }
 
     private void openCamera() {
@@ -360,7 +366,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             manager.openCamera(cameraId, stateCallback, null);
             Log.d(TAG, "openCamera opened");
         } catch (CameraAccessException e) {
-            e.printStackTrace();
+            Log.e(TAG, "CameraAccessException", e);
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
         }
@@ -369,7 +375,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
-        public void onOpened(CameraDevice camera) {
+        public void onOpened(@NonNull CameraDevice camera) {
             cameraOpenCloseLock.release(); //Release on opening.
             Log.d(TAG, "onOpened");
             cameraDevice = camera;
@@ -377,14 +383,14 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
 
         @Override
-        public void onDisconnected(CameraDevice camera) {
+        public void onDisconnected(@NonNull CameraDevice camera) {
             cameraOpenCloseLock.release();
             cameraDevice.close();
             cameraDevice = null;
         }
 
         @Override
-        public void onError(CameraDevice camera, int error) {
+        public void onError(@NonNull CameraDevice camera, int error) {
             cameraOpenCloseLock.release();
             if (cameraDevice != null) {
                 cameraDevice.close();
@@ -449,7 +455,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     }
 
-    private abstract class SimpleSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
+    private abstract static class SimpleSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {
         }
@@ -466,7 +472,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
             int deviceRotation = getWindowManager().getDefaultDisplay().getRotation();
-            int degrees = 0;
+            int degrees;
             switch (deviceRotation) {
                 case Surface.ROTATION_90:
                     degrees = 90;
@@ -476,6 +482,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     break;
                 case Surface.ROTATION_270:
                     degrees = 270;
+                    break;
+                default:
+                    degrees = 0;
                     break;
             }
             return (sensorOrientation - degrees + 360) % 360;
@@ -488,9 +497,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private final ImageReader.OnImageAvailableListener imageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            Image image = null;
-            try {
-                image = reader.acquireLatestImage();
+            try (Image image = reader.acquireLatestImage()) {
                 if (image == null) {
                     return;
                 }
@@ -540,10 +547,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
                 rgbMat.release(); // Release resources
                 processedMat.release();
-            } finally {
-                if (image != null) {
-                    image.close();
-                }
             }
         }
     };
@@ -685,15 +688,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     }
 
-    //Empty capture callback (needed for applyZoom)
-    private CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
-        @Override
-        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-            super.onCaptureCompleted(session, request, result);
-        }
-    };
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -712,9 +706,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - full camera zoom
 // - selective focus
 // - load image
-// - icon
 // - remember settings
 // - color swatches
 // - better landscape mode
 // - don't revert to front camera on orientation change
 // - handle videos
+// - better color names
+// - pick a point and set hue to that value
+// - print value at crosshair
