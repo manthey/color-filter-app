@@ -145,17 +145,21 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
         saturationSeekBar = findViewById(R.id.saturationSeekBar);
         luminanceSeekBar = findViewById(R.id.luminanceSeekBar);
+        hueSeekBar.setProgress(hue);
+        hueWidthSeekBar.setProgress(hueWidth);
+        saturationSeekBar.setProgress(satThreshold);
+        luminanceSeekBar.setProgress(lumThreshold);
         // Set up SeekBars to update filter parameters
         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                hue = progress;
+                hue = progress - (progress % 2);
             }
         });
         hueWidthSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                hueWidth = progress;
+                hueWidth = (progress - progress % 2);
             }
         });
         saturationSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
