@@ -308,7 +308,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         public void onDisconnected(CameraDevice camera) {
             cameraOpenCloseLock.release();
             cameraDevice.close();
-            cameraDevice = null; 
+            cameraDevice = null;
         }
 
         @Override
@@ -387,6 +387,32 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     }
 
+    private int getCorrectRotation() {
+        try {
+            CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+
+            int deviceRotation = getWindowManager().getDefaultDisplay().getRotation();
+            int degrees = 0;
+            switch (deviceRotation) {
+                case Surface.ROTATION_90:
+                    degrees = 90;
+                    break;
+                case Surface.ROTATION_180:
+                    degrees = 180;
+                    break;
+                case Surface.ROTATION_270:
+                    degrees = 270;
+                    break;
+            }
+            return (sensorOrientation - degrees + 360) % 360;
+        } catch (CameraAccessException e) {
+            Log.e(TAG, "Failed to get camera characteristics", e);
+            return 0;
+        }
+    }
+
     private final ImageReader.OnImageAvailableListener imageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
@@ -422,15 +448,21 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     float viewHeight = textureView.getHeight();
                     float bmpWidth = bmp.getWidth();
                     float bmpHeight = bmp.getHeight();
-                    float scale = Math.max(viewWidth / bmpWidth, viewHeight / bmpHeight);
+                    Matrix matrix = new Matrix();
+                    int rotation = getCorrectRotation();
+                    if (isFrontCamera) {
+                        matrix.postScale(1, -1, bmpWidth / 2, bmpHeight / 2);
+                    }
+                    matrix.postRotate(rotation, bmpWidth / 2, bmpHeight / 2);
+                    float scale = Math.min(viewWidth / bmpWidth, viewHeight / bmpHeight);
+                    if (rotation == 90 || rotation == 270) {
+                        scale = Math.min(viewWidth / bmpHeight, viewHeight / bmpWidth);
+                    }
                     float dx = (viewWidth - bmpWidth * scale) / 2;
                     float dy = (viewHeight - bmpHeight * scale) / 2;
-                    Matrix matrix = new Matrix();
-                    // matrix.postRotate(90, viewHeight / 2, viewWidth / 2);
                     matrix.postScale(scale, scale);
                     matrix.postTranslate(dx, dy);
                     canvas.drawBitmap(bmp, matrix, null);
-                    // canvas.drawBitmap(bmp, 0, 0, null);
                     textureView.unlockCanvasAndPost(canvas);
                 }
 
@@ -605,7 +637,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 }
 
 // TODO:
-// - camera orientation
 // - camera zoom
 // - focus
 // - load image
