@@ -533,9 +533,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                         matrix.postScale(1, -1, bmpWidth / 2, bmpHeight / 2);
                     }
                     matrix.postRotate(rotation, bmpWidth / 2, bmpHeight / 2);
-                    float scale = Math.min(viewWidth / bmpWidth, viewHeight / bmpHeight);
+                    float scale = Math.max(viewWidth / bmpWidth, viewHeight / bmpHeight);
                     if (rotation == 90 || rotation == 270) {
-                        scale = Math.min(viewWidth / bmpHeight, viewHeight / bmpWidth);
+                        scale = Math.max(viewWidth / bmpHeight, viewHeight / bmpWidth);
                     }
                     float dx = (viewWidth - bmpWidth * scale) / 2;
                     float dy = (viewHeight - bmpHeight * scale) / 2;
