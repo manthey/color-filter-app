@@ -138,6 +138,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     }
 
+    private final CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+            super.onCaptureCompleted(session, request, result);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Button switchCameraButton, filterButton, loadImageButton;
@@ -317,21 +324,21 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     }
 
     @Override
-    public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+    public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
         openCamera();
     }
 
     @Override
-    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+    public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {
     }
 
     @Override
-    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+    public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
         return true;
     }
 
     @Override
-    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+    public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {
     }
 
     private void openCamera() {
@@ -359,7 +366,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             manager.openCamera(cameraId, stateCallback, null);
             Log.d(TAG, "openCamera opened");
         } catch (CameraAccessException e) {
-            e.printStackTrace();
+            Log.e(TAG, "CameraAccessException", e);
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
         }
@@ -368,7 +375,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
-        public void onOpened(CameraDevice camera) {
+        public void onOpened(@NonNull CameraDevice camera) {
             cameraOpenCloseLock.release(); //Release on opening.
             Log.d(TAG, "onOpened");
             cameraDevice = camera;
@@ -376,14 +383,14 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
 
         @Override
-        public void onDisconnected(CameraDevice camera) {
+        public void onDisconnected(@NonNull CameraDevice camera) {
             cameraOpenCloseLock.release();
             cameraDevice.close();
             cameraDevice = null;
         }
 
         @Override
-        public void onError(CameraDevice camera, int error) {
+        public void onError(@NonNull CameraDevice camera, int error) {
             cameraOpenCloseLock.release();
             if (cameraDevice != null) {
                 cameraDevice.close();
@@ -448,7 +455,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     }
 
-    private abstract class SimpleSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
+    private abstract static class SimpleSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {
         }
@@ -465,7 +472,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
             int deviceRotation = getWindowManager().getDefaultDisplay().getRotation();
-            int degrees = 0;
+            int degrees;
             switch (deviceRotation) {
                 case Surface.ROTATION_90:
                     degrees = 90;
@@ -475,6 +482,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     break;
                 case Surface.ROTATION_270:
                     degrees = 270;
+                    break;
+                default:
+                    degrees = 0;
                     break;
             }
             return (sensorOrientation - degrees + 360) % 360;
@@ -487,9 +497,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private final ImageReader.OnImageAvailableListener imageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            Image image = null;
-            try {
-                image = reader.acquireLatestImage();
+            try (Image image = reader.acquireLatestImage()) {
                 if (image == null) {
                     return;
                 }
@@ -539,10 +547,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
                 rgbMat.release(); // Release resources
                 processedMat.release();
-            } finally {
-                if (image != null) {
-                    image.close();
-                }
             }
         }
     };
@@ -683,15 +687,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             }
         }
     }
-
-    //Empty capture callback (needed for applyZoom)
-    private CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
-        @Override
-        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-            super.onCaptureCompleted(session, request, result);
-        }
-    };
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
