@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         BINARY
     }
 
-    private HashMap<Integer, String> coarseHueMap = new HashMap<Integer, String>() {{
+    private final HashMap<Integer, String> coarseHueMap = new HashMap<Integer, String>() {{
         put(0, "Red");
         put(30, "Yellow");
         put(90, "Green");
@@ -78,9 +78,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         put(330, "Red");
     }};
 
-    private HashMap<Integer, String> fineHueMap = new HashMap<Integer, String>() {{
+    private final HashMap<Integer, String> fineHueMap = new HashMap<Integer, String>() {{
         put(0, "Red");
-        put(8, "Ornage-Red");
+        put(8, "Orange-Red");
         put(23, "Orange");
         put(38, "Gold");
         put(53, "Yellow");
@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         put(233, "Blue");
         put(248, "Violet");
         put(263, "Purple");
-        put(278, "Fuschia");
+        put(278, "Fuchsia");
         put(293, "Magenta");
         put(308, "Deep Pink");
         put(323, "Rose");
@@ -108,7 +108,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     // UI elements
     private TextureView textureView;
-    private TextView filterButtonText;
 
     private CameraDevice cameraDevice;
     private CameraCaptureSession cameraCaptureSession;
@@ -119,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private Handler backgroundHandler;
     private String cameraId;
     private boolean isFrontCamera = false;  // Flag for front/back camera
-    private Semaphore cameraOpenCloseLock = new Semaphore(1);
+    private final Semaphore cameraOpenCloseLock = new Semaphore(1);
 
     // Pinch to zoom variables
     private float mScaleFactor = 1.0f;
@@ -158,24 +157,23 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             }
         });
         filterButton = findViewById(R.id.filterButton);
-        filterButtonText = findViewById(R.id.filterButton);
         filterButton.setOnClickListener(v -> {
             switch (filterMode) {
                 case NONE:
                     filterMode = FilterMode.INCLUDE;
-                    filterButtonText.setText("Include");
+                    filterButton.setText("Include");
                     break;
                 case INCLUDE:
                     filterMode = FilterMode.EXCLUDE;
-                    filterButtonText.setText("Exclude");
+                    filterButton.setText("Exclude");
                     break;
                 case EXCLUDE:
                     filterMode = FilterMode.BINARY;
-                    filterButtonText.setText("Binary");
+                    filterButton.setText("Binary");
                     break;
                 case BINARY:
                     filterMode = FilterMode.NONE;
-                    filterButtonText.setText("Off");
+                    filterButton.setText("Off");
                     break;
             }
         });
@@ -719,3 +717,5 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - don't revert to front camera on orientation change
 // - handle videos
 // - better color names
+// - pick a point and set hue to that value
+// - print value at crosshair
