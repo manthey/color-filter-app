@@ -713,7 +713,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - full camera zoom
 // - selective focus
 // - load image
-// - icon
 // - remember settings
 // - color swatches
 // - better landscape mode
