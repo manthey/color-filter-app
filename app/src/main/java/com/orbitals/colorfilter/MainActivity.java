@@ -70,40 +70,40 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private HashMap<Integer, String> coarseHueMap = new HashMap<Integer, String>() {{
         put(0, "Red");
-        put(31, "Yellow");
-        put(91, "Green");
-        put(151, "Blue-Green");
-        put(211, "Blue");
-        put(271, "Violet");
-        put(331, "Red");
+        put(30, "Yellow");
+        put(90, "Green");
+        put(150, "Cyan/Aqua");
+        put(210, "Blue");
+        put(270, "Purple");
+        put(330, "Red");
     }};
 
     private HashMap<Integer, String> fineHueMap = new HashMap<Integer, String>() {{
         put(0, "Red");
-        put(10, "Tangerine");
-        put(25, "Orange");
-        put(40, "Amber");
-        put(55, "Gold");
-        put(75, "Yellow");
-        put(85, "Chartreuse");
-        put(100, "Lime");
-        put(115, "Green");
-        put(130, "Jade");
-        put(145, "Teal");
-        put(160, "Turquoise");
-        put(175, "Cyan");
-        put(190, "Ocean");
-        put(205, "Sky Blue");
-        put(220, "Sapphire");
-        put(235, "Blue");
-        put(250, "Violet");
-        put(265, "Purple");
-        put(280, "Magenta");
-        put(295, "Fuschia");
-        put(310, "Pink");
-        put(325, "Rose");
-        put(340, "Crison");
-        put(355, "Red");
+        put(8, "Ornage-Red");
+        put(23, "Orange");
+        put(38, "Gold");
+        put(53, "Yellow");
+        put(68, "Lime");
+        put(83, "Chartreuse");
+        put(98, "Neon Green");
+        put(113, "Green");
+        put(128, "Spring Green");
+        put(143, "Mint Green");
+        put(158, "Turquoise");
+        put(173, "Cyan/Aqua");
+        put(188, "Sky Blue");
+        put(203, "Royal Blue");
+        put(218, "Sapphire");
+        put(233, "Blue");
+        put(248, "Violet");
+        put(263, "Purple");
+        put(278, "Fuschia");
+        put(293, "Magenta");
+        put(308, "Deep Pink");
+        put(323, "Rose");
+        put(338, "Scarlet");
+        put(353, "Red");
     }};
 
     // UI elements
