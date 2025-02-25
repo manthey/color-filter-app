@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private float mLastTouchDistance = -1f;
 
     // Filter parameters (default values)
-    private int hue = 0, hueWidth = 30, satThreshold = 100, lumThreshold = 100;
+    private int hue = 0, hueWidth = 14, satThreshold = 100, lumThreshold = 100;
     private FilterMode filterMode = FilterMode.NONE;
 
     static {
@@ -403,8 +403,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         List<Size> bigEnough = new ArrayList<>();
         for (Size option : choices) {
             Log.e(TAG, String.format("Preview %d %d %d %d", width, height, option.getWidth(), option.getHeight()));
-            if (option.getHeight() * width == option.getWidth() * height &&
-                    option.getWidth() >= width && option.getHeight() >= height) {
+            if (option.getWidth() >= width && option.getHeight() >= height) {
                 bigEnough.add(option);
             }
         }
@@ -711,6 +710,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - better landscape mode
 // - don't revert to front camera on orientation change
 // - handle videos
-// - better color names
 // - pick a point and set hue to that value
 // - print value at crosshair
+// - ml query about color at crosshair
