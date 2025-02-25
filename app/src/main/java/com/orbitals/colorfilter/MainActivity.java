@@ -2,6 +2,7 @@ package com.orbitals.colorfilter;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -432,7 +433,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     ImageFormat.JPEG, 2);
             imageReader.setOnImageAvailableListener(imageAvailableListener, backgroundHandler);
             captureRequestBuilder.addTarget(imageReader.getSurface());
-
+            // captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
             cameraDevice.createCaptureSession(Arrays.asList(imageReader.getSurface()), new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession session) {
@@ -618,6 +619,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         // Apply zoom to the capture request
         applyZoom(mScaleFactor);
 
+        //captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
         captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
         try {
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
@@ -699,17 +701,38 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     }
 
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        // Close and reopen camera to handle the new orientation
+        closeCamera();
+        openCamera();
+
+        // Update preview size for new orientation
+        if (textureView.isAvailable()) {
+            CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+            try {
+                StreamConfigurationMap map = manager.getCameraCharacteristics(cameraId)
+                        .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+                assert map != null;
+                imageDimension = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
+                        textureView.getWidth(), textureView.getHeight());
+            } catch (CameraAccessException e) {
+                Log.e(TAG, "Failed to get camera characteristics", e);
+            }
+        }
+    }
 }
 
 // TODO:
-// - full camera zoom
-// - selective focus
+// - full camera zoom (multiple lenses)
 // - load image
 // - remember settings
 // - color swatches
 // - better landscape mode
-// - don't revert to front camera on orientation change
 // - handle videos
 // - pick a point and set hue to that value
 // - print value at crosshair
 // - ml query about color at crosshair
+// ? selective focus
