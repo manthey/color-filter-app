@@ -1,31 +1,17 @@
 package com.orbitals.colorfilter;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.PointF;
+import android.graphics.RectF;
+import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-
-import android.util.Log;
-import android.widget.Button;
-import android.widget.SeekBar;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfInt;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
@@ -49,6 +35,25 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+
+import android.provider.MediaStore;
+import android.util.Log;
+import android.widget.Button;
+import android.widget.SeekBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private static final String TAG = "Color Filter";
     private static final int REQUEST_CAMERA_PERMISSION = 200;
+    private static final int PICK_IMAGE = 201;
 
     public enum FilterMode {
         NONE,
@@ -123,6 +129,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private boolean isFrontCamera = false;  // Flag for front/back camera
     private final Semaphore cameraOpenCloseLock = new Semaphore(1);
 
+    private Bitmap loadedImage = null;
+    private boolean isImageMode = false;
+    private PointF lastTouch = new PointF();
+    private Matrix imageMatrix = new Matrix();
+    private RectF imageBounds = new RectF();
+    private float[] matrixValues = new float[9];
+
     // Pinch to zoom variables
     private float mScaleFactor = 1.0f;
     private float mMinZoom;
@@ -163,7 +176,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         switchCameraButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                switchCamera();
+                if (isImageMode) {
+                    isImageMode = false;
+                    loadedImage = null;
+                    openCamera();
+                } else {
+                    switchCamera();
+                }
             }
         });
         filterButton = findViewById(R.id.filterButton);
@@ -192,6 +211,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             }
         });
         loadImageButton = findViewById(R.id.loadImageButton);
+        loadImageButton.setOnClickListener(v -> {
+            Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            startActivityForResult(gallery, PICK_IMAGE);
+        });
+
         hueSeekBar = findViewById(R.id.hueSeekBar);
         hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
         saturationSeekBar = findViewById(R.id.saturationSeekBar);
@@ -235,7 +259,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         textureView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                return handlePinchToZoom(event);
+                if (isImageMode) {
+                    return handleImageTouch(event);
+                } else {
+                    return handlePinchToZoom(event);
+                }
             }
         });
     }
@@ -737,6 +765,146 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             }
         }
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK && requestCode == PICK_IMAGE) {
+            try {
+                Uri imageUri = data.getData();
+                InputStream inputStream = getContentResolver().openInputStream(imageUri);
+                loadedImage = BitmapFactory.decodeStream(inputStream);
+                isImageMode = true;
+                setupImageMatrix();
+                closeCamera(); // Stop camera preview
+                displayLoadedImage(); // Initial display
+            } catch (Exception e) {
+                Log.e(TAG, "Error loading image", e);
+                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void setupImageMatrix() {
+        float viewWidth = textureView.getWidth();
+        float viewHeight = textureView.getHeight();
+        float imageWidth = loadedImage.getWidth();
+        float imageHeight = loadedImage.getHeight();
+
+        // Calculate scale to fit screen while maintaining aspect ratio
+        float scale = Math.min(viewWidth / imageWidth, viewHeight / imageHeight);
+
+        // Center the image
+        float dx = (viewWidth - imageWidth * scale) / 2;
+        float dy = (viewHeight - imageHeight * scale) / 2;
+
+        imageMatrix.reset();
+        imageMatrix.postScale(scale, scale);
+        imageMatrix.postTranslate(dx, dy);
+
+        // Set bounds for pan limits
+        imageBounds.set(0, 0, imageWidth, imageHeight);
+        imageMatrix.mapRect(imageBounds);
+    }
+
+    private void displayLoadedImage() {
+        if (loadedImage == null || !isImageMode) return;
+
+        Canvas canvas = textureView.lockCanvas();
+        if (canvas != null) {
+            canvas.drawColor(Color.BLACK);
+            canvas.drawBitmap(loadedImage, imageMatrix, null);
+            textureView.unlockCanvasAndPost(canvas);
+        }
+    }
+
+    private boolean handleImageTouch(MotionEvent event) {
+        if (!isImageMode) return false;
+
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                lastTouch.set(event.getX(), event.getY());
+                return true;
+
+            case MotionEvent.ACTION_MOVE:
+                if (event.getPointerCount() == 2) {
+                    // Handle zoom
+                    float newDistance = getDistance(event);
+                    if (mLastTouchDistance > 0) {
+                        float scale = newDistance / mLastTouchDistance;
+
+                        // Get current scale
+                        imageMatrix.getValues(matrixValues);
+                        float currentScale = matrixValues[Matrix.MSCALE_X];
+
+                        // Calculate new scale within limits
+                        float minScale = Math.min(
+                                textureView.getWidth() / loadedImage.getWidth(),
+                                textureView.getHeight() / loadedImage.getHeight()
+                        );
+                        float maxScale = Math.max(2.0f,
+                                Math.max(
+                                        textureView.getWidth() / (float) loadedImage.getWidth(),
+                                        textureView.getHeight() / (float) loadedImage.getHeight()
+                                ) * 2
+                        );
+
+                        float newScale = Math.min(Math.max(currentScale * scale, minScale), maxScale);
+                        scale = newScale / currentScale;
+
+                        // Scale around center point between fingers
+                        float centerX = (event.getX(0) + event.getX(1)) / 2;
+                        float centerY = (event.getY(0) + event.getY(1)) / 2;
+                        imageMatrix.postScale(scale, scale, centerX, centerY);
+                    }
+                    mLastTouchDistance = newDistance;
+                } else if (event.getPointerCount() == 1) {
+                    // Handle pan
+                    float dx = event.getX() - lastTouch.x;
+                    float dy = event.getY() - lastTouch.y;
+
+                    imageMatrix.postTranslate(dx, dy);
+                    lastTouch.set(event.getX(), event.getY());
+                }
+
+                // Enforce bounds
+                constrainImage();
+                displayLoadedImage();
+                return true;
+
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_UP:
+                mLastTouchDistance = -1;
+                return true;
+        }
+        return false;
+    }
+
+    private void constrainImage() {
+        RectF rect = new RectF(0, 0, loadedImage.getWidth(), loadedImage.getHeight());
+        imageMatrix.mapRect(rect);
+
+        float dx = 0, dy = 0;
+
+        // Constrain horizontal movement
+        if (rect.width() <= textureView.getWidth()) {
+            dx = (textureView.getWidth() - rect.width()) / 2 - rect.left;
+        } else {
+            if (rect.left > 0) dx = -rect.left;
+            if (rect.right < textureView.getWidth()) dx = textureView.getWidth() - rect.right;
+        }
+
+        // Constrain vertical movement
+        if (rect.height() <= textureView.getHeight()) {
+            dy = (textureView.getHeight() - rect.height()) / 2 - rect.top;
+        } else {
+            if (rect.top > 0) dy = -rect.top;
+            if (rect.bottom < textureView.getHeight()) dy = textureView.getHeight() - rect.bottom;
+        }
+
+        imageMatrix.postTranslate(dx, dy);
+    }
+
 }
 
 // TODO:
