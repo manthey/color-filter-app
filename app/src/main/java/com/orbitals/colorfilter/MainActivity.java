@@ -22,6 +22,7 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfInt;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
@@ -66,7 +67,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         NONE,
         INCLUDE,
         EXCLUDE,
-        BINARY
+        BINARY,
+        SATURATION
     }
 
     private final HashMap<Integer, String> coarseHueMap = new HashMap<Integer, String>() {{
@@ -180,6 +182,10 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     filterButton.setText("Binary");
                     break;
                 case BINARY:
+                    filterMode = FilterMode.SATURATION;
+                    filterButton.setText("Saturation");
+                    break;
+                case SATURATION:
                     filterMode = FilterMode.NONE;
                     filterButton.setText("Off");
                     break;
@@ -267,11 +273,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             float currentDistance = getDistance(event);
 
             if (mLastTouchDistance != -1f) {
-                // Calculate scale factor
                 mScaleFactor *= currentDistance / mLastTouchDistance;
                 mScaleFactor = Math.max(mMinZoom, Math.min(mScaleFactor, mMaxZoom));
-
-                // Apply zoom to camera
                 applyZoom(mScaleFactor);
             }
             mLastTouchDistance = currentDistance;
@@ -606,8 +609,19 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 ones.copyTo(output, mask);
                 ones.release();
                 break;
+            case SATURATION:
+                List<Mat> channels = new ArrayList<>();
+                Core.split(hsv, channels);
+                channels.set(0, channels.get(1).clone());
+                channels.set(2, channels.get(1).clone());
+                Mat sss = new Mat();
+                Core.merge(channels, sss);
+                sss.copyTo(output, mask);
+                sss.release();
+                break;
         }
         mask.release();
+        hsv.release();
         return output;
     }
 
