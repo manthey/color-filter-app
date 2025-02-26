@@ -1,0 +1,60 @@
+name: Android CI
+
+on:
+  push:
+  pull_request:
+    branches:
+      - master
+  # release:
+  #   types:
+  #     - created
+  # schedule:
+  #   - cron: "0 7 * * 1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v2
+    - name: Download OpenCV
+      run: |
+        OPENCV_VERSION="4.11.0"
+        OPENCV_URL="https://github.com/opencv/opencv/releases/download/${OPENCV_VERSION}/opencv-${OPENCV_VERSION}-android-sdk.zip"
+        wget $OPENCV_URL
+        unzip opencv-${OPENCV_VERSION}-android-sdk.zip
+        mv "$(pwd)/OpenCV-android-sdk/sdk" ./opencv
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+    - name: Cache Gradle
+      uses: actions/cache@v3
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+    - name: Build with Gradle
+      run: ./gradlew build -x opencv:test -x opencv:lint -x opencv:connectedAndroidTest
+    - name: Run Unit Tests
+      run: ./gradlew test
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - name: Run Instrumented Tests
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 30
+        # target: google_apis
+        arch: x86_64
+        # profile: Nexus 6
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+        script: ./gradlew connectedAndroidTest
