@@ -917,6 +917,17 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         imageMatrix.mapRect(rect);
 
         float dx = 0, dy = 0;
+        float minScale = Math.min(
+                (float)textureView.getWidth()/loadedImage.getWidth(),
+                (float)textureView.getHeight()/loadedImage.getHeight());
+        imageMatrix.getValues(matrixValues);
+        float currentScale = matrixValues[Matrix.MSCALE_X];
+        if (currentScale < minScale) {
+            imageMatrix.postScale(
+                    minScale / currentScale, minScale / currentScale,
+                    textureView.getWidth() / 2f, textureView.getHeight() / 2f);
+            imageMatrix.mapRect(rect);
+        }
 
         // Constrain horizontal movement
         if (rect.width() <= textureView.getWidth()) {
@@ -933,15 +944,12 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             if (rect.top > 0) dy = -rect.top;
             if (rect.bottom < textureView.getHeight()) dy = textureView.getHeight() - rect.bottom;
         }
-
         imageMatrix.postTranslate(dx, dy);
     }
-
 }
 
 // TODO:
 // - full camera zoom (multiple lenses)
-// - load image
 // - remember settings
 // - color swatches
 // - better landscape mode
@@ -950,6 +958,5 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - print value at crosshair
 // - ml query about color at crosshair
 // - tests
-// - github actions
 // - deployment
 // ? selective focus
