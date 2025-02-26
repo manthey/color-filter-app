@@ -41,6 +41,7 @@ import androidx.core.app.ActivityCompat;
 
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -757,6 +758,17 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
+        if (isImageMode) {
+            textureView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    textureView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                    setupImageMatrix();
+                    displayLoadedImage();
+                }
+            });
+            return;
+        }
         // Close and reopen camera to handle the new orientation
         closeCamera();
         openCamera();
