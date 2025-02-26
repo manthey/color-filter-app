@@ -209,6 +209,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     filterButton.setText("Off");
                     break;
             }
+            if (isImageMode) {
+                displayLoadedImage();
+            }
         });
         loadImageButton = findViewById(R.id.loadImageButton);
         loadImageButton.setOnClickListener(v -> {
@@ -277,6 +280,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         satLabel.setText("Saturation - " + satThreshold);
         TextView lumLabel = findViewById(R.id.luminanceLabel);
         lumLabel.setText("Luminance - " + lumThreshold);
+        if (isImageMode) {
+            displayLoadedImage();
+        }
     }
 
     private String getColorName(int hue, HashMap<Integer, String> hueMap) {
@@ -357,7 +363,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
-        openCamera();
+        if (!isImageMode) {
+            openCamera();
+        }
     }
 
     @Override
@@ -697,10 +705,12 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         super.onResume();
         Log.i(TAG, "onResume");
         startBackgroundThread();
-        if (textureView.isAvailable()) {
-            openCamera();
-        } else {
-            textureView.setSurfaceTextureListener(this);
+        if (!isImageMode) {
+            if (textureView.isAvailable()) {
+                openCamera();
+            } else {
+                textureView.setSurfaceTextureListener(this);
+            }
         }
     }
 
@@ -776,8 +786,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 loadedImage = BitmapFactory.decodeStream(inputStream);
                 isImageMode = true;
                 setupImageMatrix();
-                closeCamera(); // Stop camera preview
-                displayLoadedImage(); // Initial display
+                closeCamera();
+                displayLoadedImage();
             } catch (Exception e) {
                 Log.e(TAG, "Error loading image", e);
                 Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
@@ -810,10 +820,20 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private void displayLoadedImage() {
         if (loadedImage == null || !isImageMode) return;
 
+        Mat inputMat = new Mat();
+        Utils.bitmapToMat(loadedImage, inputMat);
+        Mat processedMat = processImage(inputMat);
+
+        Bitmap processedBitmap = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(processedMat, processedBitmap);
+
+        inputMat.release();
+        processedMat.release();
+
         Canvas canvas = textureView.lockCanvas();
         if (canvas != null) {
-            canvas.drawColor(Color.BLACK);
-            canvas.drawBitmap(loadedImage, imageMatrix, null);
+            canvas.drawColor(Color.BLACK); // Clear the canvas
+            canvas.drawBitmap(processedBitmap, imageMatrix, null); // Draw the image
             textureView.unlockCanvasAndPost(canvas);
         }
     }
@@ -917,4 +937,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - pick a point and set hue to that value
 // - print value at crosshair
 // - ml query about color at crosshair
+// - tests
+// - github actions
+// - deployment
 // ? selective focus
