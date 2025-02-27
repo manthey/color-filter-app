@@ -33,7 +33,6 @@ import android.util.Size;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
-import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -62,6 +61,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Semaphore;
 
 public class MainActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener {
@@ -132,10 +132,10 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private Bitmap loadedImage = null;
     private boolean isImageMode = false;
-    private PointF lastTouch = new PointF();
-    private Matrix imageMatrix = new Matrix();
-    private RectF imageBounds = new RectF();
-    private float[] matrixValues = new float[9];
+    private final PointF lastTouch = new PointF();
+    private final Matrix imageMatrix = new Matrix();
+    private final RectF imageBounds = new RectF();
+    private final float[] matrixValues = new float[9];
 
     // Pinch to zoom variables
     private float mScaleFactor = 1.0f;
@@ -143,7 +143,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private float mMaxZoom;
     private float mLastTouchDistance = -1f;
 
-    // Filter parameters (default values)
     private int hue = 0, hueWidth = 14, satThreshold = 100, lumThreshold = 100;
     private FilterMode filterMode = FilterMode.NONE;
 
@@ -174,16 +173,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         textureView.setSurfaceTextureListener(this);
 
         switchCameraButton = findViewById(R.id.switchCameraButton);
-        switchCameraButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (isImageMode) {
-                    isImageMode = false;
-                    loadedImage = null;
-                    openCamera();
-                } else {
-                    switchCamera();
-                }
+        switchCameraButton.setOnClickListener(v -> {
+            if (isImageMode) {
+                isImageMode = false;
+                loadedImage = null;
+                openCamera();
+            } else {
+                switchCamera();
             }
         });
         filterButton = findViewById(R.id.filterButton);
@@ -260,14 +256,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         });
 
         // Pinch-to-zoom setup (add touch listener)
-        textureView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (isImageMode) {
-                    return handleImageTouch(event);
-                } else {
-                    return handlePinchToZoom(event);
-                }
+        textureView.setOnTouchListener((v, event) -> {
+            if (isImageMode) {
+                return handleImageTouch(event);
+            } else {
+                return handlePinchToZoom(event);
             }
         });
     }
@@ -401,6 +394,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
             // Get min/max zoom
             mMinZoom = 1.0f; // Minimum zoom is no zoom
+            //noinspection DataFlowIssue
             mMaxZoom = characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
 
             cameraOpenCloseLock.acquire(); //Acquire before opening the camera.
@@ -448,7 +442,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 bigEnough.add(option);
             }
         }
-        if (bigEnough.size() > 0) {
+        if (!bigEnough.isEmpty()) {
             return Collections.min(bigEnough, new CompareSizesByArea());
         } else {
             Log.e(TAG, "Couldn't find any suitable preview size");
@@ -474,6 +468,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             imageReader.setOnImageAvailableListener(imageAvailableListener, backgroundHandler);
             captureRequestBuilder.addTarget(imageReader.getSurface());
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+            //noinspection ArraysAsListWithZeroOrOneArgument
             cameraDevice.createCaptureSession(Arrays.asList(imageReader.getSurface()), new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession session) {
@@ -509,6 +504,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         try {
             CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            //noinspection DataFlowIssue
             int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
             int deviceRotation = getWindowManager().getDefaultDisplay().getRotation();
@@ -794,7 +790,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         if (resultCode == RESULT_OK && requestCode == PICK_IMAGE) {
             try {
                 Uri imageUri = data.getData();
-                InputStream inputStream = getContentResolver().openInputStream(imageUri);
+                InputStream inputStream = getContentResolver().openInputStream(Objects.requireNonNull(imageUri));
                 loadedImage = BitmapFactory.decodeStream(inputStream);
                 isImageMode = true;
                 setupImageMatrix();
