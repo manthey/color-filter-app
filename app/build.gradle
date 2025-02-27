@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("jacoco")
 }
 
 android {
@@ -68,4 +69,31 @@ dependencies {
     androidTestImplementation libs.androidx.ui.test.junit4
     debugImplementation libs.androidx.ui.tooling
     debugImplementation libs.androidx.ui.test.manifest
+}
+
+jacoco {
+    toolVersion = "0.8.11" 
+}
+
+tasks.withType(Test) {
+    finalizedBy jacocoTestReport
+}
+
+task jacocoTestReport(type: JacocoReport) {
+    dependsOn 'testDebugUnitTest' 
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+        xml.outputLocation.set(file("$buildDir/reports/jacoco/report.xml"))
+        html.outputLocation.set(file("$buildDir/reports/jacoco/html"))
+    }
+
+    // Specify the class files and sources for coverage
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*']
+
+    classDirectories.setFrom(fileTree(dir: "$buildDir/intermediates/javac/debug", excludes: fileFilter))
+    sourceDirectories.setFrom(files("$projectDir/src/main/java"))
+    executionData.setFrom(fileTree(dir: "$buildDir", includes: ["jacoco/testDebugUnitTest.exec"]))
 }
