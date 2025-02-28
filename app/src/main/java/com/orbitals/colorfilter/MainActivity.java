@@ -154,6 +154,10 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     protected void onCreate(Bundle savedInstanceState) {
         Button switchCameraButton, filterButton, loadImageButton;
         SeekBar hueSeekBar, hueWidthSeekBar, saturationSeekBar, luminanceSeekBar;
+        termMaps.add(new TermMap("BCT20", Arrays.asList(
+                "White", "Black", "Red", "Green", "Blue", "Gray", "Pink", "Beige", "Yellow",
+                "Lavender", "Peach", "Lime", "Orange", "Teal", "Gold", "Purple", "Brown",
+                "Magenta", "Olive", "Maroon"), getResources(), R.drawable.bct20_en_us));
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -164,11 +168,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
         textureView = findViewById(R.id.textureView);
         textureView.setSurfaceTextureListener(this);
-
-        termMaps.add(new TermMap("BCT20", Arrays.asList(
-                "White", "Black", "Red", "Green", "Blue", "Gray", "Pink", "Beige", "Yellow",
-                "Lavender", "Peach", "Lime", "Orange", "Teal", "Gold", "Purple", "Brown",
-                "Magenta", "Olive", "Maroon"), getResources(), R.drawable.bct20_en_us));
 
         switchCameraButton = findViewById(R.id.switchCameraButton);
         switchCameraButton.setOnClickListener(v -> {
