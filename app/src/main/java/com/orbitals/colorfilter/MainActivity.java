@@ -35,6 +35,7 @@ import android.util.Size;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.SeekBar;
@@ -152,15 +153,16 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Button switchCameraButton, filterButton, loadImageButton;
-        SeekBar hueSeekBar, hueWidthSeekBar, saturationSeekBar, luminanceSeekBar;
+        Button switchCameraButton, filterButton, loadImageButton, bctButton;
+        SeekBar hueSeekBar, hueWidthSeekBar, saturationSeekBar, luminanceSeekBar, bctSeekBar;
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         imageFilterProcessor = new ImageFilterProcessor();
         imageFilterProcessor.setFilterSettings(
-                0, 14, 100, 100, ImageFilterProcessor.FilterMode.NONE);
+                0, 14, 100, 100, 0,
+                ImageFilterProcessor.FilterMode.NONE, null);
 
         textureView = findViewById(R.id.textureView);
         textureView.setSurfaceTextureListener(this);
@@ -168,7 +170,18 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         termMaps.add(new TermMap("BCT20", Arrays.asList(
                 "White", "Black", "Red", "Green", "Blue", "Gray", "Pink", "Beige", "Yellow",
                 "Lavender", "Peach", "Lime", "Orange", "Teal", "Gold", "Purple", "Brown",
-                "Magenta", "Olive", "Maroon"), getResources(), R.drawable.bct20_en_us));
+                "Magenta", "Olive", "Maroon"), getResources(), R.raw.bct20_en_us));
+
+        hueSeekBar = findViewById(R.id.hueSeekBar);
+        hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
+        saturationSeekBar = findViewById(R.id.saturationSeekBar);
+        luminanceSeekBar = findViewById(R.id.luminanceSeekBar);
+        bctSeekBar = findViewById(R.id.bctSeekBar);
+        hueSeekBar.setProgress(imageFilterProcessor.getHue());
+        hueWidthSeekBar.setProgress(imageFilterProcessor.getHueWidth());
+        saturationSeekBar.setProgress(imageFilterProcessor.getSatThreshold());
+        luminanceSeekBar.setProgress(imageFilterProcessor.getLumThreshold());
+        bctSeekBar.setProgress(imageFilterProcessor.getTerm());
 
         switchCameraButton = findViewById(R.id.switchCameraButton);
         switchCameraButton.setOnClickListener(v -> {
@@ -197,7 +210,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     break;
                 case BINARY:
                     imageFilterProcessor.setFilterMode(ImageFilterProcessor.FilterMode.SATURATION);
-                    filterButton.setText("Saturation");
+                    //noinspection SpellCheckingInspection
+                    filterButton.setText("Saturat.");
                     break;
                 case SATURATION:
                     imageFilterProcessor.setFilterMode(ImageFilterProcessor.FilterMode.NONE);
@@ -213,15 +227,40 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             startActivityForResult(gallery, PICK_IMAGE);
         });
+        bctButton = findViewById(R.id.bctButton);
+        bctButton.setOnClickListener(v -> {
+            if (imageFilterProcessor.getTermMap() == null) {
+                imageFilterProcessor.setTermMap(termMaps.get(0));
+            } else {
+                int currentIdx = termMaps.size();
+                for (int i = 0; i < termMaps.size(); i += 1) {
+                    if (termMaps.get(i).getName().equals(imageFilterProcessor.getTermMap().getName())) {
+                        currentIdx = i;
+                        break;
+                    }
+                }
+                if (currentIdx + 1 >= termMaps.size()) {
+                    imageFilterProcessor.setTermMap(null);
+                } else {
+                    imageFilterProcessor.setTermMap(termMaps.get(currentIdx + 1));
+                }
+            }
+            if (imageFilterProcessor.getTermMap() == null) {
+                bctButton.setText("HSV");
+                findViewById(R.id.bctControls).setVisibility(View.GONE);
+                findViewById(R.id.hueControls).setVisibility(View.VISIBLE);
+            } else {
+                bctButton.setText(imageFilterProcessor.getTermMap().getName());
+                findViewById(R.id.hueControls).setVisibility(View.GONE);
+                findViewById(R.id.bctControls).setVisibility(View.VISIBLE);
+                bctSeekBar.setMax(imageFilterProcessor.getTermMap().getTerms().size() - 1);
+            }
+            if (isImageMode) {
+                displayLoadedImage();
+            }
+            updateSeekLabels();
+        });
 
-        hueSeekBar = findViewById(R.id.hueSeekBar);
-        hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
-        saturationSeekBar = findViewById(R.id.saturationSeekBar);
-        luminanceSeekBar = findViewById(R.id.luminanceSeekBar);
-        hueSeekBar.setProgress(imageFilterProcessor.getHue());
-        hueWidthSeekBar.setProgress(imageFilterProcessor.getHueWidth());
-        saturationSeekBar.setProgress(imageFilterProcessor.getSatThreshold());
-        luminanceSeekBar.setProgress(imageFilterProcessor.getLumThreshold());
         updateSeekLabels();
         // Set up SeekBars to update filter parameters
         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
@@ -252,6 +291,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 updateSeekLabels();
             }
         });
+        bctSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                imageFilterProcessor.setTerm(progress);
+                updateSeekLabels();
+            }
+        });
 
         // Pinch-to-zoom setup (add touch listener)
         textureView.setOnTouchListener((v, event) -> {
@@ -274,6 +320,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         satLabel.setText("Saturation - " + imageFilterProcessor.getSatThreshold());
         TextView lumLabel = findViewById(R.id.luminanceLabel);
         lumLabel.setText("Luminance - " + imageFilterProcessor.getLumThreshold());
+        TextView bctLabel = findViewById(R.id.bctLabel);
+        bctLabel.setText("Term - " + imageFilterProcessor.getCurrentTerm());
         if (isImageMode) {
             displayLoadedImage();
         }

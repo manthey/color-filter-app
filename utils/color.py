@@ -209,6 +209,9 @@ hexdict = {
     'FF0000': 'red',
     '00FF00': 'green',
     '0000FF': 'blue',
+    '00FFFF': 'teal',
+    'FF00FF': 'purple',
+    'FFFF00': 'yellow',
 }
 for hx, val in zip(hexgray, graytbl):
     hexdict[hx] = val
