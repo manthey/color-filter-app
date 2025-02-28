@@ -45,6 +45,13 @@
                 android:text="Off" />
 
             <Button
+                android:id="@+id/bctButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/black"
+                android:text="HSV" />
+
+            <Button
                 android:id="@+id/loadImageButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -52,36 +59,70 @@
                 android:text="Image" />
         </LinearLayout>
 
-        <!-- SeekBars for hue, hue width, saturation, luminance -->
-        <TextView
-            android:id="@+id/hueLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/black"
-            android:text="Hue" />
-        <SeekBar
-            android:id="@+id/hueSeekBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:progressTint="@color/black"
-            android:thumb="@drawable/seekbar_thumb"
-            android:thumbOffset="9dp"
-            android:max="360" />
+		<FrameLayout
+			android:id="@+id/huebctContainer"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content">
+			
+			<LinearLayout
+				android:id="@+id/hueControls"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical">
+				<TextView
+					android:id="@+id/hueLabel"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:textColor="@color/black"
+					android:text="Hue" />
+				<SeekBar
+					android:id="@+id/hueSeekBar"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:progressTint="@color/black"
+					android:thumb="@drawable/seekbar_thumb"
+					android:thumbOffset="9dp"
+					android:max="360" />
 
-        <TextView
-            android:id="@+id/hueWidthLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/black"
-            android:text="Hue Width" />
-        <SeekBar
-            android:id="@+id/hueWidthSeekBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:progressTint="@color/black"
-            android:thumb="@drawable/seekbar_thumb"
-            android:thumbOffset="9dp"
-            android:max="180" />
+				<TextView
+					android:id="@+id/hueWidthLabel"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:textColor="@color/black"
+					android:text="Hue Width" />
+				<SeekBar
+					android:id="@+id/hueWidthSeekBar"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:progressTint="@color/black"
+					android:thumb="@drawable/seekbar_thumb"
+					android:thumbOffset="9dp"
+					android:max="180" />
+
+			</LinearLayout>
+
+			<LinearLayout
+				android:id="@+id/bctControls"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:orientation="vertical"
+				android:visibility="gone">
+				<TextView
+					android:id="@+id/bctLabel"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:textColor="@color/black"
+					android:text="BCT20" />
+				<SeekBar
+					android:id="@+id/bctSeekBar"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:progressTint="@color/black"
+					android:thumb="@drawable/seekbar_thumb"
+					android:thumbOffset="9dp"
+					android:max="19" />
+			</LinearLayout>
+		</FrameLayout>
 
         <TextView
             android:id="@+id/saturationLabel"

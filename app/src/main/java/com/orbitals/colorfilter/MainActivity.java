@@ -197,7 +197,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     break;
                 case BINARY:
                     imageFilterProcessor.setFilterMode(ImageFilterProcessor.FilterMode.SATURATION);
-                    filterButton.setText("Saturation");
+                    filterButton.setText("Saturat.");
                     break;
                 case SATURATION:
                     imageFilterProcessor.setFilterMode(ImageFilterProcessor.FilterMode.NONE);
@@ -886,3 +886,4 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - tests
 // - deployment
 // ? selective focus
+// findViewById(R.id.hueControls).setVisibility(View.GONE or View.VISIBLE)
