@@ -115,6 +115,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         put(353, "Red");
     }};
 
+    ArrayList<TermMap> termMaps = new ArrayList<>();
+
     // UI elements
     private TextureView textureView;
 
@@ -170,6 +172,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
         textureView = findViewById(R.id.textureView);
         textureView.setSurfaceTextureListener(this);
+
+        termMaps.add(new TermMap("BCT20", Arrays.asList(
+                "White", "Black", "Red", "Green", "Blue", "Gray", "Pink", "Beige", "Yellow",
+                "Lavender", "Peach", "Lime", "Orange", "Teal", "Gold", "Purple", "Brown",
+                "Magenta", "Olive", "Maroon"), getResources(), R.drawable.bct20_en_us));
 
         switchCameraButton = findViewById(R.id.switchCameraButton);
         switchCameraButton.setOnClickListener(v -> {
@@ -913,8 +920,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
         float dx = 0, dy = 0;
         float minScale = Math.min(
-                (float)textureView.getWidth()/loadedImage.getWidth(),
-                (float)textureView.getHeight()/loadedImage.getHeight());
+                (float) textureView.getWidth() / loadedImage.getWidth(),
+                (float) textureView.getHeight() / loadedImage.getHeight());
         imageMatrix.getValues(matrixValues);
         float currentScale = matrixValues[Matrix.MSCALE_X];
         if (currentScale < minScale) {
@@ -951,7 +958,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 // - handle videos
 // - pick a point and set hue to that value
 // - print value at crosshair
-// - ml query about color at crosshair
+// - bct
 // - tests
 // - deployment
 // ? selective focus
