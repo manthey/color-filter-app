@@ -22,6 +22,8 @@ public class ImageFilterProcessor {
     private int hueWidth = 14;
     private int satThreshold = 100;
     private int lumThreshold = 100;
+    private int term = 0;
+    private TermMap termMap;
     private FilterMode filterMode = FilterMode.NONE;
 
     public void setFilterSettings(int hue, int hueWidth, int satThreshold, int lumThreshold, FilterMode filterMode) {
@@ -30,6 +32,12 @@ public class ImageFilterProcessor {
         this.satThreshold = satThreshold;
         this.lumThreshold = lumThreshold;
         this.filterMode = filterMode;
+    }
+
+    public void setFilterSettings(int hue, int hueWidth, int satThreshold, int lumThreshold, int term, FilterMode filterMode, TermMap termMap) {
+        setFilterSettings(hue, hueWidth, satThreshold, lumThreshold, filterMode);
+        this.term = term;
+        this.termMap = termMap;
     }
 
     public FilterMode getFilterMode() {
@@ -62,6 +70,27 @@ public class ImageFilterProcessor {
     public void setLumThreshold(int lumThreshold) {
         this.lumThreshold = lumThreshold;
     }
+    public int getTerm() {
+        return term;
+    }
+    public void setTerm(int term) {
+        this.term = term;
+    }
+    public TermMap getTermMap() {
+        return termMap;
+    }
+    public void setTermMap(TermMap termMap) {
+        this.termMap = termMap;
+        if (termMap != null && term >= termMap.getTerms().size()) {
+            term = termMap.getTerms().size() - 1;
+        }
+    }
+    public String getCurrentTerm() {
+        if (termMap == null || term >= termMap.getTerms().size()) {
+            return "";
+        }
+        return termMap.getTerms().get(term);
+    }
 
     public Mat process(Mat input) {
         Mat hsv = new Mat();
@@ -71,6 +100,10 @@ public class ImageFilterProcessor {
         // Define lower and upper bounds for the hue range
         int lowerHue = (int) (hue / 2.0 - hueWidth / 2.0);
         int upperHue = (int) (hue / 2.0 + hueWidth / 2.0);
+        if (termMap != null) {
+            lowerHue = 0;
+            upperHue = 360 / 2;
+        }
         Scalar lowerBound = new Scalar(Math.max(0, lowerHue), satThreshold, lumThreshold);
         Scalar upperBound = new Scalar(Math.min(180, upperHue), 255, 255);
 
@@ -90,6 +123,11 @@ public class ImageFilterProcessor {
         }
 
         Mat output = Mat.zeros(input.size(), input.type());
+        if (termMap != null) {
+            Mat termMask = termMap.createMask(input, term);
+            Core.bitwise_and(mask, termMask, mask);
+            termMask.release();
+        }
         switch (filterMode) {
             case NONE:
                 input.copyTo(output);
