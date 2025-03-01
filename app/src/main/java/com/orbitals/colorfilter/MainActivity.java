@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         termMaps.add(new TermMap("BCT20", Arrays.asList(
                 "White", "Black", "Red", "Green", "Blue", "Gray", "Pink", "Beige", "Yellow",
                 "Lavender", "Peach", "Lime", "Orange", "Teal", "Gold", "Purple", "Brown",
-                "Magenta", "Olive", "Maroon"), getResources(), R.drawable.bct20_en_us));
+                "Magenta", "Olive", "Maroon"), getResources(), R.raw.bct20_en_us));
 
         hueSeekBar = findViewById(R.id.hueSeekBar);
         hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
