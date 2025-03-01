@@ -9,25 +9,25 @@ import PIL.ImageOps
 
 ViewingColors = {
     'black': '000000',
-    'gray': '808080',
-    'white': 'FFFFFF',
     'red': 'FF0000',
+    'orange': 'FF9000',
     'yellow': 'FFFF00',
     'green': '00FF00',
-    'blue': '0000FF',
-    'orange': 'FF9000',
-    'pink': 'FFAECA',
-    'brown': '92773C',
-    'purple': '9000FF',
-    'peach': 'FFCF8D',
     'teal': '00FFFF',
-    'lavender': 'DA88FF',
-    'maroon': 'C00090',
-    'gold': 'C0A000',
-    'beige': 'E0C0A8',
-    'magenta': '800010',
-    'lime': '90F000',
-    'olive': '549400',
+    'blue': '0000FF',
+    'purple': '8200FA',
+    'maroon': 'B2007C',
+    'pink': 'FF80E4',
+    'gold': 'FECC00',
+    'peach': 'FFB080',
+    'beige': 'FFE5CC',
+    'brown': '806434',
+    'olive': '809700',
+    'gray': '808080',
+    'lavender': 'C17EFF',
+    'magenta': '800019',
+    'lime': '80F000',
+    'white': 'FFFFFF',
 }
 
 
@@ -226,6 +226,9 @@ labdict = {idx: colour.XYZ_to_Lab(colour.sRGB_to_XYZ(
 cats = {}
 labcat = []
 labcatidx = []
+for clr in ViewingColors:
+    cat = clr
+    cats[cat] = len(cats)
 for hx, cat in hexdict.items():
     cat = {'bk': 'black', 'gy': 'gray'}.get(cat, cat)
     labval = colour.XYZ_to_Lab(colour.sRGB_to_XYZ(
@@ -249,14 +252,17 @@ else:
     np.savez('labrgb.npz', labrgb)
 
 catrgb = rgb_categories(labrgb, labcat, np.array(labcatidx))
+counts = np.bincount(catrgb.flatten())
 print([k.capitalize() for k in cats.keys()])
+pprint.pprint({counts[idx]: k.capitalize() for idx, k in enumerate(cats.keys())})
+print(list(cats.keys())[catrgb[0x81][0x71][0x67]])
 img = PIL.Image.fromarray(catrgb.reshape(4096, 4096), mode='L')
 img.save('bct20.png', optimize=True)
 flatimg = np.zeros((4096, 4096), np.uint8)
 for r in range(256):
     x = (r % 16) * 256
     y = (r // 16) * 256
-    flatimg[y:y + 256, x:x + 256] = catrgb[r] * 13
+    flatimg[y:y + 256, x:x + 256] = catrgb[r]
 flatimg = PIL.Image.fromarray(flatimg, mode='L')
 flatimg.save('bct20flat.png', optimize=True)
 palimg = np.zeros((4096, 4096), np.uint8)

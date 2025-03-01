@@ -168,9 +168,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         textureView.setSurfaceTextureListener(this);
 
         termMaps.add(new TermMap("BCT20", Arrays.asList(
-                "White", "Black", "Red", "Green", "Blue", "Teal", "Purple", "Yellow",
-                "Gray", "Pink", "Beige", "Lavender", "Peach", "Lime", "Orange", "Gold",
-                "Brown", "Magenta", "Olive", "Maroon"
+                "Black", "Red", "Orange", "Yellow", "Green", "Teal", "Blue", "Purple",
+                "Maroon", "Pink", "Gold", "Peach", "Beige", "Brown", "Olive", "Gray",
+                "Lavender", "Magenta", "Lime", "White"
         ), getResources(), R.raw.bct20_en_us));
 
         hueSeekBar = findViewById(R.id.hueSeekBar);
