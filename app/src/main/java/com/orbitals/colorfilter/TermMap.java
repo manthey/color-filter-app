@@ -12,19 +12,17 @@ import org.opencv.core.Rect;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 
-import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
-
-import java.io.IOException;
 
 public class TermMap {
     private final String name;
     private final List<String> terms;
     private final byte[] map;
+    private final int blur = 9;
 
     public TermMap(String name, List<String> terms, Resources resources, int termMapResourceId) {
         this.name = name;
@@ -70,20 +68,29 @@ public class TermMap {
 
     public Mat createMask(Mat image, int targetValue) {
         byte[] rgbData = new byte[image.channels() * image.cols() * image.rows()];
-        image.get(0, 0, rgbData);
+        if (blur != 0) {
+            Mat blurred = new Mat();
+            Imgproc.GaussianBlur(image, blurred, new Size(blur, blur), 0);
+            // Imgproc.blur(image, blurred, new Size(blur, blur));
+            blurred.get(0, 0, rgbData);
+        } else {
+            image.get(0, 0, rgbData);
+        }
         byte[] maskData = new byte[image.cols() * image.rows()];
-        Log.w("COLORFILTER", "IMAGE " + image.channels() + " " + image.cols() + " " + image.rows() + " " +
-                rgbData.length + " " + (rgbData[0] & 0xff) + " " + (rgbData[1] & 0xff) + " " + (rgbData[2] & 0xff) + " " +
-                map[0] + " " + (map[256 * 256 * 256 - 1] & 0xff) + " " + targetValue);
 
+        int center = ((int)(image.rows() / 2) * image.cols() + (int)(image.cols() / 2)) * 3;
         for (int i = 0, j = 0; i < rgbData.length; i += 3, j++) {
             // Get RGB values (unsigned)
             int r = rgbData[i] & 0xFF;
             int g = rgbData[i + 1] & 0xFF;
             int b = rgbData[i + 2] & 0xFF;
             int index = (r << 16) | (g << 8) | b;
+            if (i == center) {
+                Log.e("TermMap", "Center " + " " + r + "," + g + "," + b + " " + map[index]);
+            }
             maskData[j] = (byte) ((map[index] & 0xFF) == targetValue ? 255 : 0);
         }
+
         Mat mask = new Mat(image.rows(), image.cols(), CvType.CV_8UC1);
         mask.put(0, 0, maskData);
         return mask;
