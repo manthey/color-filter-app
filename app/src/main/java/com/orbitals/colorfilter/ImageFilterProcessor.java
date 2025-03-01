@@ -35,12 +35,8 @@ public class ImageFilterProcessor {
     }
 
     public void setFilterSettings(int hue, int hueWidth, int satThreshold, int lumThreshold, int term, FilterMode filterMode, TermMap termMap) {
-        this.hue = hue;
-        this.hueWidth = hueWidth;
-        this.satThreshold = satThreshold;
-        this.lumThreshold = lumThreshold;
+        setFilterSettings(hue, hueWidth, satThreshold, lumThreshold, filterMode);
         this.term = term;
-        this.filterMode = filterMode;
         this.termMap = termMap;
     }
 
@@ -85,6 +81,15 @@ public class ImageFilterProcessor {
     }
     public void setTermMap(TermMap termMap) {
         this.termMap = termMap;
+        if (termMap != null && term >= termMap.getTerms().size()) {
+            term = termMap.getTerms().size() - 1;
+        }
+    }
+    public String getCurrentTerm() {
+        if (termMap == null || term >= termMap.getTerms().size()) {
+            return "";
+        }
+        return termMap.getTerms().get(term);
     }
 
     public Mat process(Mat input) {
@@ -119,9 +124,9 @@ public class ImageFilterProcessor {
 
         Mat output = Mat.zeros(input.size(), input.type());
         if (termMap != null) {
-            Mat termmask = termMap.createMask(input, term);
-            Core.bitwise_and(mask, termmask, mask);
-            termmask.release();
+            Mat termMask = termMap.createMask(input, term);
+            Core.bitwise_and(mask, termMask, mask);
+            termMask.release();
         }
         switch (filterMode) {
             case NONE:
