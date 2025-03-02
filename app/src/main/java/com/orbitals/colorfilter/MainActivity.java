@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     ArrayList<TermMap> termMaps = new ArrayList<>();
 
-    private ImageFilterProcessor imageFilterProcessor;
+    private ImageFilterProcessor filter;
 
     // UI elements
     private TextureView textureView;
@@ -159,8 +159,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        imageFilterProcessor = new ImageFilterProcessor();
-        imageFilterProcessor.setFilterSettings(
+        filter = new ImageFilterProcessor();
+        filter.setFilterSettings(
                 0, 14, 100, 100, 0,
                 ImageFilterProcessor.FilterMode.NONE, null);
 
@@ -178,11 +178,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         saturationSeekBar = findViewById(R.id.saturationSeekBar);
         luminanceSeekBar = findViewById(R.id.luminanceSeekBar);
         bctSeekBar = findViewById(R.id.bctSeekBar);
-        hueSeekBar.setProgress(imageFilterProcessor.getHue());
-        hueWidthSeekBar.setProgress(imageFilterProcessor.getHueWidth());
-        saturationSeekBar.setProgress(imageFilterProcessor.getSatThreshold());
-        luminanceSeekBar.setProgress(imageFilterProcessor.getLumThreshold());
-        bctSeekBar.setProgress(imageFilterProcessor.getTerm());
+        hueSeekBar.setProgress(filter.getHue());
+        hueWidthSeekBar.setProgress(filter.getHueWidth());
+        saturationSeekBar.setProgress(filter.getSatThreshold());
+        luminanceSeekBar.setProgress(filter.getLumThreshold());
+        bctSeekBar.setProgress(filter.getTerm());
 
         switchCameraButton = findViewById(R.id.switchCameraButton);
         switchCameraButton.setOnClickListener(v -> {
@@ -196,26 +196,26 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         });
         filterButton = findViewById(R.id.filterButton);
         filterButton.setOnClickListener(v -> {
-            switch (imageFilterProcessor.getFilterMode()) {
+            switch (filter.getFilterMode()) {
                 case NONE:
-                    imageFilterProcessor.setFilterMode(ImageFilterProcessor.FilterMode.INCLUDE);
+                    filter.setFilterMode(ImageFilterProcessor.FilterMode.INCLUDE);
                     filterButton.setText("Include");
                     break;
                 case INCLUDE:
-                    imageFilterProcessor.setFilterMode(ImageFilterProcessor.FilterMode.EXCLUDE);
+                    filter.setFilterMode(ImageFilterProcessor.FilterMode.EXCLUDE);
                     filterButton.setText("Exclude");
                     break;
                 case EXCLUDE:
-                    imageFilterProcessor.setFilterMode(ImageFilterProcessor.FilterMode.BINARY);
+                    filter.setFilterMode(ImageFilterProcessor.FilterMode.BINARY);
                     filterButton.setText("Binary");
                     break;
                 case BINARY:
-                    imageFilterProcessor.setFilterMode(ImageFilterProcessor.FilterMode.SATURATION);
+                    filter.setFilterMode(ImageFilterProcessor.FilterMode.SATURATION);
                     //noinspection SpellCheckingInspection
                     filterButton.setText("Saturat.");
                     break;
                 case SATURATION:
-                    imageFilterProcessor.setFilterMode(ImageFilterProcessor.FilterMode.NONE);
+                    filter.setFilterMode(ImageFilterProcessor.FilterMode.NONE);
                     filterButton.setText("Off");
                     break;
             }
@@ -230,31 +230,31 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         });
         bctButton = findViewById(R.id.bctButton);
         bctButton.setOnClickListener(v -> {
-            if (imageFilterProcessor.getTermMap() == null) {
-                imageFilterProcessor.setTermMap(termMaps.get(0));
+            if (filter.getTermMap() == null) {
+                filter.setTermMap(termMaps.get(0));
             } else {
                 int currentIdx = termMaps.size();
                 for (int i = 0; i < termMaps.size(); i += 1) {
-                    if (termMaps.get(i).getName().equals(imageFilterProcessor.getTermMap().getName())) {
+                    if (termMaps.get(i).getName().equals(filter.getTermMap().getName())) {
                         currentIdx = i;
                         break;
                     }
                 }
                 if (currentIdx + 1 >= termMaps.size()) {
-                    imageFilterProcessor.setTermMap(null);
+                    filter.setTermMap(null);
                 } else {
-                    imageFilterProcessor.setTermMap(termMaps.get(currentIdx + 1));
+                    filter.setTermMap(termMaps.get(currentIdx + 1));
                 }
             }
-            if (imageFilterProcessor.getTermMap() == null) {
+            if (filter.getTermMap() == null) {
                 bctButton.setText("HSV");
                 findViewById(R.id.bctControls).setVisibility(View.GONE);
                 findViewById(R.id.hueControls).setVisibility(View.VISIBLE);
             } else {
-                bctButton.setText(imageFilterProcessor.getTermMap().getName());
+                bctButton.setText(filter.getTermMap().getName());
                 findViewById(R.id.hueControls).setVisibility(View.GONE);
                 findViewById(R.id.bctControls).setVisibility(View.VISIBLE);
-                bctSeekBar.setMax(imageFilterProcessor.getTermMap().getTerms().size() - 1);
+                bctSeekBar.setMax(filter.getTermMap().getTerms().size() - 1);
             }
             if (isImageMode) {
                 displayLoadedImage();
@@ -267,35 +267,35 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                imageFilterProcessor.setHue(progress - (progress % 2));
+                filter.setHue(progress - (progress % 2));
                 updateSeekLabels();
             }
         });
         hueWidthSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                imageFilterProcessor.setHueWidth(progress - progress % 2);
+                filter.setHueWidth(progress - progress % 2);
                 updateSeekLabels();
             }
         });
         saturationSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                imageFilterProcessor.setSatThreshold(progress);
+                filter.setSatThreshold(progress);
                 updateSeekLabels();
             }
         });
         luminanceSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                imageFilterProcessor.setLumThreshold(progress);
+                filter.setLumThreshold(progress);
                 updateSeekLabels();
             }
         });
         bctSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                imageFilterProcessor.setTerm(progress);
+                filter.setTerm(progress);
                 updateSeekLabels();
             }
         });
@@ -312,17 +312,17 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private void updateSeekLabels() {
         TextView hueLabel = findViewById(R.id.hueLabel);
-        hueLabel.setText("Hue - " + imageFilterProcessor.getHue() + " - " +
-                getColorName(imageFilterProcessor.getHue(), coarseHueMap) + " - " +
-                getColorName(imageFilterProcessor.getHue(), fineHueMap));
+        hueLabel.setText("Hue - " + filter.getHue() + " - " +
+                getColorName(filter.getHue(), coarseHueMap) + " - " +
+                getColorName(filter.getHue(), fineHueMap));
         TextView hwLabel = findViewById(R.id.hueWidthLabel);
-        hwLabel.setText("Hue Width - " + imageFilterProcessor.getHueWidth());
+        hwLabel.setText("Hue Width - " + filter.getHueWidth());
         TextView satLabel = findViewById(R.id.saturationLabel);
-        satLabel.setText("Saturation - " + imageFilterProcessor.getSatThreshold());
+        satLabel.setText("Saturation - " + filter.getSatThreshold());
         TextView lumLabel = findViewById(R.id.luminanceLabel);
-        lumLabel.setText("Luminance - " + imageFilterProcessor.getLumThreshold());
+        lumLabel.setText("Luminance - " + filter.getLumThreshold());
         TextView bctLabel = findViewById(R.id.bctLabel);
-        bctLabel.setText("Term - " + imageFilterProcessor.getCurrentTerm());
+        bctLabel.setText("Term - " + filter.getCurrentTerm());
         if (isImageMode) {
             displayLoadedImage();
         }
@@ -599,7 +599,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 Utils.bitmapToMat(inputBmp, rgbMat);
 
                 // Process the image
-                Mat processedMat = imageFilterProcessor.process(rgbMat);
+                Mat processedMat = filter.process(rgbMat);
 
                 // Convert back to Bitmap for display
                 Bitmap bmp = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
@@ -809,7 +809,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
         Mat inputMat = new Mat();
         Utils.bitmapToMat(loadedImage, inputMat);
-        Mat processedMat = imageFilterProcessor.process(inputMat);
+        Mat processedMat = filter.process(inputMat);
 
         Bitmap processedBitmap = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(processedMat, processedBitmap);

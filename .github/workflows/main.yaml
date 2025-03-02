@@ -77,3 +77,12 @@ jobs:
         else
           echo "Jacoco coverage file not found."
         fi
+    - name: Build AAR
+      run: ./gradlew assembleRelease
+    - name: Check
+      run: find app/build -name "*.aar" && ls -lR app/build
+    - name: Upload AAR artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: color-filter-aar
+        path: app/build/outputs/aar/*.aar
