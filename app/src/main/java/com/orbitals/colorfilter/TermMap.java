@@ -20,6 +20,8 @@ import org.opencv.imgproc.Imgproc;
 
 public class TermMap {
     private final String name;
+    private final String description;
+    private final String reference;
     private final List<String> terms;
     private final byte[] map;
     private int blur = 9;
@@ -34,8 +36,10 @@ public class TermMap {
      * @param termMapResourceId The resource id to load.  This should either be a greyscale
      *                          lossless image or a palette lossless image.
      */
-    public TermMap(String name, List<String> terms, Resources resources, int termMapResourceId) {
+    public TermMap(String name, String description, String reference, List<String> terms, Resources resources, int termMapResourceId) {
         this.name = name;
+        this.description = description;
+        this.reference = reference;
         this.terms = Collections.unmodifiableList(new ArrayList<>(terms));
         map = new byte[4096 * 4096];
 
@@ -66,6 +70,14 @@ public class TermMap {
 
     public String getName() {
         return name;
+    }
+    /** @noinspection unused*/
+    public String getDescription() {
+        return description;
+    }
+    /** @noinspection unused*/
+    public String getReference() {
+        return reference;
     }
 
     public List<String> getTerms() {

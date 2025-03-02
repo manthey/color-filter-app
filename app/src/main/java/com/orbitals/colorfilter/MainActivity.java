@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -23,7 +25,10 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.OutputConfiguration;
+import android.hardware.camera2.params.SessionConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.hardware.display.DisplayManager;
 import android.media.Image;
 import android.media.ImageReader;
 import android.net.Uri;
@@ -33,6 +38,7 @@ import android.os.HandlerThread;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.util.Size;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
@@ -43,6 +49,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -59,14 +67,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.Semaphore;
 
 public class MainActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener {
 
     private static final String TAG = "Color Filter";
     private static final int REQUEST_CAMERA_PERMISSION = 200;
-    private static final int PICK_IMAGE = 201;
 
     private HashMap<Integer, String> coarseHueMap;
     private HashMap<Integer, String> fineHueMap;
@@ -88,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private String cameraId;
     private boolean isFrontCamera = false;  // Flag for front/back camera
     private final Semaphore cameraOpenCloseLock = new Semaphore(1);
+    private ActivityResultLauncher<Intent> pickImageLauncher;
 
     private Bitmap loadedImage = null;
     private boolean isImageMode = false;
@@ -117,6 +124,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     };
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Button switchCameraButton, filterButton, loadImageButton, bctButton;
@@ -124,16 +132,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
         super.onCreate(savedInstanceState);
         setHueMaps();
+        loadTermMaps();
         setContentView(R.layout.activity_main);
 
         textureView = findViewById(R.id.textureView);
         textureView.setSurfaceTextureListener(this);
-
-        termMaps.add(new TermMap("BCT20", Arrays.asList(
-                "Black", "Red", "Orange", "Yellow", "Green", "Teal", "Blue", "Purple",
-                "Maroon", "Pink", "Gold", "Peach", "Beige", "Brown", "Olive", "Gray",
-                "Lavender", "Magenta", "Lime", "White"
-        ), getResources(), R.raw.bct20_en_us));
 
         filter = new ImageFilterProcessor();
         filter.setFilterSettings(
@@ -166,34 +169,49 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             switch (filter.getFilterMode()) {
                 case NONE:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.INCLUDE);
-                    filterButton.setText(getString(R.string.filter_button_include));
                     break;
                 case INCLUDE:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.EXCLUDE);
-                    filterButton.setText(getString(R.string.filter_button_exclude));
                     break;
                 case EXCLUDE:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.BINARY);
-                    filterButton.setText(getString(R.string.filter_button_binary));
                     break;
                 case BINARY:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.SATURATION);
-                    filterButton.setText(getString(R.string.filter_button_saturation));
                     break;
                 case SATURATION:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.NONE);
-                    filterButton.setText(getString(R.string.filter_button_off));
                     break;
             }
-            if (isImageMode) {
-                displayLoadedImage();
-            }
+            updateControls();
         });
         loadImageButton = findViewById(R.id.loadImageButton);
         loadImageButton.setOnClickListener(v -> {
             Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(gallery, PICK_IMAGE);
+            pickImageLauncher.launch(gallery);
         });
+        pickImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        Intent data = result.getData();
+                        if (data != null && data.getData() != null) {
+                            Uri imageUri = data.getData();
+                            try {
+                                InputStream inputStream = getContentResolver().openInputStream(imageUri);
+                                loadedImage = BitmapFactory.decodeStream(inputStream);
+                                isImageMode = true;
+                                setupImageMatrix();
+                                closeCamera();
+                                displayLoadedImage();
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error loading image", e);
+                                Toast.makeText(this, getString(R.string.image_load_failed), Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    }
+                }
+        );
         bctButton = findViewById(R.id.bctButton);
         bctButton.setOnClickListener(v -> {
             if (filter.getTermMap() == null) {
@@ -255,6 +273,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
         // Pinch-to-zoom setup (add touch listener)
         textureView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                v.performClick();
+            }
             if (isImageMode) {
                 return handleImageTouch(event);
             } else {
@@ -266,6 +287,24 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private void updateControls() {
         Button bctButton = findViewById(R.id.bctButton);
         SeekBar bctSeekBar = findViewById(R.id.bctSeekBar);
+        Button filterButton = findViewById(R.id.filterButton);
+        switch (filter.getFilterMode()) {
+            case INCLUDE:
+                filterButton.setText(getString(R.string.filter_button_include));
+                break;
+            case EXCLUDE:
+                filterButton.setText(getString(R.string.filter_button_exclude));
+                break;
+            case BINARY:
+                filterButton.setText(getString(R.string.filter_button_binary));
+                break;
+            case SATURATION:
+                filterButton.setText(getString(R.string.filter_button_saturation));
+                break;
+            case NONE:
+                filterButton.setText(getString(R.string.filter_button_off));
+                break;
+        }
         if (filter.getTermMap() == null) {
             bctButton.setText(getString(R.string.term_button_hsv));
             findViewById(R.id.bctControls).setVisibility(View.GONE);
@@ -279,7 +318,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         if (isImageMode) {
             displayLoadedImage();
         }
-
         updateSeekLabels();
     }
 
@@ -319,6 +357,30 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             fineHueMap.put(
                     Math.max(0, i * 15 - 7),
                     getResources().getStringArray(R.array.fine_hue_map)[i == 24 ? 0 : i]);
+        }
+    }
+
+    private void loadTermMaps() {
+        int NAME = 0;
+        int DESCRIPTION = 1;
+        int REFERENCE = 2;
+        int TERMS = 3;
+        int IMAGE = 4;
+
+        Resources resources = getResources();
+        try (TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids)) {
+            for (int i = 0; i < termMapIds.length(); i++) {
+                int termMapId = termMapIds.getResourceId(i, 0);
+                try (TypedArray termMapArray = resources.obtainTypedArray(termMapId)) {
+                    String name = termMapArray.getString(NAME);
+                    String description = termMapArray.getString(DESCRIPTION);
+                    String reference = termMapArray.getString(REFERENCE);
+                    int termsArrayId = termMapArray.getResourceId(TERMS, 0);
+                    List<String> terms = Collections.unmodifiableList(Arrays.asList(resources.getStringArray(termsArrayId)));
+                    int termMapResourceId = termMapArray.getResourceId(IMAGE, 0);
+                    termMaps.add(new TermMap(name, description, reference, terms, resources, termMapResourceId));
+                }
+            }
         }
     }
 
@@ -510,23 +572,31 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             imageReader.setOnImageAvailableListener(imageAvailableListener, backgroundHandler);
             captureRequestBuilder.addTarget(imageReader.getSurface());
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-            //noinspection ArraysAsListWithZeroOrOneArgument
-            cameraDevice.createCaptureSession(Arrays.asList(imageReader.getSurface()), new CameraCaptureSession.StateCallback() {
-                @Override
-                public void onConfigured(@NonNull CameraCaptureSession session) {
-                    if (cameraDevice == null) {
-                        return;
-                    }
-                    // When the session is ready, we start displaying the preview.
-                    cameraCaptureSession = session;
-                    updatePreview();
-                }
 
-                @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    Toast.makeText(MainActivity.this, getString(R.string.configuration_change), Toast.LENGTH_SHORT).show();
-                }
-            }, null);
+            List<OutputConfiguration> outputConfigs = new ArrayList<>();
+            OutputConfiguration imageOutputConfig = new OutputConfiguration(imageReader.getSurface());
+            outputConfigs.add(imageOutputConfig);
+            SessionConfiguration config = new SessionConfiguration(
+                    SessionConfiguration.SESSION_REGULAR,
+                    outputConfigs,
+                    getMainExecutor(), // Use the main thread for callbacks
+                    new CameraCaptureSession.StateCallback() {
+                        @Override
+                        public void onConfigured(@NonNull CameraCaptureSession session) {
+                            if (cameraDevice == null) {
+                                return;
+                            }
+                            cameraCaptureSession = session;
+                            updatePreview();
+                        }
+
+                        @Override
+                        public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                            Toast.makeText(MainActivity.this, getString(R.string.configuration_change), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+            cameraDevice.createCaptureSession(config);
+
         } catch (CameraAccessException e) {
             Log.e(TAG, "CameraAccessException", e);
         }
@@ -549,7 +619,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             //noinspection DataFlowIssue
             int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
-            int deviceRotation = getWindowManager().getDefaultDisplay().getRotation();
+            DisplayManager dm = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+            Display display = dm.getDisplay(Display.DEFAULT_DISPLAY);
+            int deviceRotation = display.getRotation();
             int degrees;
             switch (deviceRotation) {
                 case Surface.ROTATION_90:
@@ -752,25 +824,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                         textureView.getWidth(), textureView.getHeight());
             } catch (CameraAccessException e) {
                 Log.e(TAG, "Failed to get camera characteristics", e);
-            }
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK && requestCode == PICK_IMAGE) {
-            try {
-                Uri imageUri = data.getData();
-                InputStream inputStream = getContentResolver().openInputStream(Objects.requireNonNull(imageUri));
-                loadedImage = BitmapFactory.decodeStream(inputStream);
-                isImageMode = true;
-                setupImageMatrix();
-                closeCamera();
-                displayLoadedImage();
-            } catch (Exception e) {
-                Log.e(TAG, "Error loading image", e);
-                Toast.makeText(this, getString(R.string.image_load_failed), Toast.LENGTH_SHORT).show();
             }
         }
     }
