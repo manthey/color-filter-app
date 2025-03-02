@@ -7,6 +7,7 @@ import numpy as np
 import PIL.Image
 import PIL.ImageOps
 
+# This is used for the palette for the viewable color terms map
 ViewingColors = {
     'black': '000000',
     'red': 'FF0000',
@@ -32,6 +33,13 @@ ViewingColors = {
 
 
 def xyY_to_rgb(xyY):
+    """
+    Convert xyY color space to sRGB color space.  The xyY color space is using
+    the C illuminant, and the sRGB color space uses the D65 illuminant.
+
+    :param xyY: triple in xyY color space.
+    :returns: triple in sRGB color space.
+    """
     XYZ = colour.xyY_to_XYZ(xyY)
     whitepoint_c = colour.xy_to_XYZ(
         colour.CCS_ILLUMINANTS['CIE 1931 2 Degree Standard Observer']['C'])
@@ -52,17 +60,36 @@ def xyY_to_rgb(xyY):
 
 
 def munsell_color_to_sRGB(munsell_notation):
+    """
+    Convert a munsell color notation to an sRGB color.
+
+    :param: munsell notation string like N<number>/ or <hue> <number>/<chroma>.
+    :returns: a sRGB triple.
+    """
     xyY = colour.munsell_colour_to_xyY(munsell_notation)
     rgb = xyY_to_rgb(xyY)
     return rgb
 
 
 def rgb_to_hex(rgb):
+    """
+    Convert an sRGB triple (scale of [0, 1]) to a six digit hexadecimal number.
+
+    :param: sRGB triple.
+    :returns: hex string in the form RRGGBB.
+    """
     rgb = (np.clip(rgb, 0, 1) * 255).astype(int)
     return f'{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}'
 
 
 def munsell_table():
+    """
+    Create a list of hex colors based on munsell colors.  This includes 10
+    neutrals and 40 x 8 chroma values.
+
+    :returns: an array of 330 colors, an array of 10 neutrals, and an array of
+        [8][40] chroma colors with the more saturated values in the first row.
+    """
     colors = []
     grid = [[None for _ in range(40)] for _ in range(8)]
     gray = [None for _ in range(10)]
@@ -115,7 +142,15 @@ def munsell_table():
 
 def image_to_colors(image_path):
     """
-    Converts the given image arays for each color
+    Converts the given image arays for each color.  This parses Figure 9 of
+    Lindsey, D. T., and A. M. Brown. 2014. "The Color Lexicon of American
+    English." Journal of Vision. Association for Research in Vision and
+    Ophthalmology (ARVO). https://doi.org/10.1167/14.2.17.
+
+    :param image_path: Figure 9 as an image file.
+    :returns: a dictionary where the keys are one of 17 colors and the values
+        are [8][40] arrays of values from 0 to 1 with the response rate of that
+        color for the munsell color grid.
     """
     img = PIL.Image.open(image_path).convert('RGB')
 
@@ -151,7 +186,16 @@ def image_to_colors(image_path):
 
 def rgb_categories(labrgb, labcat, catvals):
     """
-    Compute categoric values
+    Compute categoric values.
+
+    :param labrgb: A numpy array of [256][256][256][3] of L*a*b* values for the
+        sRGB color cube with axes in the order R, G, B, L*a*b*.
+    :param labcat: An array of L*a*b* colors associated with differet categoric
+        labels.
+    :param catvals: A list matching the length of labcat where the values are
+        the indices into the terms list.
+    :returns: A numpy uint8 array of [256][256][256] of the color terms indices
+        that are closest to the L*a*b* values of the labcat values.
     """
     labrgb = labrgb.reshape(-1, 3)
     cats = np.zeros((labrgb.shape[0], ), dtype=np.uint8)
@@ -255,25 +299,17 @@ catrgb = rgb_categories(labrgb, labcat, np.array(labcatidx))
 counts = np.bincount(catrgb.flatten())
 print([k.capitalize() for k in cats.keys()])
 pprint.pprint({counts[idx]: k.capitalize() for idx, k in enumerate(cats.keys())})
-print(list(cats.keys())[catrgb[0x81][0x71][0x67]])
-img = PIL.Image.fromarray(catrgb.reshape(4096, 4096), mode='L')
-img.save('bct20.png', optimize=True)
 flatimg = np.zeros((4096, 4096), np.uint8)
 for r in range(256):
     x = (r % 16) * 256
     y = (r // 16) * 256
     flatimg[y:y + 256, x:x + 256] = catrgb[r]
 flatimg = PIL.Image.fromarray(flatimg, mode='L')
-flatimg.save('bct20flat.png', optimize=True)
-palimg = np.zeros((4096, 4096), np.uint8)
-for r in range(256):
-    x = (r % 16) * 256
-    y = (r // 16) * 256
-    palimg[y:y + 256, x:x + 256] = catrgb[r]
-palimg = PIL.Image.fromarray(palimg, mode='P')
+flatimg.save('bct20_en_us.png', optimize=True)
+palimg = PIL.Image.fromarray(flatimg, mode='P')
 palette = []
 for clr in cats.keys():
     hx = ViewingColors[clr]
     palette.extend(int(hx[i * 2:i * 2 + 2], 16) for i in range(3))
 palimg.putpalette(palette)
-palimg.save('bct20pal.png', optimize=True)
+palimg.save('bct20_en_us_pal.png', optimize=True)
