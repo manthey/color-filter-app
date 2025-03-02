@@ -159,11 +159,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        filter = new ImageFilterProcessor();
-        filter.setFilterSettings(
-                0, 14, 100, 100, 0,
-                ImageFilterProcessor.FilterMode.NONE, null);
-
         textureView = findViewById(R.id.textureView);
         textureView.setSurfaceTextureListener(this);
 
@@ -172,6 +167,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 "Maroon", "Pink", "Gold", "Peach", "Beige", "Brown", "Olive", "Gray",
                 "Lavender", "Magenta", "Lime", "White"
         ), getResources(), R.raw.bct20_en_us));
+
+        filter = new ImageFilterProcessor();
+        filter.setFilterSettings(
+                0, 14, 0, 0, 1,
+                ImageFilterProcessor.FilterMode.EXCLUDE, termMaps.get(0));
 
         hueSeekBar = findViewById(R.id.hueSeekBar);
         hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
