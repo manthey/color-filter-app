@@ -79,10 +79,22 @@ jobs:
         fi
     - name: Build AAR
       run: ./gradlew assembleRelease
-    - name: Check
-      run: find app/build -name "*.aar" && ls -lR app/build
-    - name: Upload AAR artifact
+    - name: Build AAB
+      run: ./gradlew bundleRelease
+    # - name: Check
+    #   run: find app/build -name "*.aab" && find app/build -name "*.apk" && find app/build -name "*.aar" && ls -lR app/build
+    # - name: Upload AAR artifact
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: color-filter-aar
+    #     path: app/build/outputs/aar/*.aar
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: color-filter-aar
-        path: app/build/outputs/aar/*.aar
+        name: color-filter-apk
+        path: app/build/outputs/apk/release/*.apk
+    - name: Upload AAB artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: color-filter-aab
+        path: app/build/outputs/bundle/release/*.aab
