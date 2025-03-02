@@ -24,6 +24,16 @@ public class TermMap {
     private final byte[] map;
     private int blur = 9;
 
+    /**
+     * Create a TermMap.
+     *
+     * @param name The display name of the TermMap.
+     * @param terms A list of terms.  The internal resource should use values in the range of
+     *              [0, number of terms).
+     * @param resources The resources to load from.
+     * @param termMapResourceId The resource id to load.  This should either be a greyscale
+     *                          lossless image or a palette lossless image.
+     */
     public TermMap(String name, List<String> terms, Resources resources, int termMapResourceId) {
         this.name = name;
         this.terms = Collections.unmodifiableList(new ArrayList<>(terms));
@@ -67,16 +77,35 @@ public class TermMap {
         return map != null ? Arrays.copyOf(map, map.length) : null;
     }
 
-    /** @noinspection unused*/
+    /**
+     * Get the blur value used to reduce variations.
+     *
+     * @return The current blur value.
+     * @noinspection unused
+     */
     public int getBlur() {
         return blur;
     }
-    /** @noinspection unused*/
+
+    /**
+     * Set the blur value used to reduce variations.
+     *
+     * @param blur Either 0 or an odd number.
+     * @noinspection unused
+     */
     public void setBlur(int blur) {
         this.blur = blur;
     }
 
-    public Mat createMask(Mat image, int targetValue) {
+    /**
+     * Given an input image in RGB color space, create a mask image that is single channel and has
+     * either 0 or 255 at each pixel.
+     *
+     * @param image The input RGB image.
+     * @param term The term value to match.
+     * @return An output mask image.
+     */
+    public Mat createMask(Mat image, int term) {
         byte[] rgbData = new byte[image.channels() * image.cols() * image.rows()];
         if (blur != 0) {
             Mat blurred = new Mat();
@@ -96,9 +125,9 @@ public class TermMap {
             int b = rgbData[i + 2] & 0xFF;
             int index = (r << 16) | (g << 8) | b;
             if (i == center) {
-                Log.e("TermMap", "Center " + " " + r + "," + g + "," + b + " " + map[index]);
+                Log.d("TermMap", "Center " + " " + r + "," + g + "," + b + " " + map[index]);
             }
-            maskData[j] = (byte) ((map[index] & 0xFF) == targetValue ? 255 : 0);
+            maskData[j] = (byte) ((map[index] & 0xFF) == term ? 255 : 0);
         }
 
         Mat mask = new Mat(image.rows(), image.cols(), CvType.CV_8UC1);

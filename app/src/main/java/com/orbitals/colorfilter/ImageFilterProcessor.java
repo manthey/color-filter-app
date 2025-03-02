@@ -26,6 +26,15 @@ public class ImageFilterProcessor {
     private TermMap termMap;
     private FilterMode filterMode = FilterMode.NONE;
 
+    /**
+     * Set several settings at once.
+     *
+     * @param hue Hue value from 0 to 360.
+     * @param hueWidth Hue width from 0 to 180.  This is the width on either side of the hue value.
+     * @param satThreshold Saturation threshold from 0 to 255.
+     * @param lumThreshold Luminance threshold from 0 to 255.
+     * @param filterMode One of the FilterMode enum values.
+     */
     public void setFilterSettings(int hue, int hueWidth, int satThreshold, int lumThreshold, FilterMode filterMode) {
         this.hue = hue;
         this.hueWidth = hueWidth;
@@ -34,6 +43,17 @@ public class ImageFilterProcessor {
         this.filterMode = filterMode;
     }
 
+    /**
+     * Set several settings at once.
+     *
+     * @param hue Hue value from 0 to 360.
+     * @param hueWidth Hue width from 0 to 180.  This is the width on either side of the hue value.
+     * @param satThreshold Saturation threshold from 0 to 255.
+     * @param lumThreshold Luminance threshold from 0 to 255.
+     * @param term Term number from the term map.  0-based.
+     * @param filterMode One of the FilterMode enum values.
+     * @param termMap Either null for no TermMap or a TermMap.
+     */
     public void setFilterSettings(int hue, int hueWidth, int satThreshold, int lumThreshold, int term, FilterMode filterMode, TermMap termMap) {
         setFilterSettings(hue, hueWidth, satThreshold, lumThreshold, filterMode);
         this.term = term;
@@ -79,12 +99,25 @@ public class ImageFilterProcessor {
     public TermMap getTermMap() {
         return termMap;
     }
+
+    /**
+     * Set the current TermMap.  If the specified TermMap is not null, the term value will be
+     * constrained to the range [0, number of terms in new TermMap).
+     *
+     * @param termMap Either null or a TermMap.
+     */
     public void setTermMap(TermMap termMap) {
         this.termMap = termMap;
         if (termMap != null && term >= termMap.getTerms().size()) {
             term = termMap.getTerms().size() - 1;
         }
     }
+
+    /**
+     * Get the current term as a string.
+     *
+     * @return The current term.  An empty string if none.
+     */
     public String getCurrentTerm() {
         if (termMap == null || term >= termMap.getTerms().size()) {
             return "";
@@ -92,6 +125,13 @@ public class ImageFilterProcessor {
         return termMap.getTerms().get(term);
     }
 
+    /**
+     * Process an input matrix image, filtering it based on the current filter mode and other
+     * parameters.
+     *
+     * @param input An image matrix in RGBA format.  Modified to RGB.
+     * @return An image matrix in RGB format with the image applied.
+     */
     public Mat process(Mat input) {
         Mat hsv = new Mat();
         Imgproc.cvtColor(input, input, Imgproc.COLOR_RGBA2RGB);
