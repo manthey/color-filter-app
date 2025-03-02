@@ -1,6 +1,7 @@
 package com.orbitals.colorfilter;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -282,19 +283,25 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         updateSeekLabels();
     }
 
+    @SuppressLint("DefaultLocale")
     private void updateSeekLabels() {
         TextView hueLabel = findViewById(R.id.hueLabel);
-        hueLabel.setText(getString(R.string.hue) + " - " + filter.getHue() + " - " +
-                getColorName(filter.getHue(), coarseHueMap) + " - " +
-                getColorName(filter.getHue(), fineHueMap));
+        hueLabel.setText(String.format("%s - %d - %s - %s",
+                getString(R.string.hue), filter.getHue(),
+                getColorName(filter.getHue(), coarseHueMap),
+                getColorName(filter.getHue(), fineHueMap)));
         TextView hwLabel = findViewById(R.id.hueWidthLabel);
-        hwLabel.setText(getString(R.string.hue_width) + " - " + filter.getHueWidth());
+        hwLabel.setText(String.format("%s - %d",
+                getString(R.string.hue_width), filter.getHueWidth()));
         TextView satLabel = findViewById(R.id.saturationLabel);
-        satLabel.setText(getString(R.string.saturation) + " - " + filter.getSatThreshold());
+        satLabel.setText(String.format("%s - %d",
+                getString(R.string.saturation), filter.getSatThreshold()));
         TextView lumLabel = findViewById(R.id.luminanceLabel);
-        lumLabel.setText(getString(R.string.luminance) + " - " + filter.getLumThreshold());
+        lumLabel.setText(String.format("%s - %d",
+                getString(R.string.luminance), filter.getLumThreshold()));
         TextView bctLabel = findViewById(R.id.bctLabel);
-        bctLabel.setText(getString(R.string.term) + " - " + filter.getCurrentTerm());
+        bctLabel.setText(String.format("%s - %s",
+                getString(R.string.term), filter.getCurrentTerm()));
         if (isImageMode) {
             displayLoadedImage();
         }
