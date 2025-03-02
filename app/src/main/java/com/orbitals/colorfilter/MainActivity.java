@@ -246,23 +246,10 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     filter.setTermMap(termMaps.get(currentIdx + 1));
                 }
             }
-            if (filter.getTermMap() == null) {
-                bctButton.setText("HSV");
-                findViewById(R.id.bctControls).setVisibility(View.GONE);
-                findViewById(R.id.hueControls).setVisibility(View.VISIBLE);
-            } else {
-                bctButton.setText(filter.getTermMap().getName());
-                findViewById(R.id.hueControls).setVisibility(View.GONE);
-                findViewById(R.id.bctControls).setVisibility(View.VISIBLE);
-                bctSeekBar.setMax(filter.getTermMap().getTerms().size() - 1);
-            }
-            if (isImageMode) {
-                displayLoadedImage();
-            }
-            updateSeekLabels();
+            updateControls();
         });
 
-        updateSeekLabels();
+        updateControls();
         // Set up SeekBars to update filter parameters
         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
@@ -308,6 +295,26 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 return handlePinchToZoom(event);
             }
         });
+    }
+
+    private void updateControls() {
+        Button bctButton = findViewById(R.id.bctButton);
+        SeekBar bctSeekBar = findViewById(R.id.bctSeekBar);
+        if (filter.getTermMap() == null) {
+            bctButton.setText("HSV");
+            findViewById(R.id.bctControls).setVisibility(View.GONE);
+            findViewById(R.id.hueControls).setVisibility(View.VISIBLE);
+        } else {
+            bctButton.setText(filter.getTermMap().getName());
+            findViewById(R.id.hueControls).setVisibility(View.GONE);
+            findViewById(R.id.bctControls).setVisibility(View.VISIBLE);
+            bctSeekBar.setMax(filter.getTermMap().getTerms().size() - 1);
+        }
+        if (isImageMode) {
+            displayLoadedImage();
+        }
+
+        updateSeekLabels();
     }
 
     private void updateSeekLabels() {
