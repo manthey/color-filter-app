@@ -1,3 +1,25 @@
 <resources>
     <string name="app_name">Color Filter</string>
+
+    <!-- Buttons -->
+    <string name="filter_button_off">Off</string>
+    <string name="filter_button_include">Include</string>
+    <string name="filter_button_exclude">Exclude</string>
+    <string name="filter_button_binary">Binary</string>
+    <string name="filter_button_saturation">Saturat.</string>
+    <string name="term_button_hsv">HSV</string>
+    <string name="camera_button">Switch Camera</string>string>
+    <string name="image_button">Select Image</string>string>
+
+    <!-- Labels -->
+    <string name="hue">Hue</string>
+    <string name="hue_width">Hue Width</string>
+    <string name="saturation">Saturation</string>
+    <string name="luminance">Luminance</string>
+    <string name="term">Term</string>
+
+    <!-- Toast Messages -->
+    <string name="camera_permission_denied">Permission is required for basic function</string>
+    <string name="image_load_failed">Failed to load image</string>
+    <string name="configuration_change">Configuration change</string>
 </resources>

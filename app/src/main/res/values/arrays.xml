@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+     <string-array name="coarse_hue_map">
+        <item>Red</item>
+        <item>Yellow</item>
+        <item>Green</item>
+        <item>Cyan/Aqua</item>
+        <item>Blue</item>
+        <item>Purple</item>
+        <item>Red</item>
+    </string-array>
+
+    <string-array name="fine_hue_map">
+        <item>Red</item>
+        <item>Orange-Red</item>
+        <item>Orange</item>
+        <item>Gold</item>
+        <item>Yellow</item>
+        <item>Lime</item>
+        <item>Chartreuse</item>
+        <item>Neon Green</item>
+        <item>Green</item>
+        <item>Spring Green</item>
+        <item>Mint Green</item>
+        <item>Turquoise</item>
+        <item>Cyan/Aqua</item>
+        <item>Sky Blue</item>
+        <item>Royal Blue</item>
+        <item>Sapphire</item>
+        <item>Blue</item>
+        <item>Violet</item>
+        <item>Purple</item>
+        <item>Fuchsia</item>
+        <item>Magenta</item>
+        <item>Deep Pink</item>
+        <item>Rose</item>
+        <item>Scarlet</item>
+    </string-array>
+</resources>
