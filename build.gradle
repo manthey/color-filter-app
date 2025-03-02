@@ -15,6 +15,17 @@ subprojects { project ->
                     }
                 }
             }
+			tasks.withType(JavaCompile).configureEach {
+                sourceCompatibility = '17'   // Set to Java 17
+                targetCompatibility = '17'
+            }
+
+            // Set Kotlin JVM target for the opencv module
+            tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                kotlinOptions {
+                    jvmTarget = "17"          // Align Kotlin JVM target with Java
+                }
+            }
         }
     }
 }
