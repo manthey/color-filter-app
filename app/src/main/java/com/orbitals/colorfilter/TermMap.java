@@ -22,7 +22,7 @@ public class TermMap {
     private final String name;
     private final List<String> terms;
     private final byte[] map;
-    private final int blur = 9;
+    private int blur = 9;
 
     public TermMap(String name, List<String> terms, Resources resources, int termMapResourceId) {
         this.name = name;
@@ -62,8 +62,18 @@ public class TermMap {
         return terms;
     }
 
+    /** @noinspection unused*/
     public byte[] getMap() {
         return map != null ? Arrays.copyOf(map, map.length) : null;
+    }
+
+    /** @noinspection unused*/
+    public int getBlur() {
+        return blur;
+    }
+    /** @noinspection unused*/
+    public void setBlur(int blur) {
+        this.blur = blur;
     }
 
     public Mat createMask(Mat image, int targetValue) {
@@ -78,7 +88,7 @@ public class TermMap {
         }
         byte[] maskData = new byte[image.cols() * image.rows()];
 
-        int center = ((int)(image.rows() / 2) * image.cols() + (int)(image.cols() / 2)) * 3;
+        int center = ((image.rows() / 2) * image.cols() + (image.cols() / 2)) * 3;
         for (int i = 0, j = 0; i < rgbData.length; i += 3, j++) {
             // Get RGB values (unsigned)
             int r = rgbData[i] & 0xFF;
