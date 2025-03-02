@@ -80,7 +80,7 @@ jobs:
     - name: Build AAR
       run: ./gradlew assembleRelease
     - name: Check
-      run: ls -lr app/build
+      run: ls -lR app/build
     - name: Upload AAR artifact
       uses: actions/upload-artifact@v4
       with:
