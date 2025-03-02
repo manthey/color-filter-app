@@ -32,10 +32,10 @@
 
             <Button
                 android:id="@+id/switchCameraButton"
-                android:layout_width="wrap_content"
+                android:layout_width="48dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/black"
-                android:text="Camera" />
+                android:drawableStart="@drawable/baseline_camera_alt_24"
+                android:contentDescription="Switch Camera"/>
 
             <Button
                 android:id="@+id/filterButton"
@@ -53,10 +53,10 @@
 
             <Button
                 android:id="@+id/loadImageButton"
-                android:layout_width="wrap_content"
+                android:layout_width="48dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/black"
-                android:text="Image" />
+                android:drawableStart="@drawable/baseline_image_24"
+                android:contentDescription="Select Image"/>
         </LinearLayout>
 
 		<FrameLayout
