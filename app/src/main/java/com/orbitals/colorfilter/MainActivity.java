@@ -67,43 +67,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private static final int REQUEST_CAMERA_PERMISSION = 200;
     private static final int PICK_IMAGE = 201;
 
-    private final HashMap<Integer, String> coarseHueMap = new HashMap<Integer, String>() {{
-        put(0, "Red");
-        put(30, "Yellow");
-        put(90, "Green");
-        put(150, "Cyan/Aqua");
-        put(210, "Blue");
-        put(270, "Purple");
-        put(330, "Red");
-    }};
-
-    private final HashMap<Integer, String> fineHueMap = new HashMap<Integer, String>() {{
-        put(0, "Red");
-        put(8, "Orange-Red");
-        put(23, "Orange");
-        put(38, "Gold");
-        put(53, "Yellow");
-        put(68, "Lime");
-        put(83, "Chartreuse");
-        put(98, "Neon Green");
-        put(113, "Green");
-        put(128, "Spring Green");
-        put(143, "Mint Green");
-        put(158, "Turquoise");
-        put(173, "Cyan/Aqua");
-        put(188, "Sky Blue");
-        put(203, "Royal Blue");
-        put(218, "Sapphire");
-        put(233, "Blue");
-        put(248, "Violet");
-        put(263, "Purple");
-        put(278, "Fuchsia");
-        put(293, "Magenta");
-        put(308, "Deep Pink");
-        put(323, "Rose");
-        put(338, "Scarlet");
-        put(353, "Red");
-    }};
+    private HashMap<Integer, String> coarseHueMap;
+    private HashMap<Integer, String> fineHueMap;
 
     ArrayList<TermMap> termMaps = new ArrayList<>();
 
@@ -157,6 +122,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         SeekBar hueSeekBar, hueWidthSeekBar, saturationSeekBar, luminanceSeekBar, bctSeekBar;
 
         super.onCreate(savedInstanceState);
+        setHueMaps();
         setContentView(R.layout.activity_main);
 
         textureView = findViewById(R.id.textureView);
@@ -199,24 +165,23 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             switch (filter.getFilterMode()) {
                 case NONE:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.INCLUDE);
-                    filterButton.setText("Include");
+                    filterButton.setText(getString(R.string.filter_button_include));
                     break;
                 case INCLUDE:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.EXCLUDE);
-                    filterButton.setText("Exclude");
+                    filterButton.setText(getString(R.string.filter_button_exclude));
                     break;
                 case EXCLUDE:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.BINARY);
-                    filterButton.setText("Binary");
+                    filterButton.setText(getString(R.string.filter_button_binary));
                     break;
                 case BINARY:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.SATURATION);
-                    //noinspection SpellCheckingInspection
-                    filterButton.setText("Saturat.");
+                    filterButton.setText(getString(R.string.filter_button_saturation));
                     break;
                 case SATURATION:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.NONE);
-                    filterButton.setText("Off");
+                    filterButton.setText(getString(R.string.filter_button_off));
                     break;
             }
             if (isImageMode) {
@@ -301,7 +266,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         Button bctButton = findViewById(R.id.bctButton);
         SeekBar bctSeekBar = findViewById(R.id.bctSeekBar);
         if (filter.getTermMap() == null) {
-            bctButton.setText("HSV");
+            bctButton.setText(getString(R.string.term_button_hsv));
             findViewById(R.id.bctControls).setVisibility(View.GONE);
             findViewById(R.id.hueControls).setVisibility(View.VISIBLE);
         } else {
@@ -319,19 +284,34 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private void updateSeekLabels() {
         TextView hueLabel = findViewById(R.id.hueLabel);
-        hueLabel.setText("Hue - " + filter.getHue() + " - " +
+        hueLabel.setText(getString(R.string.hue) + " - " + filter.getHue() + " - " +
                 getColorName(filter.getHue(), coarseHueMap) + " - " +
                 getColorName(filter.getHue(), fineHueMap));
         TextView hwLabel = findViewById(R.id.hueWidthLabel);
-        hwLabel.setText("Hue Width - " + filter.getHueWidth());
+        hwLabel.setText(getString(R.string.hue_width) + " - " + filter.getHueWidth());
         TextView satLabel = findViewById(R.id.saturationLabel);
-        satLabel.setText("Saturation - " + filter.getSatThreshold());
+        satLabel.setText(getString(R.string.saturation) + " - " + filter.getSatThreshold());
         TextView lumLabel = findViewById(R.id.luminanceLabel);
-        lumLabel.setText("Luminance - " + filter.getLumThreshold());
+        lumLabel.setText(getString(R.string.luminance) + " - " + filter.getLumThreshold());
         TextView bctLabel = findViewById(R.id.bctLabel);
-        bctLabel.setText("Term - " + filter.getCurrentTerm());
+        bctLabel.setText(getString(R.string.term) + " - " + filter.getCurrentTerm());
         if (isImageMode) {
             displayLoadedImage();
+        }
+    }
+
+    private void setHueMaps() {
+        coarseHueMap = new HashMap<>();
+        for (int i = 0; i < 6; i++) {
+            coarseHueMap.put(
+                    i * 30, getResources().getStringArray(R.array.coarse_hue_map)[i]);
+        }
+
+        fineHueMap = new HashMap<>();
+        for (int i = 0; i <= 24; i++) {
+            fineHueMap.put(
+                    Math.max(0, i * 15 - 7),
+                    getResources().getStringArray(R.array.fine_hue_map)[i == 24 ? 0 : i]);
         }
     }
 
@@ -433,7 +413,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private void openCamera() {
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-        Log.d(TAG, "is camera open");
         try {
             cameraId = isFrontCamera ? manager.getCameraIdList()[1] : manager.getCameraIdList()[0]; // Select camera
 
@@ -538,7 +517,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
                 @Override
                 public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    Toast.makeText(MainActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, getString(R.string.configuration_change), Toast.LENGTH_SHORT).show();
                 }
             }, null);
         } catch (CameraAccessException e) {
@@ -730,7 +709,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         if (requestCode == REQUEST_CAMERA_PERMISSION) {
             if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
                 // close the app
-                Toast.makeText(MainActivity.this, "Permission is required for basic function", Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, getString(R.string.camera_permission_denied), Toast.LENGTH_LONG).show();
                 finish();
             }
         }
@@ -784,7 +763,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 displayLoadedImage();
             } catch (Exception e) {
                 Log.e(TAG, "Error loading image", e);
-                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.image_load_failed), Toast.LENGTH_SHORT).show();
             }
         }
     }

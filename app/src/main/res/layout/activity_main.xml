@@ -35,28 +35,28 @@
                 android:layout_width="48dp"
                 android:layout_height="wrap_content"
                 android:drawableStart="@drawable/baseline_camera_alt_24"
-                android:contentDescription="Switch Camera"/>
+                android:contentDescription="@string/camera_button"/>
 
             <Button
                 android:id="@+id/filterButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/black"
-                android:text="Off" />
+                android:text="@string/filter_button_off" />
 
             <Button
                 android:id="@+id/bctButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/black"
-                android:text="HSV" />
+                android:text="@string/term_button_hsv" />
 
             <Button
                 android:id="@+id/loadImageButton"
                 android:layout_width="48dp"
                 android:layout_height="wrap_content"
                 android:drawableStart="@drawable/baseline_image_24"
-                android:contentDescription="Select Image"/>
+                android:contentDescription="@string/image_button"/>
         </LinearLayout>
 
 		<FrameLayout
@@ -74,7 +74,7 @@
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:textColor="@color/black"
-					android:text="Hue" />
+					android:text="@string/hue" />
 				<SeekBar
 					android:id="@+id/hueSeekBar"
 					android:layout_width="match_parent"
@@ -89,7 +89,7 @@
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:textColor="@color/black"
-					android:text="Hue Width" />
+					android:text="@string/hue_width" />
 				<SeekBar
 					android:id="@+id/hueWidthSeekBar"
 					android:layout_width="match_parent"
@@ -112,7 +112,7 @@
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:textColor="@color/black"
-					android:text="BCT20" />
+					android:text="@string/term" />
 				<SeekBar
 					android:id="@+id/bctSeekBar"
 					android:layout_width="match_parent"
@@ -129,7 +129,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/black"
-            android:text="Saturation" />
+            android:text="@string/saturation" />
         <SeekBar
             android:id="@+id/saturationSeekBar"
             android:layout_width="match_parent"
@@ -144,7 +144,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/black"
-            android:text="Luminance" />
+            android:text="@string/luminance" />
         <SeekBar
             android:id="@+id/luminanceSeekBar"
             android:layout_width="match_parent"
