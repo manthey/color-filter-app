@@ -1,4 +1,4 @@
-name: Android CI
+uname: Android CI
 
 on:
   push:
@@ -78,7 +78,9 @@ jobs:
           echo "Jacoco coverage file not found."
         fi
     - name: Build AAR
-      run: ./gradlew assembleRelease     
+      run: ./gradlew assembleRelease
+    - name: Check
+      run: ls -lr app/build
     - name: Upload AAR artifact
       uses: actions/upload-artifact@v4
       with:
