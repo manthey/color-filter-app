@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -124,16 +126,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
         super.onCreate(savedInstanceState);
         setHueMaps();
+        loadTermMaps();
         setContentView(R.layout.activity_main);
 
         textureView = findViewById(R.id.textureView);
         textureView.setSurfaceTextureListener(this);
-
-        termMaps.add(new TermMap("BCT20", Arrays.asList(
-                "Black", "Red", "Orange", "Yellow", "Green", "Teal", "Blue", "Purple",
-                "Maroon", "Pink", "Gold", "Peach", "Beige", "Brown", "Olive", "Gray",
-                "Lavender", "Magenta", "Lime", "White"
-        ), getResources(), R.raw.bct20_en_us));
 
         filter = new ImageFilterProcessor();
         filter.setFilterSettings(
@@ -166,28 +163,21 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             switch (filter.getFilterMode()) {
                 case NONE:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.INCLUDE);
-                    filterButton.setText(getString(R.string.filter_button_include));
                     break;
                 case INCLUDE:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.EXCLUDE);
-                    filterButton.setText(getString(R.string.filter_button_exclude));
                     break;
                 case EXCLUDE:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.BINARY);
-                    filterButton.setText(getString(R.string.filter_button_binary));
                     break;
                 case BINARY:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.SATURATION);
-                    filterButton.setText(getString(R.string.filter_button_saturation));
                     break;
                 case SATURATION:
                     filter.setFilterMode(ImageFilterProcessor.FilterMode.NONE);
-                    filterButton.setText(getString(R.string.filter_button_off));
                     break;
             }
-            if (isImageMode) {
-                displayLoadedImage();
-            }
+            updateControls();
         });
         loadImageButton = findViewById(R.id.loadImageButton);
         loadImageButton.setOnClickListener(v -> {
@@ -266,6 +256,24 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private void updateControls() {
         Button bctButton = findViewById(R.id.bctButton);
         SeekBar bctSeekBar = findViewById(R.id.bctSeekBar);
+        Button filterButton = findViewById(R.id.filterButton);
+        switch (filter.getFilterMode()) {
+            case INCLUDE:
+                filterButton.setText(getString(R.string.filter_button_include));
+                break;
+            case EXCLUDE:
+                filterButton.setText(getString(R.string.filter_button_exclude));
+                break;
+            case BINARY:
+                filterButton.setText(getString(R.string.filter_button_binary));
+                break;
+            case SATURATION:
+                filterButton.setText(getString(R.string.filter_button_saturation));
+                break;
+            case NONE:
+                filterButton.setText(getString(R.string.filter_button_off));
+                break;
+        }
         if (filter.getTermMap() == null) {
             bctButton.setText(getString(R.string.term_button_hsv));
             findViewById(R.id.bctControls).setVisibility(View.GONE);
@@ -279,7 +287,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         if (isImageMode) {
             displayLoadedImage();
         }
-
         updateSeekLabels();
     }
 
@@ -319,6 +326,33 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             fineHueMap.put(
                     Math.max(0, i * 15 - 7),
                     getResources().getStringArray(R.array.fine_hue_map)[i == 24 ? 0 : i]);
+        }
+    }
+
+    private void loadTermMaps() {
+        int NAME = 0;
+        int DESCRIPTION = 1;
+        int REFERENCE = 2;
+        int TERMS = 3;
+        int IMAGE = 4;
+
+        Resources resources = getResources();
+        try (TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids)) {
+            for (int i = 0; i < termMapIds.length(); i++) {
+                int termMapId = termMapIds.getResourceId(i, 0);
+                try (TypedArray termMapArray = resources.obtainTypedArray(termMapId)) {
+                    String name = termMapArray.getString(NAME);
+                    String description = termMapArray.getString(DESCRIPTION);
+                    String reference = termMapArray.getString(REFERENCE);
+
+                    int termsArrayId = termMapArray.getResourceId(TERMS, 0);
+                    List<String> terms = Collections.unmodifiableList(Arrays.asList(resources.getStringArray(termsArrayId)));
+
+                    String imageName = termMapArray.getString(IMAGE);
+                    int termMapResourceId = resources.getIdentifier(imageName, "raw", resources.getResourcePackageName(R.string.app_name));
+                    termMaps.add(new TermMap(name, description, reference, terms, resources, termMapResourceId));
+                }
+            }
         }
     }
 

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="TermMap">
+        <attr name="name" format="string" />
+        <attr name="description" format="string" />
+        <attr name="reference" format="string" />
+        <attr name="terms" format="reference" />
+        <attr name="image" format="reference" />
+    </declare-styleable>
+    <array name="term_map_ids">
+        <item>@array/term_map_bct20</item>
+    </array>
+    <array name="term_map_bct20">
+        <item>BCT20</item>
+        <item>BCT20 English (US)</item>
+        <item>Taken from Lindsey, D. T., and A. M. Brown. 2014.
+            "The Color Lexicon of American English." Journal of Vision.
+            Association for Research in Vision and Ophthalmology (ARVO).
+            https://doi.org/10.1167/14.2.17</item>
+        <item>@array/term_map_bct20_terms</item>
+        <item>bct20_en_us</item>
+    </array>
+    <string-array name="term_map_bct20_terms">
+        <item>Black</item>
+        <item>Red</item>
+        <item>Orange</item>
+        <item>Yellow</item>
+        <item>Green</item>
+        <item>Teal</item>
+        <item>Blue</item>
+        <item>Purple</item>
+        <item>Maroon</item>
+        <item>Pink</item>
+        <item>Gold</item>
+        <item>Peach</item>
+        <item>Beige</item>
+        <item>Brown</item>
+        <item>Olive</item>
+        <item>Gray</item>
+        <item>Lavender</item>
+        <item>Magenta</item>
+        <item>Lime</item>
+        <item>White</item>
+    </string-array>
+</resources>
