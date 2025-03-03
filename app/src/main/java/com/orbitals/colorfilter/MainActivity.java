@@ -25,7 +25,10 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.OutputConfiguration;
+import android.hardware.camera2.params.SessionConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.hardware.display.DisplayManager;
 import android.media.Image;
 import android.media.ImageReader;
 import android.net.Uri;
@@ -35,6 +38,7 @@ import android.os.HandlerThread;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.util.Size;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
@@ -120,6 +124,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     };
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Button switchCameraButton, filterButton, loadImageButton, bctButton;
@@ -370,12 +375,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     String name = termMapArray.getString(NAME);
                     String description = termMapArray.getString(DESCRIPTION);
                     String reference = termMapArray.getString(REFERENCE);
-
                     int termsArrayId = termMapArray.getResourceId(TERMS, 0);
                     List<String> terms = Collections.unmodifiableList(Arrays.asList(resources.getStringArray(termsArrayId)));
-
-                    String imageName = termMapArray.getString(IMAGE);
-                    int termMapResourceId = resources.getIdentifier(imageName, "raw", resources.getResourcePackageName(R.string.app_name));
+                    int termMapResourceId = termMapArray.getResourceId(IMAGE, 0);
                     termMaps.add(new TermMap(name, description, reference, terms, resources, termMapResourceId));
                 }
             }
@@ -570,23 +572,31 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             imageReader.setOnImageAvailableListener(imageAvailableListener, backgroundHandler);
             captureRequestBuilder.addTarget(imageReader.getSurface());
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-            //noinspection ArraysAsListWithZeroOrOneArgument
-            cameraDevice.createCaptureSession(Arrays.asList(imageReader.getSurface()), new CameraCaptureSession.StateCallback() {
-                @Override
-                public void onConfigured(@NonNull CameraCaptureSession session) {
-                    if (cameraDevice == null) {
-                        return;
-                    }
-                    // When the session is ready, we start displaying the preview.
-                    cameraCaptureSession = session;
-                    updatePreview();
-                }
 
-                @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    Toast.makeText(MainActivity.this, getString(R.string.configuration_change), Toast.LENGTH_SHORT).show();
-                }
-            }, null);
+            List<OutputConfiguration> outputConfigs = new ArrayList<>();
+            OutputConfiguration imageOutputConfig = new OutputConfiguration(imageReader.getSurface());
+            outputConfigs.add(imageOutputConfig);
+            SessionConfiguration config = new SessionConfiguration(
+                    SessionConfiguration.SESSION_REGULAR,
+                    outputConfigs,
+                    getMainExecutor(), // Use the main thread for callbacks
+                    new CameraCaptureSession.StateCallback() {
+                        @Override
+                        public void onConfigured(@NonNull CameraCaptureSession session) {
+                            if (cameraDevice == null) {
+                                return;
+                            }
+                            cameraCaptureSession = session;
+                            updatePreview();
+                        }
+
+                        @Override
+                        public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                            Toast.makeText(MainActivity.this, getString(R.string.configuration_change), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+            cameraDevice.createCaptureSession(config);
+
         } catch (CameraAccessException e) {
             Log.e(TAG, "CameraAccessException", e);
         }
@@ -609,7 +619,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             //noinspection DataFlowIssue
             int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
-            int deviceRotation = getWindowManager().getDefaultDisplay().getRotation();
+            DisplayManager dm = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+            Display display = dm.getDisplay(Display.DEFAULT_DISPLAY);
+            int deviceRotation = display.getRotation();
             int degrees;
             switch (deviceRotation) {
                 case Surface.ROTATION_90:
