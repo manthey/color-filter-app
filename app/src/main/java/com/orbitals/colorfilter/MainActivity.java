@@ -45,6 +45,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -61,14 +63,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.Semaphore;
 
 public class MainActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener {
 
     private static final String TAG = "Color Filter";
     private static final int REQUEST_CAMERA_PERMISSION = 200;
-    private static final int PICK_IMAGE = 201;
 
     private HashMap<Integer, String> coarseHueMap;
     private HashMap<Integer, String> fineHueMap;
@@ -90,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private String cameraId;
     private boolean isFrontCamera = false;  // Flag for front/back camera
     private final Semaphore cameraOpenCloseLock = new Semaphore(1);
+    private ActivityResultLauncher<Intent> pickImageLauncher;
 
     private Bitmap loadedImage = null;
     private boolean isImageMode = false;
@@ -182,8 +183,30 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         loadImageButton = findViewById(R.id.loadImageButton);
         loadImageButton.setOnClickListener(v -> {
             Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(gallery, PICK_IMAGE);
+            pickImageLauncher.launch(gallery);
         });
+        pickImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        Intent data = result.getData();
+                        if (data != null && data.getData() != null) {
+                            Uri imageUri = data.getData();
+                            try {
+                                InputStream inputStream = getContentResolver().openInputStream(imageUri);
+                                loadedImage = BitmapFactory.decodeStream(inputStream);
+                                isImageMode = true;
+                                setupImageMatrix();
+                                closeCamera();
+                                displayLoadedImage();
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error loading image", e);
+                                Toast.makeText(this, getString(R.string.image_load_failed), Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    }
+                }
+        );
         bctButton = findViewById(R.id.bctButton);
         bctButton.setOnClickListener(v -> {
             if (filter.getTermMap() == null) {
@@ -245,6 +268,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
         // Pinch-to-zoom setup (add touch listener)
         textureView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                v.performClick();
+            }
             if (isImageMode) {
                 return handleImageTouch(event);
             } else {
@@ -786,25 +812,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                         textureView.getWidth(), textureView.getHeight());
             } catch (CameraAccessException e) {
                 Log.e(TAG, "Failed to get camera characteristics", e);
-            }
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK && requestCode == PICK_IMAGE) {
-            try {
-                Uri imageUri = data.getData();
-                InputStream inputStream = getContentResolver().openInputStream(Objects.requireNonNull(imageUri));
-                loadedImage = BitmapFactory.decodeStream(inputStream);
-                isImageMode = true;
-                setupImageMatrix();
-                closeCamera();
-                displayLoadedImage();
-            } catch (Exception e) {
-                Log.e(TAG, "Error loading image", e);
-                Toast.makeText(this, getString(R.string.image_load_failed), Toast.LENGTH_SHORT).show();
             }
         }
     }
