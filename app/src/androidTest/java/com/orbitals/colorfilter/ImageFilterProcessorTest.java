@@ -1,7 +1,6 @@
 package com.orbitals.colorfilter;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opencv.android.OpenCVLoader;
@@ -42,5 +41,21 @@ public class ImageFilterProcessorTest {
         assertEquals(100, output.rows());
         assertEquals(100, output.cols());
         // Add more specific test cases
+    }
+
+    @Test
+    public void testGettersAndSetters() {
+        ImageFilterProcessor processor = new ImageFilterProcessor();
+        processor.setHue(100);
+        assertEquals(100, processor.getHue());
+
+        processor.setHueWidth(20);
+        assertEquals(20, processor.getHueWidth());
+
+        processor.setSatThreshold(150);
+        assertEquals(150, processor.getSatThreshold());
+
+        processor.setLumThreshold(200);
+        assertEquals(200, processor.getLumThreshold());
     }
 }
