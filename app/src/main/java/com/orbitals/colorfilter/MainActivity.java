@@ -696,8 +696,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     canvas.drawBitmap(bmp, matrix, null);
                     textureView.unlockCanvasAndPost(canvas);
                 }
-
-                rgbMat.release(); // Release resources
+                rgbMat.release();
                 processedMat.release();
             }
         }
