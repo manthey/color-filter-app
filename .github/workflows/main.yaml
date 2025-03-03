@@ -44,8 +44,6 @@ jobs:
       run: ./gradlew build -x opencv:test -x opencv:lint -x opencv:connectedAndroidTest
     - name: Run Unit Tests
       run: ./gradlew test
-    - name: Generate Jacoco Report
-      run: ./gradlew jacocoTestReport
     - name: Enable KVM
       run: |
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -59,15 +57,17 @@ jobs:
         arch: x86_64
         # profile: Nexus 6
         emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-        script: ./gradlew connectedAndroidTest
+        script: |
+          ./gradlew connectedDebugAndroidTest
+          ./gradlew jacocoTestReport
     - name: Upload Jacoco Reports
       uses: actions/upload-artifact@v4
       with:
         name: jacoco-reports
-        path: app/build/reports/jacoco
+        path: app/build/reports
     - name: Print Code Coverage Summary
       run: |
-        COVERAGE_FILE=$(find app/build/reports/jacoco -name "jacocoTestReport.xml")
+        COVERAGE_FILE=$(find app/build/reports -name "report.xml")
         if [ -f "$COVERAGE_FILE" ]; then
           COVERED=$(grep -oP 'covered="\K[0-9]+' $COVERAGE_FILE | awk '{s+=$1} END {print s}')
           MISSED=$(grep -oP 'missed="\K[0-9]+' $COVERAGE_FILE | awk '{s+=$1} END {print s}')

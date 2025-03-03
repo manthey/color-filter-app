@@ -701,7 +701,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     };
 
-
     protected void updatePreview() {
         if (null == cameraDevice) {
             Log.e(TAG, "updatePreview error, return");
