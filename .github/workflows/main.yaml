@@ -44,8 +44,6 @@ jobs:
       run: ./gradlew build -x opencv:test -x opencv:lint -x opencv:connectedAndroidTest
     - name: Run Unit Tests
       run: ./gradlew test
-    - name: Generate Jacoco Report
-      run: ./gradlew jacocoTestReport
     - name: Enable KVM
       run: |
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -60,6 +58,8 @@ jobs:
         # profile: Nexus 6
         emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
         script: ./gradlew connectedAndroidTest
+    - name: Generate Jacoco Report
+      run: ./gradlew jacocoTestReport
     - name: Upload Jacoco Reports
       uses: actions/upload-artifact@v4
       with:
