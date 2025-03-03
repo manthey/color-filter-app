@@ -97,6 +97,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private ActivityResultLauncher<Intent> pickImageLauncher;
 
     private Bitmap loadedImage = null;
+    private Bitmap processedImage = null;
     private boolean isImageMode = false;
     private final PointF lastTouch = new PointF();
     private final Matrix imageMatrix = new Matrix();
@@ -159,6 +160,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             if (isImageMode) {
                 isImageMode = false;
                 loadedImage = null;
+                processedImage = null;
                 openCamera();
             } else {
                 switchCamera();
@@ -850,22 +852,28 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     }
 
     private void displayLoadedImage() {
+        displayLoadedImage(false);
+    }
+
+    private void displayLoadedImage(Boolean reuse) {
         if (loadedImage == null || !isImageMode) return;
 
-        Mat inputMat = new Mat();
-        Utils.bitmapToMat(loadedImage, inputMat);
-        Mat processedMat = filter.process(inputMat);
+        if (processedImage == null || !reuse) {
+            Mat inputMat = new Mat();
+            Utils.bitmapToMat(loadedImage, inputMat);
+            Mat processedMat = filter.process(inputMat);
 
-        Bitmap processedBitmap = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(processedMat, processedBitmap);
+            processedImage = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(processedMat, processedImage);
 
-        inputMat.release();
-        processedMat.release();
+            inputMat.release();
+            processedMat.release();
+        }
 
         Canvas canvas = textureView.lockCanvas();
         if (canvas != null) {
             canvas.drawColor(Color.BLACK); // Clear the canvas
-            canvas.drawBitmap(processedBitmap, imageMatrix, null); // Draw the image
+            canvas.drawBitmap(processedImage, imageMatrix, null); // Draw the image
             textureView.unlockCanvasAndPost(canvas);
         }
     }
@@ -918,10 +926,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     imageMatrix.postTranslate(dx, dy);
                     lastTouch.set(event.getX(), event.getY());
                 }
-
-                // Enforce bounds
                 constrainImage();
-                displayLoadedImage();
+                displayLoadedImage(true);
                 return true;
 
             case MotionEvent.ACTION_UP:
