@@ -968,16 +968,3 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         imageMatrix.postTranslate(dx, dy);
     }
 }
-
-// TODO:
-// - full camera zoom (multiple lenses)
-// - remember settings
-// - color swatches
-// - better landscape mode
-// - handle videos
-// - pick a point and set hue to that value
-// - print value at crosshair
-// - bct
-// - tests
-// - deployment
-// ? selective focus
