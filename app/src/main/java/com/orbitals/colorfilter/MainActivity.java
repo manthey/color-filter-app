@@ -29,6 +29,8 @@ import android.hardware.camera2.params.OutputConfiguration;
 import android.hardware.camera2.params.SessionConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.hardware.display.DisplayManager;
+import androidx.exifinterface.media.ExifInterface;
+
 import android.media.Image;
 import android.media.ImageReader;
 import android.net.Uri;
@@ -202,6 +204,14 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                             try {
                                 InputStream inputStream = getContentResolver().openInputStream(imageUri);
                                 loadedImage = BitmapFactory.decodeStream(inputStream);
+                                int orientation = getOrientation(imageUri);
+                                if (orientation != 0) {
+                                    Matrix matrix = new Matrix();
+                                    matrix.postRotate(orientation);
+                                    loadedImage = Bitmap.createBitmap(loadedImage, 0, 0,
+                                            loadedImage.getWidth(), loadedImage.getHeight(),
+                                            matrix, true);
+                                }
                                 isImageMode = true;
                                 setupImageMatrix();
                                 closeCamera();
@@ -971,4 +981,30 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
         imageMatrix.postTranslate(dx, dy);
     }
+
+    private int getOrientation(Uri photoUri) {
+        try {
+            InputStream stream = getContentResolver().openInputStream(photoUri);
+            if (stream == null) {
+                return 0;
+            }
+            ExifInterface ei = new ExifInterface(stream);
+            int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL);
+
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    return 90;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    return 180;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    return 270;
+                default:
+                    return 0;
+            }
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
 }
