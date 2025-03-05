@@ -12,6 +12,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorSpace;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.PointF;
@@ -203,7 +204,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                             Uri imageUri = data.getData();
                             try {
                                 InputStream inputStream = getContentResolver().openInputStream(imageUri);
-                                loadedImage = BitmapFactory.decodeStream(inputStream);
+                                BitmapFactory.Options options = new BitmapFactory.Options();
+                                options.inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB);
+                                loadedImage = BitmapFactory.decodeStream(inputStream, null, options);
                                 int orientation = getOrientation(imageUri);
                                 if (orientation != 0) {
                                     Matrix matrix = new Matrix();
@@ -439,7 +442,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     }
 
     private void applyZoom(float scale) {
-        if (cameraDevice == null || cameraCaptureSession == null) {
+        if (cameraDevice == null ||  cameraCaptureSession == null) {
             return;
         }
         try {
