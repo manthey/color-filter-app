@@ -122,7 +122,10 @@ public class TermMap {
         if (blur != 0) {
             Mat blurred = new Mat();
             Imgproc.GaussianBlur(image, blurred, new Size(blur, blur), 0);
-            // Imgproc.blur(image, blurred, new Size(blur, blur));
+            /* We could try other filters, but they operate on channels independently, so the results
+             * aren't what we desire:
+             *  Imgproc.blur(image, blurred, new Size(blur, blur));
+             *  Imgproc.medianBlur(image, blurred, blur); */
             blurred.get(0, 0, rgbData);
         } else {
             image.get(0, 0, rgbData);
