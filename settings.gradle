@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "ColorFilter"
 include ':app'
-include ':opencv'
