@@ -21,8 +21,6 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
-import java.util.Arrays;
-
 @RunWith(AndroidJUnit4.class)
 public class ImageFilterProcessorTest {
 
