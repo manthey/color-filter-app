@@ -24,15 +24,6 @@ jobs:
         java-version: '17'
     - name: Set up Android SDK
       uses: android-actions/setup-android@v2
-    - name: Download OpenCV
-      run: |
-        OPENCV_VERSION="4.11.0"
-        OPENCV_URL="https://github.com/opencv/opencv/releases/download/${OPENCV_VERSION}/opencv-${OPENCV_VERSION}-android-sdk.zip"
-        wget $OPENCV_URL
-        unzip opencv-${OPENCV_VERSION}-android-sdk.zip
-        mv "$(pwd)/OpenCV-android-sdk/sdk" ./opencv
-        rm -r "$(pwd)/OpenCV-android-sdk"
-        rm opencv-${OPENCV_VERSION}-android-sdk.zip
     - name: Cache Gradle
       uses: actions/cache@v3
       with:
@@ -41,7 +32,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
     - name: Build with Gradle
-      run: ./gradlew build -x opencv:test -x opencv:lint -x opencv:connectedAndroidTest
+      run: ./gradlew build
     - name: Run Unit Tests
       run: ./gradlew test
     - name: Enable KVM

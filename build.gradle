@@ -3,29 +3,3 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false
 }
-subprojects { project ->
-    if (project.name == 'opencv') {
-        project.afterEvaluate {
-            if (project.hasProperty('android')) {
-                android {
-                    lint {
-                        checkReleaseBuilds false
-                        abortOnError false
-                        disable 'all'
-                    }
-                }
-            }
-			tasks.withType(JavaCompile).configureEach {
-                sourceCompatibility = '17'   // Set to Java 17
-                targetCompatibility = '17'
-            }
-
-            // Set Kotlin JVM target for the opencv module
-            tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                kotlinOptions {
-                    jvmTarget = "17"          // Align Kotlin JVM target with Java
-                }
-            }
-        }
-    }
-}
