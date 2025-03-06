@@ -6,28 +6,29 @@ import colour
 import numpy as np
 import PIL.Image
 import PIL.ImageOps
+import scipy
 
 # This is used for the palette for the viewable color terms map
 ViewingColors = {
     'black': '000000',
     'red': 'FF0000',
-    'orange': 'FF9000',
+    'orange': 'E87D53',
     'yellow': 'FFFF00',
     'green': '00FF00',
     'teal': '00FFFF',
     'blue': '0000FF',
-    'purple': '8200FA',
-    'maroon': 'B2007C',
-    'pink': 'FF80E4',
-    'gold': 'FECC00',
-    'peach': 'FFB080',
-    'beige': 'FFE5CC',
-    'brown': '806434',
-    'olive': '809700',
+    'purple': '420063',
+    'maroon': '660029',
+    'pink': 'FF7DA8',
+    'gold': 'A67700',
+    'peach': 'FFB593',
+    'beige': 'FFD9AA',
+    'brown': '8F3E00',
+    'olive': '4D4300',
     'gray': '808080',
-    'lavender': 'C17EFF',
-    'magenta': '800019',
-    'lime': '80F000',
+    'lavender': 'D5ABEA',
+    'magenta': 'FF00FF',
+    'lime': 'ACD489',
     'white': 'FFFFFF',
 }
 
@@ -209,6 +210,26 @@ def rgb_categories(labrgb, labcat, catvals):
     return cats.reshape(256, 256, 256)
 
 
+def find_center_indices(array):
+    categories = np.unique(array)
+    center_indices = {}
+    for category in categories:
+        mask = (array == category)
+        distance = scipy.ndimage.distance_transform_edt(mask)
+        max_distance = np.amax(distance)
+        indices = np.argwhere(distance == max_distance)
+        center_index = indices[0]
+        center_indices[category] = tuple(center_index)
+    return center_indices
+
+
+def ansicolor(color, text):
+    if isinstance(color, str):
+        color = color.strip('#')
+        color = [int(color[i:i + 2], 16) for i in range(0, 6, 2)]
+    return f'\033[48;2;{color[0]};{color[1]};{color[2]}m{text}\033[49m'
+
+
 # This image is Figure 9 of
 #   Lindsey, D. T., and A. M. Brown. 2014. "The Color Lexicon of American
 #   English." Journal of Vision. Association for Research in Vision and
@@ -254,7 +275,7 @@ hexdict = {
     '00FF00': 'green',
     '0000FF': 'blue',
     '00FFFF': 'teal',
-    'FF00FF': 'purple',
+    'FF00FF': 'magenta',
     'FFFF00': 'yellow',
 }
 for hx, val in zip(hexgray, graytbl):
@@ -296,16 +317,18 @@ else:
     np.savez('labrgb.npz', labrgb)
 
 catrgb = rgb_categories(labrgb, labcat, np.array(labcatidx))
-counts = np.bincount(catrgb.flatten())
 print([k.capitalize() for k in cats.keys()])
-pprint.pprint({counts[idx]: k.capitalize() for idx, k in enumerate(cats.keys())})
+counts = np.bincount(catrgb.flatten())
+countlist = sorted([(counts[idx], k.capitalize()) for idx, k in enumerate(cats)], reverse=True)
+for v, k in countlist:
+    print(f'{k:8s} {v:8d}')
 flatimg = np.zeros((4096, 4096), np.uint8)
 for r in range(256):
     x = (r % 16) * 256
     y = (r // 16) * 256
     flatimg[y:y + 256, x:x + 256] = catrgb[r]
-flatimg = PIL.Image.fromarray(flatimg, mode='L')
-flatimg.save('bct20_en_us.png', optimize=True)
+greyimg = PIL.Image.fromarray(flatimg, mode='L')
+greyimg.save('bct20_en_us.png', optimize=True)
 palimg = PIL.Image.fromarray(flatimg, mode='P')
 palette = []
 for clr in cats.keys():
@@ -313,3 +336,10 @@ for clr in cats.keys():
     palette.extend(int(hx[i * 2:i * 2 + 2], 16) for i in range(3))
 palimg.putpalette(palette)
 palimg.save('bct20_en_us_pal.png', optimize=True)
+centers = find_center_indices(catrgb)
+for idx, clr in enumerate(cats.keys()):
+    cref = list(int(ViewingColors[clr][i * 2:i * 2 + 2], 16) for i in range(3))
+    print(f'{centers[idx][0]:02X}{centers[idx][1]:02X}{centers[idx][2]:02X}',
+          ViewingColors[clr], ansicolor(centers[idx], '  '),
+          ansicolor(ViewingColors[clr], '  '), f'{clr:8s}',
+          catrgb[cref[0]][cref[1]][cref[2]] == idx)
