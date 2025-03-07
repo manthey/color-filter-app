@@ -22,4 +22,5 @@
     <string name="camera_permission_denied">Permission is required for basic function</string>
     <string name="image_load_failed">Failed to load image</string>
     <string name="configuration_change">Configuration change</string>
+    <string name="camera_or_image_view">Camera or Image View</string>
 </resources>
