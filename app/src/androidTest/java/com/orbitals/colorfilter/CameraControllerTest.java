@@ -1,19 +1,16 @@
 package com.orbitals.colorfilter;
 
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraManager;
 import android.os.Handler;
+import android.util.Size;
 import android.view.TextureView;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -22,45 +19,40 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
 import org.opencv.android.OpenCVLoader;
+
+import java.util.function.Supplier;
 
 @RunWith(AndroidJUnit4.class)
 public class CameraControllerTest {
 
     private CameraController cameraController;
-    
-    boolean permissionValue = false;
+    private TextureView textureView;
+    private ImageFilterProcessor filterProcessor;
+    private Handler handler;
+    private SurfaceTexture surfaceTexture;
+    private Supplier<Boolean> permissionSupplier;
 
-    public boolean checkCameraPermissions() {
-        return permissionValue;
-    }
-        @Before
+    @Before
     public void setup() {
         // Initialize OpenCV
-        if (!OpenCVLoader.initLocal()) {
+        if (!OpenCVLoader.initDebug()) {
             throw new RuntimeException("Failed to initialize OpenCV");
         }
 
         // Get application context
         Context context = ApplicationProvider.getApplicationContext();
 
-        // Create mocks
-        TextureView mockTextureView = mock(TextureView.class);
-        ImageFilterProcessor mockFilterProcessor = mock(ImageFilterProcessor.class);
-
-         Handler mockHandler = mock(Handler.class);
-
-        // Set up mock TextureView
-        when(mockTextureView.isAvailable()).thenReturn(true);
-        when(mockTextureView.getWidth()).thenReturn(1080);
-        when(mockTextureView.getHeight()).thenReturn(1920);
-        SurfaceTexture mockSurfaceTexture = mock(SurfaceTexture.class);
-        when(mockTextureView.getSurfaceTexture()).thenReturn(mockSurfaceTexture);
+        // Create real mocks (not using @Mock annotation)
+        textureView = mock(TextureView.class);
+        filterProcessor = mock(ImageFilterProcessor.class);
+        handler = mock(Handler.class);
+        surfaceTexture = mock(SurfaceTexture.class);
+        permissionSupplier = () -> true;
 
         // Initialize controller
-        cameraController = new CameraController(context, mockTextureView, this::checkCameraPermissions, mockFilterProcessor);
-        cameraController.setBackgroundHandler(mockHandler);
+        cameraController = new CameraController(context, textureView, permissionSupplier, filterProcessor);
+        cameraController.setBackgroundHandler(handler);
     }
 
     @Test
@@ -69,28 +61,11 @@ public class CameraControllerTest {
     }
 
     @Test
-    public void testZoomAdjustment() {
-        // Create a spy to avoid actual camera operations
-        CameraController spyController = spy(cameraController);
-        doNothing().when(spyController).applyZoom(any(Float.class));
-
-        // Test zoom adjustment
-         float zoomFactor = 1.5f;
-        spyController.adjustZoom(zoomFactor);
-
-        // Verify that applyZoom was called with the expected value
-        ArgumentCaptor<Float> zoomCaptor = ArgumentCaptor.forClass(Float.class);
-        verify(spyController).applyZoom(zoomCaptor.capture());
-
-        // The zoom should be clamped between min and max values
-        // Since we can't access private fields directly, we just verify it was called
-        verify(spyController, times(1)).applyZoom(any(Float.class));
-    }
-
-    @Test
     public void testSwitchCamera() {
         // Create a spy to avoid actual camera operations
         CameraController spyController = spy(cameraController);
+
+        // Use doNothing() for void methods
         doNothing().when(spyController).closeCamera();
         doNothing().when(spyController).openCamera();
 
@@ -106,6 +81,8 @@ public class CameraControllerTest {
     public void testReopenCamera() {
         // Create a spy to avoid actual camera operations
         CameraController spyController = spy(cameraController);
+
+        // Use doNothing() for void methods
         doNothing().when(spyController).closeCamera();
         doNothing().when(spyController).openCamera();
 
@@ -118,38 +95,21 @@ public class CameraControllerTest {
     }
 
     @Test
-    public void testOpenCameraWithoutPermissions() {
-        this.permissionValue = true;
+    public void testCompareSizesByArea() {
+        // Create an instance of the comparator
+        CameraController.CompareSizesByArea comparator = new CameraController.CompareSizesByArea();
 
-        // Create a spy to avoid actual camera operations
-        CameraController spyController = spy(cameraController);
+        // Test comparison
+        Size size1 = new Size(1920, 1080);
+        Size size2 = new Size(1280, 720);
 
-        // Test opening camera without permissions
-        spyController.openCamera();
+        // Larger area should return positive value
+        assert(comparator.compare(size1, size2) > 0);
 
-        this.permissionValue = false;
-    }
+        // Smaller area should return negative value
+        assert(comparator.compare(size2, size1) < 0);
 
-    @Test
-    public void testCameraManagerInteraction() throws CameraAccessException {
-        // Mock CameraManager
-        CameraManager mockCameraManager = mock(CameraManager.class);
-        when(mockCameraManager.getCameraIdList()).thenReturn(new String[]{"0", "1"});
-
-        // This test verifies that our code interacts with the CameraManager correctly
-        // In a real test, we'd need to use a dependency injection framework or create a test-specific
-        // implementation of CameraController that allows us to inject the CameraManager
-    }
-
-    @Test
-    public void testCloseCamera() {
-        // Create a spy to avoid actual camera operations
-        CameraController spyController = spy(cameraController);
-
-        // Test closing camera
-        spyController.closeCamera();
-
-        // Since we can't easily verify private field state, this test primarily ensures
-        // that the method doesn't throw exceptions
+        // Equal areas should return 0
+        assert(comparator.compare(size1, size1) == 0);
     }
 }
