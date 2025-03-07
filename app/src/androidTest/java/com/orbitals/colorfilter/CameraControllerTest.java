@@ -46,8 +46,12 @@ public class CameraControllerTest {
         // Create mocks
         TextureView mockTextureView = mock(TextureView.class);
         ImageFilterProcessor mockFilterProcessor = mock(ImageFilterProcessor.class);
-        //noinspection unchecked
-        mockPermissionChecker = mock(Supplier.class);
+
+        // Create the mock Supplier properly
+        @SuppressWarnings("unchecked")
+        Supplier<Boolean> permissionChecker = mock(Supplier.class);
+        this.mockPermissionChecker = permissionChecker;
+
         Handler mockHandler = mock(Handler.class);
 
         // Set up mock TextureView
@@ -57,11 +61,11 @@ public class CameraControllerTest {
         SurfaceTexture mockSurfaceTexture = mock(SurfaceTexture.class);
         when(mockTextureView.getSurfaceTexture()).thenReturn(mockSurfaceTexture);
 
-        // Set up permissions checker
-        when(mockPermissionChecker.get()).thenReturn(false);
+        // Set up permissions checker - use the class field, not the local variable
+        when(this.mockPermissionChecker.get()).thenReturn(false);
 
         // Initialize controller
-        cameraController = new CameraController(context, mockTextureView, mockPermissionChecker, mockFilterProcessor);
+        cameraController = new CameraController(context, mockTextureView, this.mockPermissionChecker, mockFilterProcessor);
         cameraController.setBackgroundHandler(mockHandler);
     }
 
