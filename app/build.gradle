@@ -52,6 +52,11 @@ android {
         checkDependencies true
         lintConfig file("lint.xml")
     }
+    testOptions {
+            unitTests {
+                        includeAndroidResources = true
+                                }
+                                    }
 }
 
 dependencies {
@@ -68,13 +73,16 @@ dependencies {
     implementation libs.opencv
     androidTestImplementation libs.androidx.junit
     androidTestImplementation libs.androidx.espresso.core
+    androidTestImplementation libs.androidx.core
+    androidTestImplementation libs.androidx.runner
+    androidTestImplementation libs.androidx.rules
     androidTestImplementation platform(libs.androidx.compose.bom)
     androidTestImplementation libs.androidx.ui.test.junit4
+    androidTestImplementation libs.mockito.android
     debugImplementation libs.androidx.ui.tooling
     debugImplementation libs.androidx.ui.test.manifest
     testImplementation libs.junit
     testImplementation libs.mockito.core
-    testImplementation libs.mockito.inline
 }
 
 jacoco {
@@ -103,9 +111,9 @@ task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'crea
     classDirectories.setFrom(fileTree(
             dir: "${buildDir}/intermediates/classes/debug",
             excludes: ['**/R.class',
-                      '**/R$*.class',
-                      '**/BuildConfig.*',
-                      '**/Manifest*.*']
+                       '**/R$*.class',
+                       '**/BuildConfig.*',
+                       '**/Manifest*.*']
     ))
 
     executionData.setFrom(fileTree(dir: "${buildDir}", includes: [
