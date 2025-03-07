@@ -75,7 +75,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private final RectF imageBounds = new RectF();
     private final float[] matrixValues = new float[9];
 
-    // Pinch to zoom variables
     private float mLastTouchDistance = -1f;
 
     static {
@@ -211,8 +210,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         });
 
         updateControls();
-        // Set up SeekBars to update filter parameters
-        hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
+         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 filter.setHue(progress - (progress % 2));
@@ -248,7 +246,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             }
         });
 
-        // Pinch-to-zoom setup (add touch listener)
         textureView.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 v.performClick();
