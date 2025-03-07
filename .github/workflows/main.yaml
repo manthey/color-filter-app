@@ -63,7 +63,7 @@ jobs:
           COVERED=$(grep -oP 'covered="\K[0-9]+' $COVERAGE_FILE | awk '{s+=$1} END {print s}')
           MISSED=$(grep -oP 'missed="\K[0-9]+' $COVERAGE_FILE | awk '{s+=$1} END {print s}')
           TOTAL=$((COVERED + MISSED))
-          PERCENTAGE=$(echo "scale=4; $COVERED/$TOTAL*100" | bc)
+          PERCENTAGE=$(echo "scale=2; 100*$COVERED/$TOTAL" | bc)
           echo "$COVERED of $TOTAL statements covered ($PERCENTAGE%)"
         else
           echo "Jacoco coverage file not found."

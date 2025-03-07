@@ -8,7 +8,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.content.Context;
-import android.graphics.SurfaceTexture;
 import android.os.Handler;
 import android.util.Size;
 import android.view.TextureView;
@@ -27,16 +26,11 @@ import java.util.function.Supplier;
 public class CameraControllerTest {
 
     private CameraController cameraController;
-    private TextureView textureView;
-    private ImageFilterProcessor filterProcessor;
-    private Handler handler;
-    private SurfaceTexture surfaceTexture;
-    private Supplier<Boolean> permissionSupplier;
 
     @Before
     public void setup() {
         // Initialize OpenCV
-        if (!OpenCVLoader.initDebug()) {
+        if (!OpenCVLoader.initLocal()) {
             throw new RuntimeException("Failed to initialize OpenCV");
         }
 
@@ -44,11 +38,10 @@ public class CameraControllerTest {
         Context context = ApplicationProvider.getApplicationContext();
 
         // Create real mocks (not using @Mock annotation)
-        textureView = mock(TextureView.class);
-        filterProcessor = mock(ImageFilterProcessor.class);
-        handler = mock(Handler.class);
-        surfaceTexture = mock(SurfaceTexture.class);
-        permissionSupplier = () -> true;
+        TextureView textureView = mock(TextureView.class);
+        ImageFilterProcessor filterProcessor = mock(ImageFilterProcessor.class);
+        Handler handler = mock(Handler.class);
+         Supplier<Boolean> permissionSupplier = () -> true;
 
         // Initialize controller
         cameraController = new CameraController(context, textureView, permissionSupplier, filterProcessor);
@@ -110,6 +103,7 @@ public class CameraControllerTest {
         assert(comparator.compare(size2, size1) < 0);
 
         // Equal areas should return 0
+        //noinspection EqualsWithItself
         assert(comparator.compare(size1, size1) == 0);
     }
 }
