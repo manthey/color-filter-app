@@ -52,6 +52,11 @@ android {
         checkDependencies true
         lintConfig file("lint.xml")
     }
+    testOptions {
+            unitTests {
+                        includeAndroidResources = true
+                                }
+                                    }
 }
 
 dependencies {
@@ -74,14 +79,13 @@ dependencies {
     debugImplementation libs.androidx.ui.test.manifest
     testImplementation libs.junit
     testImplementation libs.mockito.core
-    testImplementation libs.mockito.inline
 }
 
 jacoco {
     toolVersion = "0.8.11" 
 }
 
-tasks.withType(Test) {
+tasks.withType(Test).configureEach {
     jacoco.includeNoLocationClasses = true
     jacoco.excludes = ['jdk.internal.*']
 }
@@ -90,7 +94,8 @@ def coverageSourceDirs = [
         'src/main/java'
 ]
 
-task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'createDebugCoverageReport']) {
+tasks.register('jacocoTestReport', JacocoReport) {
+    dependsOn['testDebugUnitTest', 'createDebugCoverageReport']
     reports {
         xml.required.set(true)
         html.required.set(true)
@@ -103,9 +108,9 @@ task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'crea
     classDirectories.setFrom(fileTree(
             dir: "${buildDir}/intermediates/classes/debug",
             excludes: ['**/R.class',
-                      '**/R$*.class',
-                      '**/BuildConfig.*',
-                      '**/Manifest*.*']
+                       '**/R$*.class',
+                       '**/BuildConfig.*',
+                       '**/Manifest*.*']
     ))
 
     executionData.setFrom(fileTree(dir: "${buildDir}", includes: [
