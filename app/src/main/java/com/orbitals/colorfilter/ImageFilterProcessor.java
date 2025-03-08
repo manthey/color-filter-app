@@ -29,11 +29,11 @@ public class ImageFilterProcessor {
     /**
      * Set several settings at once.
      *
-     * @param hue Hue value from 0 to 360.
-     * @param hueWidth Hue width from 0 to 180.  This is the width on either side of the hue value.
+     * @param hue          Hue value from 0 to 360.
+     * @param hueWidth     Hue width from 0 to 180.  This is the width on either side of the hue value.
      * @param satThreshold Saturation threshold from 0 to 255.
      * @param lumThreshold Luminance threshold from 0 to 255.
-     * @param filterMode One of the FilterMode enum values.
+     * @param filterMode   One of the FilterMode enum values.
      */
     public void setFilterSettings(int hue, int hueWidth, int satThreshold, int lumThreshold, FilterMode filterMode) {
         this.hue = hue;
@@ -46,13 +46,13 @@ public class ImageFilterProcessor {
     /**
      * Set several settings at once.
      *
-     * @param hue Hue value from 0 to 360.
-     * @param hueWidth Hue width from 0 to 180.  This is the width on either side of the hue value.
+     * @param hue          Hue value from 0 to 360.
+     * @param hueWidth     Hue width from 0 to 180.  This is the width on either side of the hue value.
      * @param satThreshold Saturation threshold from 0 to 255.
      * @param lumThreshold Luminance threshold from 0 to 255.
-     * @param term Term number from the term map.  0-based.
-     * @param filterMode One of the FilterMode enum values.
-     * @param termMap Either null for no TermMap or a TermMap.
+     * @param term         Term number from the term map.  0-based.
+     * @param filterMode   One of the FilterMode enum values.
+     * @param termMap      Either null for no TermMap or a TermMap.
      */
     public void setFilterSettings(int hue, int hueWidth, int satThreshold, int lumThreshold, int term, FilterMode filterMode, TermMap termMap) {
         setFilterSettings(hue, hueWidth, satThreshold, lumThreshold, filterMode);
@@ -63,39 +63,51 @@ public class ImageFilterProcessor {
     public FilterMode getFilterMode() {
         return filterMode;
     }
+
     public void setFilterMode(FilterMode filterMode) {
         this.filterMode = filterMode;
     }
+
     public int getHue() {
         return hue;
     }
+
     public void setHue(int hue) {
         this.hue = hue;
     }
+
     public int getHueWidth() {
         return hueWidth;
     }
-    public void setHueWidth(int hueWidth){
+
+    public void setHueWidth(int hueWidth) {
         this.hueWidth = hueWidth;
     }
+
     public int getSatThreshold() {
         return satThreshold;
     }
+
     public void setSatThreshold(int satThreshold) {
         this.satThreshold = satThreshold;
     }
+
     public int getLumThreshold() {
         return lumThreshold;
     }
+
     public void setLumThreshold(int lumThreshold) {
         this.lumThreshold = lumThreshold;
     }
+
     public int getTerm() {
         return term;
     }
+
     public void setTerm(int term) {
         this.term = term;
     }
+
     public TermMap getTermMap() {
         return termMap;
     }

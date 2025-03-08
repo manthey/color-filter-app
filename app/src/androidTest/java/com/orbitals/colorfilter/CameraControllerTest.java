@@ -41,7 +41,7 @@ public class CameraControllerTest {
         TextureView textureView = mock(TextureView.class);
         ImageFilterProcessor filterProcessor = mock(ImageFilterProcessor.class);
         Handler handler = mock(Handler.class);
-         Supplier<Boolean> permissionSupplier = () -> true;
+        Supplier<Boolean> permissionSupplier = () -> true;
 
         // Initialize controller
         cameraController = new CameraController(context, textureView, permissionSupplier, filterProcessor);
@@ -97,13 +97,13 @@ public class CameraControllerTest {
         Size size2 = new Size(1280, 720);
 
         // Larger area should return positive value
-        assert(comparator.compare(size1, size2) > 0);
+        assert (comparator.compare(size1, size2) > 0);
 
         // Smaller area should return negative value
-        assert(comparator.compare(size2, size1) < 0);
+        assert (comparator.compare(size2, size1) < 0);
 
         // Equal areas should return 0
         //noinspection EqualsWithItself
-        assert(comparator.compare(size1, size1) == 0);
+        assert (comparator.compare(size1, size1) == 0);
     }
 }

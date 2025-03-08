@@ -29,10 +29,10 @@ public class TermMap {
     /**
      * Create a TermMap.
      *
-     * @param name The display name of the TermMap.
-     * @param terms A list of terms.  The internal resource should use values in the range of
-     *              [0, number of terms).
-     * @param resources The resources to load from.
+     * @param name              The display name of the TermMap.
+     * @param terms             A list of terms.  The internal resource should use values in the range of
+     *                          [0, number of terms).
+     * @param resources         The resources to load from.
      * @param termMapResourceId The resource id to load.  This should either be a greyscale
      *                          lossless image or a palette lossless image.
      */
@@ -71,11 +71,17 @@ public class TermMap {
     public String getName() {
         return name;
     }
-    /** @noinspection unused*/
+
+    /**
+     * @noinspection unused
+     */
     public String getDescription() {
         return description;
     }
-    /** @noinspection unused*/
+
+    /**
+     * @noinspection unused
+     */
     public String getReference() {
         return reference;
     }
@@ -84,7 +90,9 @@ public class TermMap {
         return terms;
     }
 
-    /** @noinspection unused*/
+    /**
+     * @noinspection unused
+     */
     public byte[] getMap() {
         return map != null ? Arrays.copyOf(map, map.length) : null;
     }
@@ -114,7 +122,7 @@ public class TermMap {
      * either 0 or 255 at each pixel.
      *
      * @param image The input RGB image.
-     * @param term The term value to match.
+     * @param term  The term value to match.
      * @return An output mask image.
      */
     public Mat createMask(Mat image, int term) {
