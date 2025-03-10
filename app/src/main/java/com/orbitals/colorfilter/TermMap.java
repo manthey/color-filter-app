@@ -20,6 +20,7 @@ import org.opencv.imgproc.Imgproc;
 
 public class TermMap {
     private final String name;
+    private final String id;
     private final String description;
     private final String reference;
     private final List<String> terms;
@@ -30,14 +31,17 @@ public class TermMap {
      * Create a TermMap.
      *
      * @param name              The display name of the TermMap.
-     * @param terms             A list of terms.  The internal resource should use values in the range of
-     *                          [0, number of terms).
+     * @param id                A unique identifier for the TermMap.  This should probably be the
+     *                          locale combined with the name (e.g., en_US_BCT20).
+     * @param terms             A list of terms.  The internal resource should use values in the
+     *                          range of [0, number of terms).
      * @param resources         The resources to load from.
      * @param termMapResourceId The resource id to load.  This should either be a greyscale
      *                          lossless image or a palette lossless image.
      */
-    public TermMap(String name, String description, String reference, List<String> terms, Resources resources, int termMapResourceId) {
+    public TermMap(String name, String id, String description, String reference, List<String> terms, Resources resources, int termMapResourceId) {
         this.name = name;
+        this.id = id;
         this.description = description;
         this.reference = reference;
         this.terms = Collections.unmodifiableList(new ArrayList<>(terms));
@@ -70,6 +74,10 @@ public class TermMap {
 
     public String getName() {
         return name;
+    }
+
+    public String getId() {
+        return id;
     }
 
     /**
