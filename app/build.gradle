@@ -89,7 +89,7 @@ jacoco {
     toolVersion = "0.8.11"
 }
 
-tasks.withType(Test).configureEach {
+tasks.withType(Test) {
     jacoco.includeNoLocationClasses = true
     jacoco.excludes = ['jdk.internal.*']
 }
@@ -98,8 +98,7 @@ def coverageSourceDirs = [
         'src/main/java'
 ]
 
-tasks.register('jacocoTestReport', JacocoReport) {
-    dependsOn['testDebugUnitTest', 'createDebugCoverageReport']
+task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'createDebugCoverageReport']) {
     reports {
         xml.required.set(true)
         html.required.set(true)
