@@ -2,7 +2,9 @@ package com.orbitals.colorfilter;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private HandlerThread backgroundThread;
     private ActivityResultLauncher<Intent> pickImageLauncher;
+    private ActivityResultLauncher<Intent> settingsLauncher;
 
     private Bitmap loadedImage = null;
     private Bitmap processedImage = null;
@@ -102,12 +105,10 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         textureView.setSurfaceTextureListener(this);
 
         filter = new ImageFilterProcessor();
-        filter.setFilterSettings(
-                0, 14, 0, 0, 1,
-                ImageFilterProcessor.FilterMode.EXCLUDE, termMaps.get(0));
+        filter.setFilterSettings(0, 14, 0, 0, 1, ImageFilterProcessor.FilterMode.EXCLUDE, termMaps.get(0));
+        loadSavedSettings();
 
         cameraController = new CameraController(this, textureView, this::checkCameraPermissions, filter);
-
 
         hueSeekBar = findViewById(R.id.hueSeekBar);
         hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
@@ -157,38 +158,33 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             pickImageLauncher.launch(gallery);
         });
-        pickImageLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == RESULT_OK) {
-                        Intent data = result.getData();
-                        if (data != null && data.getData() != null) {
-                            Uri imageUri = data.getData();
-                            try {
-                                InputStream inputStream = getContentResolver().openInputStream(imageUri);
-                                BitmapFactory.Options options = new BitmapFactory.Options();
-                                options.inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB);
-                                loadedImage = BitmapFactory.decodeStream(inputStream, null, options);
-                                int orientation = getOrientation(imageUri);
-                                if (orientation != 0) {
-                                    Matrix matrix = new Matrix();
-                                    matrix.postRotate(orientation);
-                                    loadedImage = Bitmap.createBitmap(loadedImage, 0, 0,
-                                            loadedImage.getWidth(), loadedImage.getHeight(),
-                                            matrix, true);
-                                }
-                                isImageMode = true;
-                                setupImageMatrix();
-                                cameraController.closeCamera();
-                                displayLoadedImage();
-                            } catch (Exception e) {
-                                Log.e(TAG, "Error loading image", e);
-                                Toast.makeText(this, getString(R.string.image_load_failed), Toast.LENGTH_SHORT).show();
-                            }
+        pickImageLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == RESULT_OK) {
+                Intent data = result.getData();
+                if (data != null && data.getData() != null) {
+                    Uri imageUri = data.getData();
+                    try {
+                        InputStream inputStream = getContentResolver().openInputStream(imageUri);
+                        BitmapFactory.Options options = new BitmapFactory.Options();
+                        options.inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB);
+                        loadedImage = BitmapFactory.decodeStream(inputStream, null, options);
+                        int orientation = getOrientation(imageUri);
+                        if (orientation != 0) {
+                            Matrix matrix = new Matrix();
+                            matrix.postRotate(orientation);
+                            loadedImage = Bitmap.createBitmap(loadedImage, 0, 0, loadedImage.getWidth(), loadedImage.getHeight(), matrix, true);
                         }
+                        isImageMode = true;
+                        setupImageMatrix();
+                        cameraController.closeCamera();
+                        displayLoadedImage();
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error loading image", e);
+                        Toast.makeText(this, getString(R.string.image_load_failed), Toast.LENGTH_SHORT).show();
                     }
                 }
-        );
+            }
+        });
         bctButton = findViewById(R.id.bctButton);
         bctButton.setOnClickListener(v -> {
             if (filter.getTermMap() == null) {
@@ -209,8 +205,22 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             }
             updateControls();
         });
+        Button settingsButton = findViewById(R.id.settingsButton);
+        settingsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+            // Pass the current filter settings to SettingsActivity
+            intent.putExtra("filterMode", filter.getFilterMode().ordinal());
+            intent.putExtra("hue", filter.getHue());
+            intent.putExtra("hueWidth", filter.getHueWidth());
+            intent.putExtra("satThreshold", filter.getSatThreshold());
+            intent.putExtra("lumThreshold", filter.getLumThreshold());
+            intent.putExtra("term", filter.getTerm());
+            intent.putExtra("termMapId", filter.getTermMap() != null ? filter.getTermMap().getId() : null);
+            settingsLauncher.launch(intent);
+        });
 
         updateControls();
+
         // Set up SeekBars to update filter parameters
         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
             @Override
@@ -259,6 +269,22 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 return handlePinchToZoom(event);
             }
         });
+        settingsLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        Intent data = result.getData();
+                        if (data != null && data.getBooleanExtra("defaultsLoaded", false)) {
+                            loadSavedSettings();
+                            updateControls();
+                        } else if (data != null && data.getBooleanExtra("settingsChanged", false)) {
+                            loadSavedSettings(false);
+                            updateControls();
+                        }
+                    }
+                }
+        );
+
     }
 
     private void updateControls() {
@@ -286,11 +312,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             bctButton.setText(getString(R.string.term_button_hsv));
             findViewById(R.id.bctControls).setVisibility(View.GONE);
             findViewById(R.id.hueControls).setVisibility(View.VISIBLE);
+            findViewById(R.id.satLumControls).setVisibility(View.VISIBLE);
         } else {
             bctButton.setText(filter.getTermMap().getName());
             findViewById(R.id.hueControls).setVisibility(View.GONE);
             findViewById(R.id.bctControls).setVisibility(View.VISIBLE);
             bctSeekBar.setMax(filter.getTermMap().getTerms().size() - 1);
+            findViewById(R.id.satLumControls).setVisibility(filter.getUseLumSatBCT() ? View.VISIBLE : View.GONE);
         }
         if (isImageMode) {
             displayLoadedImage();
@@ -301,22 +329,15 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     @SuppressLint("DefaultLocale")
     private void updateSeekLabels() {
         TextView hueLabel = findViewById(R.id.hueLabel);
-        hueLabel.setText(String.format("%s - %d - %s - %s",
-                getString(R.string.hue), filter.getHue(),
-                getColorName(filter.getHue(), coarseHueMap),
-                getColorName(filter.getHue(), fineHueMap)));
+        hueLabel.setText(String.format("%s - %d - %s - %s", getString(R.string.hue), filter.getHue(), getColorName(filter.getHue(), coarseHueMap), getColorName(filter.getHue(), fineHueMap)));
         TextView hwLabel = findViewById(R.id.hueWidthLabel);
-        hwLabel.setText(String.format("%s - %d",
-                getString(R.string.hue_width), filter.getHueWidth()));
+        hwLabel.setText(String.format("%s - %d", getString(R.string.hue_width), filter.getHueWidth()));
         TextView satLabel = findViewById(R.id.saturationLabel);
-        satLabel.setText(String.format("%s - %d",
-                getString(R.string.saturation), filter.getSatThreshold()));
+        satLabel.setText(String.format("%s - %d", getString(R.string.saturation), filter.getSatThreshold()));
         TextView lumLabel = findViewById(R.id.luminanceLabel);
-        lumLabel.setText(String.format("%s - %d",
-                getString(R.string.luminance), filter.getLumThreshold()));
+        lumLabel.setText(String.format("%s - %d", getString(R.string.luminance), filter.getLumThreshold()));
         TextView bctLabel = findViewById(R.id.bctLabel);
-        bctLabel.setText(String.format("%s - %s",
-                getString(R.string.term), filter.getCurrentTerm()));
+        bctLabel.setText(String.format("%s - %s", getString(R.string.term), filter.getCurrentTerm()));
         if (isImageMode) {
             displayLoadedImage();
         }
@@ -325,24 +346,22 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private void setHueMaps() {
         coarseHueMap = new HashMap<>();
         for (int i = 0; i < 6; i++) {
-            coarseHueMap.put(
-                    i * 30, getResources().getStringArray(R.array.coarse_hue_map)[i]);
+            coarseHueMap.put(i * 30, getResources().getStringArray(R.array.coarse_hue_map)[i]);
         }
 
         fineHueMap = new HashMap<>();
         for (int i = 0; i <= 24; i++) {
-            fineHueMap.put(
-                    Math.max(0, i * 15 - 7),
-                    getResources().getStringArray(R.array.fine_hue_map)[i == 24 ? 0 : i]);
+            fineHueMap.put(Math.max(0, i * 15 - 7), getResources().getStringArray(R.array.fine_hue_map)[i == 24 ? 0 : i]);
         }
     }
 
     private void loadTermMaps() {
         int NAME = 0;
-        int DESCRIPTION = 1;
-        int REFERENCE = 2;
-        int TERMS = 3;
-        int IMAGE = 4;
+        int ID = 1;
+        int DESCRIPTION = 2;
+        int REFERENCE = 3;
+        int TERMS = 4;
+        int IMAGE = 5;
 
         Resources resources = getResources();
         try (TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids)) {
@@ -350,12 +369,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 int termMapId = termMapIds.getResourceId(i, 0);
                 try (TypedArray termMapArray = resources.obtainTypedArray(termMapId)) {
                     String name = termMapArray.getString(NAME);
+                    String id = termMapArray.getString(ID);
                     String description = termMapArray.getString(DESCRIPTION);
                     String reference = termMapArray.getString(REFERENCE);
                     int termsArrayId = termMapArray.getResourceId(TERMS, 0);
                     List<String> terms = Collections.unmodifiableList(Arrays.asList(resources.getStringArray(termsArrayId)));
                     int termMapResourceId = termMapArray.getResourceId(IMAGE, 0);
-                    termMaps.add(new TermMap(name, description, reference, terms, resources, termMapResourceId));
+                    termMaps.add(new TermMap(name, id, description, reference, terms, resources, termMapResourceId));
                 }
             }
         }
@@ -571,16 +591,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                         float currentScale = matrixValues[Matrix.MSCALE_X];
 
                         // Calculate new scale within limits
-                        float minScale = Math.min(
-                                textureView.getWidth() / loadedImage.getWidth(),
-                                textureView.getHeight() / loadedImage.getHeight()
-                        );
-                        float maxScale = Math.max(2.0f,
-                                Math.max(
-                                        textureView.getWidth() / (float) loadedImage.getWidth(),
-                                        textureView.getHeight() / (float) loadedImage.getHeight()
-                                ) * 2
-                        );
+                        float minScale = Math.min(textureView.getWidth() / loadedImage.getWidth(), textureView.getHeight() / loadedImage.getHeight());
+                        float maxScale = Math.max(2.0f, Math.max(textureView.getWidth() / (float) loadedImage.getWidth(), textureView.getHeight() / (float) loadedImage.getHeight()) * 2);
 
                         float newScale = Math.min(Math.max(currentScale * scale, minScale), maxScale);
                         scale = newScale / currentScale;
@@ -616,15 +628,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         imageMatrix.mapRect(rect);
 
         float dx = 0, dy = 0;
-        float minScale = Math.min(
-                (float) textureView.getWidth() / loadedImage.getWidth(),
-                (float) textureView.getHeight() / loadedImage.getHeight());
+        float minScale = Math.min((float) textureView.getWidth() / loadedImage.getWidth(), (float) textureView.getHeight() / loadedImage.getHeight());
         imageMatrix.getValues(matrixValues);
         float currentScale = matrixValues[Matrix.MSCALE_X];
         if (currentScale < minScale) {
-            imageMatrix.postScale(
-                    minScale / currentScale, minScale / currentScale,
-                    textureView.getWidth() / 2f, textureView.getHeight() / 2f);
+            imageMatrix.postScale(minScale / currentScale, minScale / currentScale, textureView.getWidth() / 2f, textureView.getHeight() / 2f);
             imageMatrix.mapRect(rect);
         }
 
@@ -653,8 +661,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 return 0;
             }
             ExifInterface ei = new ExifInterface(stream);
-            int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_NORMAL);
+            int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
 
             switch (orientation) {
                 case ExifInterface.ORIENTATION_ROTATE_90:
@@ -673,19 +680,42 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     public Boolean checkCameraPermissions() {
         // Add permission for camera and let user grant the permission
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(
-                    this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
             return true;
         }
         return false;
     }
+
+    private void loadSavedSettings() {
+        loadSavedSettings(true);
+    }
+
+    private void loadSavedSettings(Boolean includeDefaults) {
+        SharedPreferences prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE);
+
+        if (includeDefaults) {
+            int curTerm = filter.getTerm();
+            int filterModeOrdinal = prefs.getInt(SettingsActivity.KEY_FILTER_MODE, ImageFilterProcessor.FilterMode.EXCLUDE.ordinal());
+            filter.setFilterMode(ImageFilterProcessor.FilterMode.values()[filterModeOrdinal]);
+            filter.setHue(prefs.getInt(SettingsActivity.KEY_HUE, filter.getHue()));
+            filter.setHueWidth(prefs.getInt(SettingsActivity.KEY_HUE_WIDTH, filter.getHueWidth()));
+            filter.setSatThreshold(prefs.getInt(SettingsActivity.KEY_SAT_THRESHOLD, filter.getSatThreshold()));
+            filter.setLumThreshold(prefs.getInt(SettingsActivity.KEY_LUM_THRESHOLD, filter.getLumThreshold()));
+            String termMapId = prefs.getString(SettingsActivity.KEY_TERM_MAP, filter.getTermMap() == null ? null : filter.getTermMap().getId());
+            TermMap settingsTermMap = null;
+            if (termMapId != null) {
+                for (TermMap map : termMaps) {
+                    if (map.getId().equals(termMapId)) {
+                        settingsTermMap = map;
+                        break;
+                    }
+                }
+            }
+            filter.setTermMap(settingsTermMap);
+            filter.setTerm(prefs.getInt(SettingsActivity.KEY_TERM, curTerm));
+        }
+        filter.setUseLumSatBCT(prefs.getBoolean(SettingsActivity.KEY_SHOW_BCT_CONTROLS, filter.getUseLumSatBCT()));
+    }
+
 }
-
-// In any Activity or Fragment:
-// String versionName = BuildConfig.VERSION_NAME;
-
-// Example of displaying it in a TextView:
-// TextView versionTextView = findViewById(R.id.versionTextView);
-// versionTextView.setText("Version: " + versionName);
