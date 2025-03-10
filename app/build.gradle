@@ -53,10 +53,10 @@ android {
         lintConfig file("lint.xml")
     }
     testOptions {
-            unitTests {
-                        includeAndroidResources = true
-                                }
-                                    }
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
@@ -86,7 +86,7 @@ dependencies {
 }
 
 jacoco {
-    toolVersion = "0.8.11" 
+    toolVersion = "0.8.11"
 }
 
 tasks.withType(Test) {
@@ -129,7 +129,7 @@ def getVersionFromGit() {
         standardOutput = stdout
     }
     def describe = stdout.toString().trim()
-    
+
     // Parse the git describe output (format: v1.2.3-5-g3c4d5e6)
     def matcher = describe =~ /v(\d+)\.(\d+)\.(\d+)(?:-(\d+)-g([a-f0-9]+))?/
     if (matcher.matches()) {
@@ -137,7 +137,7 @@ def getVersionFromGit() {
         def minor = matcher.group(2)
         def patch = matcher.group(3)
         def commitCount = matcher.group(4)
-        
+
         if (commitCount && commitCount != "0") {
             // We have commits after the tag, use dev format
             return "${major}.${minor}.${patch}-dev${commitCount}"
