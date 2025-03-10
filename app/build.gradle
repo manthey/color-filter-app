@@ -11,9 +11,9 @@ android {
     defaultConfig {
         applicationId "com.orbitals.colorfilter"
         minSdk 30
-        targetSdk 34
+        targetSdk 35
         versionCode 1
-        versionName "1.0"
+        versionName getVersionFromGit()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -53,10 +53,10 @@ android {
         lintConfig file("lint.xml")
     }
     testOptions {
-            unitTests {
-                        includeAndroidResources = true
-                                }
-                                    }
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
@@ -86,10 +86,10 @@ dependencies {
 }
 
 jacoco {
-    toolVersion = "0.8.11" 
+    toolVersion = "0.8.11"
 }
 
-tasks.withType(Test) {
+tasks.withType(Test).configureEach {
     jacoco.includeNoLocationClasses = true
     jacoco.excludes = ['jdk.internal.*']
 }
@@ -98,7 +98,8 @@ def coverageSourceDirs = [
         'src/main/java'
 ]
 
-task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'createDebugCoverageReport']) {
+tasks.register('jacocoTestReport', JacocoReport) {
+    dependsOn['testDebugUnitTest', 'createDebugCoverageReport']
     reports {
         xml.required.set(true)
         html.required.set(true)
@@ -120,4 +121,33 @@ task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'crea
             'jacoco/testDebugUnitTest.exec',
             'outputs/code-coverage/connected/*coverage.ec'
     ]))
+}
+
+def getVersionFromGit() {
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'describe', '--tags', '--long', '--match', 'v[0-9]*.[0-9]*.[0-9]*'
+        standardOutput = stdout
+    }
+    def describe = stdout.toString().trim()
+
+    // Parse the git describe output (format: v1.2.3-5-g3c4d5e6)
+    def matcher = describe =~ /v(\d+)\.(\d+)\.(\d+)(?:-(\d+)-g([a-f0-9]+))?/
+    if (matcher.matches()) {
+        def major = matcher.group(1)
+        def minor = matcher.group(2)
+        def patch = matcher.group(3)
+        def commitCount = matcher.group(4)
+
+        if (commitCount && commitCount != "0") {
+            // We have commits after the tag, use dev format
+            return "${major}.${minor}.${patch}-dev${commitCount}"
+        } else {
+            // Exact tag match
+            return "${major}.${minor}.${patch}"
+        }
+    } else {
+        // Fallback if no tag found
+        return "0.1.0-dev"
+    }
 }

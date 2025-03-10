@@ -682,3 +682,10 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         return false;
     }
 }
+
+// In any Activity or Fragment:
+// String versionName = BuildConfig.VERSION_NAME;
+
+// Example of displaying it in a TextView:
+// TextView versionTextView = findViewById(R.id.versionTextView);
+// versionTextView.setText("Version: " + versionName);
