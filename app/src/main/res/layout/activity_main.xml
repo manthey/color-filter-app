@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -9,156 +8,177 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@+id/controlPanel"
-        android:scaleType="fitCenter" 
         android:clickable="true"
+        android:contentDescription="@string/camera_or_image_view"
         android:focusable="true"
-		android:contentDescription="@string/camera_or_image_view"
-    />
+        android:scaleType="fitCenter" />
 
     <!-- A layout overlay for controls -->
     <LinearLayout
         android:id="@+id/controlPanel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="#66BBBBBB"
         android:layout_alignParentBottom="true"
+        android:background="?android:attr/colorBackgroundFloating"
+        android:orientation="vertical"
         android:padding="8dp">
 
         <LinearLayout
             style="?android:attr/buttonBarStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center">
+            android:gravity="center"
+            android:orientation="horizontal">
 
             <Button
                 android:id="@+id/switchCameraButton"
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="48dp"
                 android:layout_height="wrap_content"
-                android:drawableStart="@drawable/baseline_camera_alt_24"
-                android:contentDescription="@string/camera_button" />
+                android:contentDescription="@string/camera_button"
+                android:drawableStart="@drawable/baseline_camera_alt_24" />
 
             <Button
                 android:id="@+id/filterButton"
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="90dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/black"
-                android:text="@string/filter_button_off" />
+                android:text="@string/filter_button_off"
+                android:textColor="?android:attr/textColorPrimary" />
 
             <Button
                 android:id="@+id/bctButton"
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="90dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/black"
-                android:text="@string/term_button_hsv" />
+                android:text="@string/term_button_hsv"
+                android:textColor="?android:attr/textColorPrimary" />
 
             <Button
                 android:id="@+id/loadImageButton"
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="48dp"
                 android:layout_height="wrap_content"
-                android:drawableStart="@drawable/baseline_image_24"
-                android:contentDescription="@string/image_button"/>
+                android:contentDescription="@string/image_button"
+                android:drawableStart="@drawable/baseline_image_24" />
+
+            <Button
+                android:id="@+id/settingsButton"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/settings_button"
+                android:drawableStart="@drawable/baseline_settings_24" />
         </LinearLayout>
 
-		<FrameLayout
-			android:id="@+id/hueBCTContainer"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content">
-			
-			<LinearLayout
-				android:id="@+id/hueControls"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:orientation="vertical">
-				<TextView
-					android:id="@+id/hueLabel"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:textColor="@color/black"
-					android:text="@string/hue" />
-				<SeekBar
-					android:id="@+id/hueSeekBar"
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:progressTint="@color/black"
-					android:thumb="@drawable/seekbar_thumb"
-					android:thumbOffset="9dp"
-					android:max="360" />
+        <FrameLayout
+            android:id="@+id/hueBCTContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
-				<TextView
-					android:id="@+id/hueWidthLabel"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:textColor="@color/black"
-					android:text="@string/hue_width" />
-				<SeekBar
-					android:id="@+id/hueWidthSeekBar"
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:progressTint="@color/black"
-					android:thumb="@drawable/seekbar_thumb"
-					android:thumbOffset="9dp"
-					android:max="180" />
+            <LinearLayout
+                android:id="@+id/hueControls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-			</LinearLayout>
+                <TextView
+                    android:id="@+id/hueLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hue"
+                    android:textColor="?android:attr/textColorPrimary" />
 
-			<LinearLayout
-				android:id="@+id/bctControls"
-				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				android:orientation="vertical"
-				android:visibility="gone">
-				<TextView
-					android:id="@+id/bctLabel"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:textColor="@color/black"
-					android:text="@string/term" />
-				<SeekBar
-					android:id="@+id/bctSeekBar"
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:progressTint="@color/black"
-					android:thumb="@drawable/seekbar_thumb"
-					android:thumbOffset="9dp"
-					android:max="19" />
-			</LinearLayout>
-		</FrameLayout>
+                <SeekBar
+                    android:id="@+id/hueSeekBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="360"
+                    android:progressTint="?android:attr/textColorPrimary"
+                    android:thumb="@drawable/seekbar_thumb"
+                    android:thumbOffset="9dp" />
 
-        <TextView
-            android:id="@+id/saturationLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/black"
-            android:text="@string/saturation" />
-        <SeekBar
-            android:id="@+id/saturationSeekBar"
+                <TextView
+                    android:id="@+id/hueWidthLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hue_width"
+                    android:textColor="?android:attr/textColorPrimary" />
+
+                <SeekBar
+                    android:id="@+id/hueWidthSeekBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="180"
+                    android:progressTint="?android:attr/textColorPrimary"
+                    android:thumb="@drawable/seekbar_thumb"
+                    android:thumbOffset="9dp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/bctControls"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/bctLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/term"
+                    android:textColor="?android:attr/textColorPrimary" />
+
+                <SeekBar
+                    android:id="@+id/bctSeekBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="19"
+                    android:progressTint="?android:attr/textColorPrimary"
+                    android:thumb="@drawable/seekbar_thumb"
+                    android:thumbOffset="9dp" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/satLumControls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:progressTint="@color/black"
-            android:thumb="@drawable/seekbar_thumb"
-            android:thumbOffset="9dp"
-            android:max="255" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/luminanceLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/black"
-            android:text="@string/luminance" />
-        <SeekBar
-            android:id="@+id/luminanceSeekBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:progressTint="@color/black"
-            android:thumb="@drawable/seekbar_thumb"
-            android:thumbOffset="9dp"
-            android:max="255" />
+            <TextView
+                android:id="@+id/saturationLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/saturation"
+                android:textColor="?android:attr/textColorPrimary" />
+
+            <SeekBar
+                android:id="@+id/saturationSeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="255"
+                android:progressTint="?android:attr/textColorPrimary"
+                android:thumb="@drawable/seekbar_thumb"
+                android:thumbOffset="9dp" />
+
+            <TextView
+                android:id="@+id/luminanceLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/luminance"
+                android:textColor="?android:attr/textColorPrimary" />
+
+            <SeekBar
+                android:id="@+id/luminanceSeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="255"
+                android:progressTint="?android:attr/textColorPrimary"
+                android:thumb="@drawable/seekbar_thumb"
+                android:thumbOffset="9dp" />
+        </LinearLayout>
     </LinearLayout>
 
 </RelativeLayout>

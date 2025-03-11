@@ -23,6 +23,7 @@ public class ImageFilterProcessor {
     private int satThreshold = 100;
     private int lumThreshold = 100;
     private int term = 0;
+    private boolean useLumSatBCT = true;
     private TermMap termMap;
     private FilterMode filterMode = FilterMode.NONE;
 
@@ -137,6 +138,14 @@ public class ImageFilterProcessor {
         return termMap.getTerms().get(term);
     }
 
+    public void setUseLumSatBCT(boolean useLumSatBCT) {
+        this.useLumSatBCT = useLumSatBCT;
+    }
+
+    public boolean getUseLumSatBCT() {
+        return useLumSatBCT;
+    }
+
     /**
      * Process an input matrix image, filtering it based on the current filter mode and other
      * parameters.
@@ -177,7 +186,11 @@ public class ImageFilterProcessor {
         Mat output = Mat.zeros(input.size(), input.type());
         if (termMap != null) {
             Mat termMask = termMap.createMask(input, term);
-            Core.bitwise_and(mask, termMask, mask);
+            if (useLumSatBCT) {
+                Core.bitwise_and(mask, termMask, mask);
+            } else {
+                termMask.copyTo(mask);
+            }
             termMask.release();
         }
         switch (filterMode) {

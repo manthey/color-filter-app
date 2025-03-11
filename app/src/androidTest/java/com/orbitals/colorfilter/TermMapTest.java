@@ -53,24 +53,22 @@ public class TermMapTest {
         }
 
         String name;
+        String id;
         String description;
         String reference;
         List<String> terms;
         int termMapResourceId;
         try (TypedArray termMapArray = resources.obtainTypedArray(termMapId)) {
-            // Name
             name = termMapArray.getString(0);
-            // Description
-            description = termMapArray.getString(1);
-            // Reference
-            reference = termMapArray.getString(2);
-            int termsArrayId = termMapArray.getResourceId(3, 0); // Terms
+            id = termMapArray.getString(1);
+            description = termMapArray.getString(2);
+            reference = termMapArray.getString(3);
+            int termsArrayId = termMapArray.getResourceId(4, 0); // Terms
             terms = List.of(resources.getStringArray(termsArrayId));
-            // Image
-            termMapResourceId = termMapArray.getResourceId(4, 0);
+            termMapResourceId = termMapArray.getResourceId(5, 0);
         }
 
-        return new TermMap(name, description, reference, terms, resources, termMapResourceId);
+        return new TermMap(name, id, description, reference, terms, resources, termMapResourceId);
     }
 
     @Test

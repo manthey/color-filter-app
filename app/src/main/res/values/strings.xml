@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Color Filter</string>
-
+    <string name="app_long_name">Basic Color Term Filter</string>
     <!-- Buttons -->
     <string name="filter_button_off">Off</string>
     <string name="filter_button_include">Include</string>
@@ -23,4 +23,20 @@
     <string name="image_load_failed">Failed to load image</string>
     <string name="configuration_change">Configuration change</string>
     <string name="camera_or_image_view">Camera or Image View</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_button">Settings</string>
+    <string name="settings_header">Display Settings</string>
+    <string name="bct_controls_label">BCT Saturation and Luminance</string>
+    <string name="bct_controls_description">Show saturation and luminance in BCT mode.  If not shown, the thresholds are treated as zero.</string>
+    <string name="set_defaults_button">Set Defaults</string>
+    <string name="set_defaults_description">Use current settings as defaults</string>
+    <string name="load_defaults_button">Defaults</string>
+    <string name="load_defaults_description">Restore default settings</string>
+    <string name="defaults_saved">Default settings saved</string>
+    <string name="defaults_loaded">Default settings loaded</string>
+    <string name="version_format">Version: %s</string>
+    <string name="app_description">Identify colors by Basic Color Terms or hue in a live camera or image.</string>
+    <string name="github_link">https://github.com/manthey/color-filter-app</string>
 </resources>
