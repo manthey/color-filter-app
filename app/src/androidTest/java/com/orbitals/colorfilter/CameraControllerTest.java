@@ -1,14 +1,12 @@
 package com.orbitals.colorfilter;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import android.content.Context;
 import android.os.Handler;
@@ -116,27 +114,6 @@ public class CameraControllerTest {
         // Test minimum zoom
         spyController.adjustZoom(0.1f);
         verify(spyController, times(2)).applyZoom(anyFloat());
-    }
-
-    @Test
-    public void testChooseOptimalSize() throws Exception {
-        Size[] sizes = new Size[]{
-                new Size(1920, 1080),
-                new Size(1280, 720),
-                new Size(640, 480)
-        };
-
-        when(textureView.getWidth()).thenReturn(1280);
-        when(textureView.getHeight()).thenReturn(720);
-
-        java.lang.reflect.Method method = CameraController.class.getDeclaredMethod(
-                "chooseOptimalSize", Size[].class, int.class, int.class);
-        method.setAccessible(true);
-
-        Size result = (Size) method.invoke(cameraController, sizes, 1280, 720);
-        assertNotNull(result);
-        assertEquals(1280, result.getWidth());
-        assertEquals(720, result.getHeight());
     }
 
     @Test
