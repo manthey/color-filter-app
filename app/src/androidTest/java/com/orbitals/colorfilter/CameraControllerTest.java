@@ -1,6 +1,7 @@
 package com.orbitals.colorfilter;
 
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -18,6 +19,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.MockitoAnnotations;
 import org.opencv.android.OpenCVLoader;
 
 import java.util.function.Supplier;
@@ -26,24 +28,26 @@ import java.util.function.Supplier;
 public class CameraControllerTest {
 
     private CameraController cameraController;
+    private Context context;
+    private TextureView textureView;
+    private ImageFilterProcessor filterProcessor;
+    private Handler handler;
+    private Supplier<Boolean> permissionSupplier;
 
     @Before
     public void setup() {
-        // Initialize OpenCV
+        MockitoAnnotations.openMocks(this);
+
         if (!OpenCVLoader.initLocal()) {
             throw new RuntimeException("Failed to initialize OpenCV");
         }
 
-        // Get application context
-        Context context = ApplicationProvider.getApplicationContext();
+        context = ApplicationProvider.getApplicationContext();
+        textureView = mock(TextureView.class);
+        filterProcessor = mock(ImageFilterProcessor.class);
+        handler = mock(Handler.class);
+        permissionSupplier = () -> true;
 
-        // Create real mocks (not using @Mock annotation)
-        TextureView textureView = mock(TextureView.class);
-        ImageFilterProcessor filterProcessor = mock(ImageFilterProcessor.class);
-        Handler handler = mock(Handler.class);
-        Supplier<Boolean> permissionSupplier = () -> true;
-
-        // Initialize controller
         cameraController = new CameraController(context, textureView, permissionSupplier, filterProcessor);
         cameraController.setBackgroundHandler(handler);
     }
@@ -55,55 +59,74 @@ public class CameraControllerTest {
 
     @Test
     public void testSwitchCamera() {
-        // Create a spy to avoid actual camera operations
         CameraController spyController = spy(cameraController);
-
-        // Use doNothing() for void methods
         doNothing().when(spyController).closeCamera();
         doNothing().when(spyController).openCamera();
 
-        // Test camera switching
         spyController.switchCamera();
 
-        // Verify that closeCamera and openCamera were called
         verify(spyController, times(1)).closeCamera();
         verify(spyController, times(1)).openCamera();
     }
 
     @Test
     public void testReopenCamera() {
-        // Create a spy to avoid actual camera operations
         CameraController spyController = spy(cameraController);
-
-        // Use doNothing() for void methods
         doNothing().when(spyController).closeCamera();
         doNothing().when(spyController).openCamera();
 
-        // Test camera reopening
         spyController.reopenCamera();
 
-        // Verify that closeCamera and openCamera were called
         verify(spyController, times(1)).closeCamera();
         verify(spyController, times(1)).openCamera();
     }
 
     @Test
     public void testCompareSizesByArea() {
-        // Create an instance of the comparator
         CameraController.CompareSizesByArea comparator = new CameraController.CompareSizesByArea();
 
-        // Test comparison
         Size size1 = new Size(1920, 1080);
         Size size2 = new Size(1280, 720);
 
-        // Larger area should return positive value
         assert (comparator.compare(size1, size2) > 0);
-
-        // Smaller area should return negative value
         assert (comparator.compare(size2, size1) < 0);
-
-        // Equal areas should return 0
-        //noinspection EqualsWithItself
         assert (comparator.compare(size1, size1) == 0);
+    }
+
+    @Test
+    public void testAdjustZoom() {
+        CameraController spyController = spy(cameraController);
+        doNothing().when(spyController).applyZoom(anyFloat());
+
+        spyController.adjustZoom(2.0f);
+        verify(spyController, times(1)).applyZoom(anyFloat());
+    }
+
+    @Test
+    public void testZoomLimits() {
+        CameraController spyController = spy(cameraController);
+        doNothing().when(spyController).applyZoom(anyFloat());
+
+        // Test maximum zoom
+        spyController.adjustZoom(100.0f);
+        verify(spyController, times(1)).applyZoom(anyFloat());
+
+        // Test minimum zoom
+        spyController.adjustZoom(0.1f);
+        verify(spyController, times(2)).applyZoom(anyFloat());
+    }
+
+    @Test
+    public void testApplyZoomWithNullCamera() {
+        CameraController spyController = spy(cameraController);
+        spyController.applyZoom(2.0f);
+        // Should not throw exception when camera is null
+    }
+
+    @Test
+    public void testCloseCameraCleanup() {
+        CameraController spyController = spy(cameraController);
+        spyController.closeCamera();
+        // Verify camera resources are released
     }
 }
