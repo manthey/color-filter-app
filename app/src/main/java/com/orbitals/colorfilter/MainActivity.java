@@ -26,11 +26,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.TextureView;
-import android.view.View;
 import android.view.ViewTreeObserver;
-import android.widget.Button;
-import android.widget.SeekBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -63,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     private ImageFilterProcessor filter;
     private CameraController cameraController;
+    private UIComponentManager uiManager;
 
     private TextureView textureView;
 
@@ -95,16 +92,13 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Button switchCameraButton, filterButton, loadImageButton, bctButton;
-        SeekBar hueSeekBar, hueWidthSeekBar, saturationSeekBar, luminanceSeekBar, bctSeekBar;
-
         super.onCreate(savedInstanceState);
         setHueMaps();
         loadTermMaps();
         setContentView(R.layout.activity_main);
-
         textureView = findViewById(R.id.textureView);
         textureView.setSurfaceTextureListener(this);
+        uiManager = new UIComponentManager(this);
 
         filter = new ImageFilterProcessor();
         filter.setFilterSettings(0, 14, 0, 0, 1, ImageFilterProcessor.FilterMode.EXCLUDE, termMaps.get(0));
@@ -112,54 +106,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
         cameraController = new CameraController(this, textureView, this::checkCameraPermissions, filter);
 
-        hueSeekBar = findViewById(R.id.hueSeekBar);
-        hueWidthSeekBar = findViewById(R.id.hueWidthSeekBar);
-        saturationSeekBar = findViewById(R.id.saturationSeekBar);
-        luminanceSeekBar = findViewById(R.id.luminanceSeekBar);
-        bctSeekBar = findViewById(R.id.bctSeekBar);
-        hueSeekBar.setProgress(filter.getHue());
-        hueWidthSeekBar.setProgress(filter.getHueWidth());
-        saturationSeekBar.setProgress(filter.getSatThreshold());
-        luminanceSeekBar.setProgress(filter.getLumThreshold());
-        bctSeekBar.setProgress(filter.getTerm());
-
-        switchCameraButton = findViewById(R.id.switchCameraButton);
-        switchCameraButton.setOnClickListener(v -> {
-            if (isImageMode) {
-                isImageMode = false;
-                loadedImage = null;
-                processedImage = null;
-                cameraController.openCamera();
-            } else {
-                cameraController.switchCamera();
-            }
-        });
-        filterButton = findViewById(R.id.filterButton);
-        filterButton.setOnClickListener(v -> {
-            switch (filter.getFilterMode()) {
-                case NONE:
-                    filter.setFilterMode(ImageFilterProcessor.FilterMode.INCLUDE);
-                    break;
-                case INCLUDE:
-                    filter.setFilterMode(ImageFilterProcessor.FilterMode.EXCLUDE);
-                    break;
-                case EXCLUDE:
-                    filter.setFilterMode(ImageFilterProcessor.FilterMode.BINARY);
-                    break;
-                case BINARY:
-                    filter.setFilterMode(ImageFilterProcessor.FilterMode.SATURATION);
-                    break;
-                case SATURATION:
-                    filter.setFilterMode(ImageFilterProcessor.FilterMode.NONE);
-                    break;
-            }
-            updateControls();
-        });
-        loadImageButton = findViewById(R.id.loadImageButton);
-        loadImageButton.setOnClickListener(v -> {
-            Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            pickImageLauncher.launch(gallery);
-        });
         pickImageLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK) {
                 Intent data = result.getData();
@@ -187,78 +133,124 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 }
             }
         });
-        bctButton = findViewById(R.id.bctButton);
-        bctButton.setOnClickListener(v -> {
-            if (filter.getTermMap() == null) {
-                filter.setTermMap(termMaps.get(0));
-            } else {
-                int currentIdx = termMaps.size();
-                for (int i = 0; i < termMaps.size(); i += 1) {
-                    if (termMaps.get(i).getName().equals(filter.getTermMap().getName())) {
-                        currentIdx = i;
-                        break;
-                    }
-                }
-                if (currentIdx + 1 >= termMaps.size()) {
-                    filter.setTermMap(null);
-                } else {
-                    filter.setTermMap(termMaps.get(currentIdx + 1));
-                }
-            }
-            updateControls();
-        });
-        Button settingsButton = findViewById(R.id.settingsButton);
-        settingsButton.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-            // Pass the current filter settings to SettingsActivity
-            intent.putExtra("filterMode", filter.getFilterMode().ordinal());
-            intent.putExtra("hue", filter.getHue());
-            intent.putExtra("hueWidth", filter.getHueWidth());
-            intent.putExtra("satThreshold", filter.getSatThreshold());
-            intent.putExtra("lumThreshold", filter.getLumThreshold());
-            intent.putExtra("term", filter.getTerm());
-            intent.putExtra("termMapId", filter.getTermMap() != null ? filter.getTermMap().getId() : null);
-            settingsLauncher.launch(intent);
-        });
 
         updateControls();
 
-        // Set up SeekBars to update filter parameters
-        hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                filter.setHue(progress - (progress % 2));
-                updateSeekLabels();
-            }
-        });
-        hueWidthSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                filter.setHueWidth(progress - progress % 2);
-                updateSeekLabels();
-            }
-        });
-        saturationSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                filter.setSatThreshold(progress);
-                updateSeekLabels();
-            }
-        });
-        luminanceSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                filter.setLumThreshold(progress);
-                updateSeekLabels();
-            }
-        });
-        bctSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                filter.setTerm(progress);
-                updateSeekLabels();
-            }
-        });
+        textureView = uiManager.getView(R.id.textureView);
+
+        uiManager.initializeControls(
+                new UIComponentManager.FilterControlListener() {
+                    @Override
+                    public void onFilterModeChanged() {
+                        switch (filter.getFilterMode()) {
+                            case NONE:
+                                filter.setFilterMode(ImageFilterProcessor.FilterMode.INCLUDE);
+                                break;
+                            case INCLUDE:
+                                filter.setFilterMode(ImageFilterProcessor.FilterMode.EXCLUDE);
+                                break;
+                            case EXCLUDE:
+                                filter.setFilterMode(ImageFilterProcessor.FilterMode.BINARY);
+                                break;
+                            case BINARY:
+                                filter.setFilterMode(ImageFilterProcessor.FilterMode.SATURATION);
+                                break;
+                            case SATURATION:
+                                filter.setFilterMode(ImageFilterProcessor.FilterMode.NONE);
+                                break;
+                        }
+                        updateControls();
+                    }
+
+                    @Override
+                    public void onTermMapChanged() {
+                        if (filter.getTermMap() == null) {
+                            filter.setTermMap(termMaps.get(0));
+                        } else {
+                            int currentIdx = termMaps.size();
+                            for (int i = 0; i < termMaps.size(); i += 1) {
+                                if (termMaps.get(i).getName().equals(filter.getTermMap().getName())) {
+                                    currentIdx = i;
+                                    break;
+                                }
+                            }
+                            if (currentIdx + 1 >= termMaps.size()) {
+                                filter.setTermMap(null);
+                            } else {
+                                filter.setTermMap(termMaps.get(currentIdx + 1));
+                            }
+                        }
+                        updateControls();
+                    }
+
+                    @Override
+                    public void onHueChanged(int value) {
+                        filter.setHue(value);
+                        updateSeekLabels();
+                    }
+
+                    @Override
+                    public void onHueWidthChanged(int value) {
+                        filter.setHueWidth(value);
+                        updateSeekLabels();
+                    }
+
+                    @Override
+                    public void onSaturationChanged(int value) {
+                        filter.setSatThreshold(value);
+                        updateSeekLabels();
+                    }
+
+                    @Override
+                    public void onLuminanceChanged(int value) {
+                        filter.setLumThreshold(value);
+                        updateSeekLabels();
+                    }
+
+                    @Override
+                    public void onTermChanged(int value) {
+                        filter.setTerm(value);
+                        updateSeekLabels();
+                    }
+
+                    @Override
+                    public void onCameraSwitch(boolean isImageModeRequested) {
+                        if (isImageMode) {
+                            isImageMode = false;
+                            loadedImage = null;
+                            processedImage = null;
+                            cameraController.openCamera();
+                        } else {
+                            cameraController.switchCamera();
+                        }
+                    }
+
+                    @Override
+                    public void onLoadImageRequested() {
+                        Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                        pickImageLauncher.launch(gallery);
+                    }
+
+                    @Override
+                    public void onSettingsRequested() {
+                        Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+                        // Pass the current filter settings to SettingsActivity
+                        intent.putExtra("filterMode", filter.getFilterMode().ordinal());
+                        intent.putExtra("hue", filter.getHue());
+                        intent.putExtra("hueWidth", filter.getHueWidth());
+                        intent.putExtra("satThreshold", filter.getSatThreshold());
+                        intent.putExtra("lumThreshold", filter.getLumThreshold());
+                        intent.putExtra("term", filter.getTerm());
+                        intent.putExtra("termMapId", filter.getTermMap() != null ? filter.getTermMap().getId() : null);
+                        settingsLauncher.launch(intent);
+                    }
+                },
+                filter.getHue(),
+                filter.getHueWidth(),
+                filter.getSatThreshold(),
+                filter.getLumThreshold(),
+                filter.getTerm()
+        );
 
         // Pinch-to-zoom setup (add touch listener)
         textureView.setOnTouchListener((v, event) -> {
@@ -290,38 +282,19 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     }
 
     private void updateControls() {
-        Button bctButton = findViewById(R.id.bctButton);
-        SeekBar bctSeekBar = findViewById(R.id.bctSeekBar);
-        Button filterButton = findViewById(R.id.filterButton);
-        switch (filter.getFilterMode()) {
-            case INCLUDE:
-                filterButton.setText(getString(R.string.filter_button_include));
-                break;
-            case EXCLUDE:
-                filterButton.setText(getString(R.string.filter_button_exclude));
-                break;
-            case BINARY:
-                filterButton.setText(getString(R.string.filter_button_binary));
-                break;
-            case SATURATION:
-                filterButton.setText(getString(R.string.filter_button_saturation));
-                break;
-            case NONE:
-                filterButton.setText(getString(R.string.filter_button_off));
-                break;
-        }
-        if (filter.getTermMap() == null) {
-            bctButton.setText(getString(R.string.term_button_hsv));
-            findViewById(R.id.bctControls).setVisibility(View.GONE);
-            findViewById(R.id.hueControls).setVisibility(View.VISIBLE);
-            findViewById(R.id.satLumControls).setVisibility(View.VISIBLE);
-        } else {
-            bctButton.setText(filter.getTermMap().getName());
-            findViewById(R.id.hueControls).setVisibility(View.GONE);
-            findViewById(R.id.bctControls).setVisibility(View.VISIBLE);
-            bctSeekBar.setMax(filter.getTermMap().getTerms().size() - 1);
-            findViewById(R.id.satLumControls).setVisibility(filter.getUseLumSatBCT() ? View.VISIBLE : View.GONE);
-        }
+        uiManager.updateUI(
+                filter.getFilterMode(),
+                filter.getHue(),
+                filter.getHueWidth(),
+                filter.getSatThreshold(),
+                filter.getLumThreshold(),
+                filter.getTermMap(),
+                filter.getUseLumSatBCT(),
+                coarseHueMap,
+                fineHueMap,
+                filter.getCurrentTerm()
+        );
+
         if (isImageMode) {
             displayLoadedImage();
         }
@@ -330,16 +303,19 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @SuppressLint("DefaultLocale")
     private void updateSeekLabels() {
-        TextView hueLabel = findViewById(R.id.hueLabel);
-        hueLabel.setText(String.format("%s - %d - %s - %s", getString(R.string.hue), filter.getHue(), getColorName(filter.getHue(), coarseHueMap), getColorName(filter.getHue(), fineHueMap)));
-        TextView hwLabel = findViewById(R.id.hueWidthLabel);
-        hwLabel.setText(String.format("%s - %d", getString(R.string.hue_width), filter.getHueWidth()));
-        TextView satLabel = findViewById(R.id.saturationLabel);
-        satLabel.setText(String.format("%s - %d", getString(R.string.saturation), filter.getSatThreshold()));
-        TextView lumLabel = findViewById(R.id.luminanceLabel);
-        lumLabel.setText(String.format("%s - %d", getString(R.string.luminance), filter.getLumThreshold()));
-        TextView bctLabel = findViewById(R.id.bctLabel);
-        bctLabel.setText(String.format("%s - %s", getString(R.string.term), filter.getCurrentTerm()));
+        uiManager.updateUI(
+                filter.getFilterMode(),
+                filter.getHue(),
+                filter.getHueWidth(),
+                filter.getSatThreshold(),
+                filter.getLumThreshold(),
+                filter.getTermMap(),
+                filter.getUseLumSatBCT(),
+                coarseHueMap,
+                fineHueMap,
+                filter.getCurrentTerm()
+        );
+
         if (isImageMode) {
             displayLoadedImage();
         }
@@ -381,20 +357,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 }
             }
         }
-    }
-
-    private String getColorName(int hue, HashMap<Integer, String> hueMap) {
-        int closestHue = 0;
-        int minDistance = 360;
-
-        for (Integer keyHue : hueMap.keySet()) {
-            int distance = hue - keyHue;
-            if (distance >= 0 && distance < minDistance) {
-                minDistance = distance;
-                closestHue = keyHue;
-            }
-        }
-        return hueMap.get(closestHue);
     }
 
     private boolean handleCameraTouch(MotionEvent event) {
@@ -453,16 +415,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {
-    }
-
-    private abstract static class SimpleSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
-        @Override
-        public void onStartTrackingTouch(SeekBar seekBar) {
-        }
-
-        @Override
-        public void onStopTrackingTouch(SeekBar seekBar) {
-        }
     }
 
     @Override
