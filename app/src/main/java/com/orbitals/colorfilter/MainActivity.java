@@ -78,8 +78,10 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private final RectF imageBounds = new RectF();
     private final float[] matrixValues = new float[9];
 
-    // Pinch to zoom variables
+    // Pinch to zoom and swipe variables
     private float mLastTouchDistance = -1f;
+    private float swipeStartY = 0;
+    private static final float SWIPE_THRESHOLD = 100; // Minimum distance for swipe
 
     static {
         if (!OpenCVLoader.initLocal()) {
@@ -266,7 +268,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             if (isImageMode) {
                 return handleImageTouch(event);
             } else {
-                return handlePinchToZoom(event);
+                return handleCameraTouch(event);
             }
         });
         settingsLauncher = registerForActivityResult(
@@ -395,11 +397,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         return hueMap.get(closestHue);
     }
 
-    private boolean handlePinchToZoom(MotionEvent event) {
+    private boolean handleCameraTouch(MotionEvent event) {
         int action = event.getAction() & MotionEvent.ACTION_MASK;
 
         if (event.getPointerCount() == 2) {
-            // Two-finger touch (pinch)
+            // Two-finger touch (pinch / spread)
             float currentDistance = getDistance(event);
 
             if (mLastTouchDistance != -1f) {
@@ -411,8 +413,20 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             // Reset last touch distance when fingers are lifted
             mLastTouchDistance = -1f;
         }
-
-        return false; // Don't consume single-finger events
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                swipeStartY = event.getY();
+                break;
+            case MotionEvent.ACTION_UP:
+                float swipeDistanceY = event.getY() - swipeStartY;
+                if (Math.abs(swipeDistanceY) > SWIPE_THRESHOLD) {
+                    // Detected a vertical swipe
+                    cameraController.switchCamera();
+                    return true;
+                }
+                break;
+        }
+        return false;
     }
 
     private float getDistance(MotionEvent event) {
