@@ -28,11 +28,6 @@ import java.util.function.Supplier;
 public class CameraControllerTest {
 
     private CameraController cameraController;
-    private Context context;
-    private TextureView textureView;
-    private ImageFilterProcessor filterProcessor;
-    private Handler handler;
-    private Supplier<Boolean> permissionSupplier;
 
     @Before
     public void setup() {
@@ -42,11 +37,11 @@ public class CameraControllerTest {
             throw new RuntimeException("Failed to initialize OpenCV");
         }
 
-        context = ApplicationProvider.getApplicationContext();
-        textureView = mock(TextureView.class);
-        filterProcessor = mock(ImageFilterProcessor.class);
-        handler = mock(Handler.class);
-        permissionSupplier = () -> true;
+        Context context = ApplicationProvider.getApplicationContext();
+        TextureView textureView = mock(TextureView.class);
+        ImageFilterProcessor filterProcessor = mock(ImageFilterProcessor.class);
+        Handler handler = mock(Handler.class);
+        Supplier<Boolean> permissionSupplier = () -> true;
 
         cameraController = new CameraController(context, textureView, permissionSupplier, filterProcessor);
         cameraController.setBackgroundHandler(handler);
@@ -90,6 +85,7 @@ public class CameraControllerTest {
 
         assert (comparator.compare(size1, size2) > 0);
         assert (comparator.compare(size2, size1) < 0);
+        //noinspection EqualsWithItself
         assert (comparator.compare(size1, size1) == 0);
     }
 

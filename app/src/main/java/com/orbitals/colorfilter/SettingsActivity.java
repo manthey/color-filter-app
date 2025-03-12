@@ -10,6 +10,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
@@ -100,6 +101,18 @@ public class SettingsActivity extends AppCompatActivity {
             Toast.makeText(SettingsActivity.this,
                     getString(R.string.defaults_loaded), Toast.LENGTH_SHORT).show();
         });
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // Your existing onBackPressed logic
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra("settingsChanged", settingsChanged);
+                resultIntent.putExtra("defaultsLoaded", defaultsLoaded);
+                setResult(RESULT_OK, resultIntent);
+                finish();
+            }
+        });
     }
 
     private void loadSettings() {
@@ -174,17 +187,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     @Override
     public boolean onSupportNavigateUp() {
-        onBackPressed();
+        getOnBackPressedDispatcher().onBackPressed();
         return true;
     }
-
-    @Override
-    public void onBackPressed() {
-        Intent resultIntent = new Intent();
-        resultIntent.putExtra("settingsChanged", settingsChanged);
-        resultIntent.putExtra("defaultsLoaded", defaultsLoaded);
-        setResult(RESULT_OK, resultIntent);
-        super.onBackPressed();
-    }
-
 }
