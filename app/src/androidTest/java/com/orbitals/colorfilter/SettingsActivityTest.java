@@ -3,7 +3,6 @@ package com.orbitals.colorfilter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.widget.TextView;
 
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
@@ -160,6 +159,7 @@ public class SettingsActivityTest {
         assertEquals("test_map", prefs.getString(SettingsActivity.KEY_TERM_MAP, null));
     }
     
+    /** @noinspection ExtractMethodRecommender*/
     @Test
     public void testLoadDefaultSettings() {
         // First save some default settings
@@ -183,13 +183,8 @@ public class SettingsActivityTest {
         
         // Wait for UI to update
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-        
-        // Check the defaultsLoaded flag is set when back is pressed
-        final boolean[] defaultsLoaded = {false};
-        
-        scenario.onActivity(activity -> {
-            activity.onBackPressed();
-        });
+
+        scenario.onActivity(activity -> activity.getOnBackPressedDispatcher().onBackPressed());
         
         // We can't easily verify the result intent in this test framework,
         // but we can verify the activity finishes
@@ -204,9 +199,7 @@ public class SettingsActivityTest {
         // Simulate up navigation
         final boolean[] upNavigated = {false};
         
-        scenario.onActivity(activity -> {
-            upNavigated[0] = activity.onSupportNavigateUp();
-        });
+        scenario.onActivity(activity -> upNavigated[0] = activity.onSupportNavigateUp());
         
         // Verify result
         assertTrue("onSupportNavigateUp should return true", upNavigated[0]);
