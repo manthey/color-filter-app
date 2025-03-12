@@ -77,7 +77,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     // Pinch to zoom and swipe variables
     private float mLastTouchDistance = -1f;
-    private float swipeStartY = 0;
+    private Float swipeStartX = null;
+    private Float swipeStartY = null;
     private static final float SWIPE_THRESHOLD = 100; // Minimum distance for swipe
 
     static {
@@ -101,7 +102,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         uiManager = new UIComponentManager(this);
 
         filter = new ImageFilterProcessor();
-        filter.setFilterSettings(0, 14, 0, 0, 1, ImageFilterProcessor.FilterMode.EXCLUDE, termMaps.get(0));
+        // defaults
+        filter.setFilterSettings(0, 14, 100, 100, 1, ImageFilterProcessor.FilterMode.EXCLUDE, termMaps.get(0));
+        filter.setUseLumSatBCT(false);
         loadSavedSettings();
 
         cameraController = new CameraController(this, textureView, this::checkCameraPermissions, filter);
@@ -362,32 +365,45 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private boolean handleCameraTouch(MotionEvent event) {
         int action = event.getAction() & MotionEvent.ACTION_MASK;
 
-        if (event.getPointerCount() == 2) {
-            // Two-finger touch (pinch / spread)
-            float currentDistance = getDistance(event);
-
-            if (mLastTouchDistance != -1f) {
-                cameraController.adjustZoom(currentDistance / mLastTouchDistance);
-            }
-            mLastTouchDistance = currentDistance;
-            return true; // Consume the event
-        } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP) {
-            // Reset last touch distance when fingers are lifted
-            mLastTouchDistance = -1f;
-        }
-        switch (action) {
-            case MotionEvent.ACTION_DOWN:
-                swipeStartY = event.getY();
+        switch (event.getPointerCount()) {
+            case 1:
+                switch (action) {
+                    case MotionEvent.ACTION_DOWN:
+                        swipeStartX = event.getX();
+                        swipeStartY = event.getY();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        if (swipeStartY != null && swipeStartX != null) {
+                            float swipeDistanceX = event.getX() - swipeStartX;
+                            float swipeDistanceY = event.getY() - swipeStartY;
+                            if (Math.abs(swipeDistanceY) > SWIPE_THRESHOLD &&
+                                    Math.abs(swipeDistanceY) > Math.abs(swipeDistanceX) * 2) {
+                                // Detected a vertical swipe
+                                cameraController.switchCamera();
+                                return true;
+                            }
+                        }
+                        break;
+                }
                 break;
-            case MotionEvent.ACTION_UP:
-                float swipeDistanceY = event.getY() - swipeStartY;
-                if (Math.abs(swipeDistanceY) > SWIPE_THRESHOLD) {
-                    // Detected a vertical swipe
-                    cameraController.switchCamera();
-                    return true;
+            case 2:
+                swipeStartY = null;
+                // Two-finger touch (pinch / spread)
+                float currentDistance = getDistance(event);
+
+                if (mLastTouchDistance != -1f) {
+                    cameraController.adjustZoom(currentDistance / mLastTouchDistance);
+                }
+                mLastTouchDistance = currentDistance;
+                return true; // Consume the event
+            default:
+                swipeStartY = null;
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP) {
+                    mLastTouchDistance = -1f;
                 }
                 break;
         }
+
         return false;
     }
 
