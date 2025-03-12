@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.util.Log;
 
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Rect;
@@ -15,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -118,7 +120,8 @@ public class TermMap {
     /**
      * Set the blur value used to reduce variations.
      *
-     * @param blur Either 0 or an odd number.
+     * @param blur Either 0 or an odd number.  If negative, the blur is applied BEFORE the color
+     *             terms.  If positive, it is applied AFTER the color terms.
      * @noinspection unused
      */
     public void setBlur(int blur) {
@@ -134,19 +137,36 @@ public class TermMap {
      * @return An output mask image.
      */
     public Mat createMask(Mat image, int term) {
+        Mat mappedImage = createMap(image);
+        if (blur > 1) {
+            Imgproc.medianBlur(mappedImage, mappedImage, blur);
+        }
+        Mat mask = new Mat();
+        Core.compare(mappedImage, new Scalar(term), mask, Core.CMP_EQ);
+        return mask;
+    }
+
+    /**
+     * Given an input image in RGB color space, create a image that is single channel and has the
+     * value of the color term at each pixel.
+     *
+     * @param image The input RGB image.
+     * @return An output mask image.
+     */
+    public Mat createMap(Mat image) {
         byte[] rgbData = new byte[image.channels() * image.cols() * image.rows()];
-        if (blur != 0) {
+        if (blur < -1) {
             Mat blurred = new Mat();
-            Imgproc.GaussianBlur(image, blurred, new Size(blur, blur), 0);
+            Imgproc.GaussianBlur(image, blurred, new Size(-blur, -blur), 0);
             /* We could try other filters, but they operate on channels independently, so the results
              * aren't what we desire:
-             *  Imgproc.blur(image, blurred, new Size(blur, blur));
-             *  Imgproc.medianBlur(image, blurred, blur); */
+             *  Imgproc.blur(image, blurred, new Size(-blur, -blur));
+             *  Imgproc.medianBlur(image, blurred, -blur); */
             blurred.get(0, 0, rgbData);
         } else {
             image.get(0, 0, rgbData);
         }
-        byte[] maskData = new byte[image.cols() * image.rows()];
+        byte[] mapData = new byte[image.cols() * image.rows()];
 
         int center = ((image.rows() / 2) * image.cols() + (image.cols() / 2)) * 3;
         for (int i = 0, j = 0; i < rgbData.length; i += 3, j++) {
@@ -158,11 +178,11 @@ public class TermMap {
             if (i == center) {
                 Log.d("TermMap", "Center " + " " + r + "," + g + "," + b + " " + map[index]);
             }
-            maskData[j] = (byte) ((map[index] & 0xFF) == term ? 255 : 0);
+            mapData[j] = map[index];
         }
 
-        Mat mask = new Mat(image.rows(), image.cols(), CvType.CV_8UC1);
-        mask.put(0, 0, maskData);
-        return mask;
+        Mat mappedImage = new Mat(image.rows(), image.cols(), CvType.CV_8UC1);
+        mappedImage.put(0, 0, mapData);
+        return mappedImage;
     }
 }
