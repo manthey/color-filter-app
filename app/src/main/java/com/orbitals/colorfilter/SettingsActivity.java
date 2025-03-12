@@ -30,7 +30,7 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_SHOW_BCT_CONTROLS = "show_bct_controls";
 
     private Button setDefaultsButton;
-    private boolean showBctControls = true;
+    private boolean showBctControls = false;
 
     private int currentFilterMode;
     private int currentHue;
@@ -104,7 +104,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void loadSettings() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        showBctControls = prefs.getBoolean(KEY_SHOW_BCT_CONTROLS, true);
+        showBctControls = prefs.getBoolean(KEY_SHOW_BCT_CONTROLS, false);
     }
 
     private void loadDefaultSettings() {
