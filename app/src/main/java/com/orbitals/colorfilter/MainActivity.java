@@ -284,28 +284,15 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     }
 
-    private void updateControls() {
-        uiManager.updateUI(
-                filter.getFilterMode(),
-                filter.getHue(),
-                filter.getHueWidth(),
-                filter.getSatThreshold(),
-                filter.getLumThreshold(),
-                filter.getTermMap(),
-                filter.getUseLumSatBCT(),
-                coarseHueMap,
-                fineHueMap,
-                filter.getCurrentTerm()
-        );
-
-        if (isImageMode) {
-            displayLoadedImage();
-        }
-        updateSeekLabels();
+    private void updateSeekLabels() {
+        updateControls(false);
     }
 
-    @SuppressLint("DefaultLocale")
-    private void updateSeekLabels() {
+    private void updateControls() {
+        updateControls(true);
+    }
+
+    private void updateControls(boolean updateSeekBars) {
         uiManager.updateUI(
                 filter.getFilterMode(),
                 filter.getHue(),
@@ -316,7 +303,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 filter.getUseLumSatBCT(),
                 coarseHueMap,
                 fineHueMap,
-                filter.getCurrentTerm()
+                filter.getCurrentTerm(),
+                filter.getTerm(),
+                updateSeekBars
         );
 
         if (isImageMode) {
