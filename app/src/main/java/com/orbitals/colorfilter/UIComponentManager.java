@@ -177,7 +177,9 @@ public class UIComponentManager {
             boolean useLumSatBCT,
             HashMap<Integer, String> coarseHueMap,
             HashMap<Integer, String> fineHueMap,
-            String currentTerm) {
+            String currentTerm,
+            int term,
+            boolean updateSeekBars) {
 
         Button filterButton = getView(R.id.filterButton);
         switch (filterMode) {
@@ -218,6 +220,20 @@ public class UIComponentManager {
         }
 
         updateSeekLabels(hue, hueWidth, satThreshold, lumThreshold, currentTerm, coarseHueMap, fineHueMap);
+        if (updateSeekBars) {
+            SeekBar hueSeekBar = getView(R.id.hueSeekBar);
+            SeekBar hueWidthSeekBar = getView(R.id.hueWidthSeekBar);
+            SeekBar saturationSeekBar = getView(R.id.saturationSeekBar);
+            SeekBar luminanceSeekBar = getView(R.id.luminanceSeekBar);
+            SeekBar bctSeekBar = getView(R.id.bctSeekBar);
+
+            hueSeekBar.setProgress(hue);
+            hueWidthSeekBar.setProgress(hueWidth);
+            saturationSeekBar.setProgress(satThreshold);
+            luminanceSeekBar.setProgress(lumThreshold);
+            bctSeekBar.setProgress(term);
+
+        }
     }
 
     /**
