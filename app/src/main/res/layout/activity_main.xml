@@ -43,6 +43,9 @@
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="90dp"
                 android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="none"
+                android:scrollHorizontally="false"
                 android:text="@string/filter_button_off"
                 android:textColor="?android:attr/textColorPrimary" />
 
@@ -51,6 +54,9 @@
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="90dp"
                 android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="none"
+                android:scrollHorizontally="false"
                 android:text="@string/term_button_hsv"
                 android:textColor="?android:attr/textColorPrimary" />
 
