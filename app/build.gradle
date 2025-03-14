@@ -16,6 +16,7 @@ android {
         versionName getVersionFromGit()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments logLevel: 'debug'
         vectorDrawables {
             useSupportLibrary true
         }
@@ -23,6 +24,7 @@ android {
     buildTypes {
         debug {
             testCoverageEnabled true
+            debuggable true
         }
         release {
             minifyEnabled false
@@ -73,6 +75,9 @@ dependencies {
     implementation libs.opencv
     androidTestImplementation libs.androidx.junit
     androidTestImplementation libs.androidx.espresso.core
+    
+    androidTestImplementation 'androidx.test.espresso:espresso-intents:3.6.1'
+    
     androidTestImplementation libs.androidx.core
     androidTestImplementation libs.androidx.runner
     androidTestImplementation libs.androidx.rules
@@ -83,6 +88,7 @@ dependencies {
     debugImplementation libs.androidx.ui.test.manifest
     testImplementation libs.junit
     testImplementation libs.mockito.core
+    androidTestImplementation libs.androidx.uiautomator
 }
 
 jacoco {

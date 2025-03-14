@@ -51,7 +51,8 @@ public class CameraController {
     private final Supplier<Boolean> checkCameraPermissions;
     private final ImageFilterProcessor filter;
 
-    private static final String TAG = "CameraController";
+    /** @noinspection SpellCheckingInspection*/
+    private static final String TAG = "com.orbitals.colorfilter.CameraController";
     private CameraDevice cameraDevice;
     private CameraCaptureSession cameraCaptureSession;
     private CaptureRequest.Builder captureRequestBuilder;
@@ -127,7 +128,12 @@ public class CameraController {
     public void openCamera() {
         CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
         try {
-            cameraId = isFrontCamera ? manager.getCameraIdList()[1] : manager.getCameraIdList()[0]; // Select camera
+            int numCameras = manager.getCameraIdList().length;
+            if (numCameras < 1) {
+                Log.d(TAG, "openCamera no cameras");
+                return;
+            }
+            cameraId = isFrontCamera && numCameras >= 2 ? manager.getCameraIdList()[1] : manager.getCameraIdList()[0]; // Select camera
 
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
