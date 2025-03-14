@@ -104,7 +104,7 @@ public class TermMapTest {
 
     @Test
     public void testBlurBehavior() {
-        assertEquals(9, termMap.getBlur()); // Default blur value
+        assertEquals(5, termMap.getBlur()); // Default blur value
 
         termMap.setBlur(15); // Set a new blur value
         assertEquals(15, termMap.getBlur());
