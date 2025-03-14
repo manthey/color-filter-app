@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 public class TermMap {
+    /** @noinspection SpellCheckingInspection*/
+    private static final String TAG = "com.orbitals.colorfilter.TermMap";
+
     private final String name;
     private final String id;
     private final String description;
@@ -180,7 +183,7 @@ public class TermMap {
                 int b = rgbData[i + 2] & 0xFF;
                 int index = (r << 16) | (g << 8) | b;
                 if (j == center) {
-                    Log.d("TermMap", "Center " + " " + r + "," + g + "," + b + " " + map[index]);
+                    Log.d(TAG, "Center " + " " + r + "," + g + "," + b + " " + map[index]);
                 }
                 mapData[j] = map[index];
             }

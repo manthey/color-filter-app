@@ -19,7 +19,8 @@ import androidx.appcompat.widget.Toolbar;
 import java.util.Objects;
 
 public class SettingsActivity extends AppCompatActivity {
-
+    /** @noinspection SpellCheckingInspection*/
+    private static final String TAG = "com.orbitals.colorfilter.SettingsActivity";
     public static final String PREFS_NAME = "ColorFilterPrefs";
     public static final String KEY_FILTER_MODE = "filter_mode";
     public static final String KEY_TERM_MAP = "term_map";
@@ -71,7 +72,7 @@ public class SettingsActivity extends AppCompatActivity {
         try {
             versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
         } catch (PackageManager.NameNotFoundException e) {
-            Log.d("SettingsActivity", "Error getting package info: " + e.getMessage());
+            Log.d(TAG, "Error getting package info: " + e.getMessage());
         }
         versionTextView.setText(getString(R.string.version_format, versionName));
 
