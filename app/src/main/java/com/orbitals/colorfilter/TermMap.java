@@ -27,7 +27,7 @@ public class TermMap {
     private final String reference;
     private final List<String> terms;
     private final byte[] map;
-    private int blur = 9;
+    private int blur = 5;
 
     /**
      * Create a TermMap.
