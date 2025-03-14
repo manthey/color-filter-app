@@ -10,15 +10,15 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
+import java.util.stream.IntStream;
 
 public class TermMap {
     private final String name;
@@ -154,7 +154,9 @@ public class TermMap {
      * @return An output mask image.
      */
     public Mat createMap(Mat image) {
-        byte[] rgbData = new byte[image.channels() * image.cols() * image.rows()];
+        int width = image.cols();
+        int height = image.rows();
+        byte[] rgbData = new byte[image.channels() * width * height];
         if (blur < -1) {
             Mat blurred = new Mat();
             Imgproc.GaussianBlur(image, blurred, new Size(-blur, -blur), 0);
@@ -166,22 +168,25 @@ public class TermMap {
         } else {
             image.get(0, 0, rgbData);
         }
-        byte[] mapData = new byte[image.cols() * image.rows()];
+        byte[] mapData = new byte[width * height];
 
-        int center = ((image.rows() / 2) * image.cols() + (image.cols() / 2)) * 3;
-        for (int i = 0, j = 0; i < rgbData.length; i += 3, j++) {
-            // Get RGB values (unsigned)
-            int r = rgbData[i] & 0xFF;
-            int g = rgbData[i + 1] & 0xFF;
-            int b = rgbData[i + 2] & 0xFF;
-            int index = (r << 16) | (g << 8) | b;
-            if (i == center) {
-                Log.d("TermMap", "Center " + " " + r + "," + g + "," + b + " " + map[index]);
+        int center = ((height / 2) * width + (width / 2));
+        IntStream.range(0, height).parallel().forEach(y -> {
+            int maxJ = (y + 1) * width;
+            for (int i = y * width * 3, j = y * width; j < maxJ; i += 3, j++) {
+                // Get RGB values (unsigned)
+                int r = rgbData[i] & 0xFF;
+                int g = rgbData[i + 1] & 0xFF;
+                int b = rgbData[i + 2] & 0xFF;
+                int index = (r << 16) | (g << 8) | b;
+                if (j == center) {
+                    Log.d("TermMap", "Center " + " " + r + "," + g + "," + b + " " + map[index]);
+                }
+                mapData[j] = map[index];
             }
-            mapData[j] = map[index];
-        }
+        });
 
-        Mat mappedImage = new Mat(image.rows(), image.cols(), CvType.CV_8UC1);
+        Mat mappedImage = new Mat(height, width, CvType.CV_8UC1);
         mappedImage.put(0, 0, mapData);
         return mappedImage;
     }
