@@ -83,6 +83,7 @@ dependencies {
     debugImplementation libs.androidx.ui.test.manifest
     testImplementation libs.junit
     testImplementation libs.mockito.core
+    androidTestImplementation libs.androidx.uiautomator
 }
 
 jacoco {
