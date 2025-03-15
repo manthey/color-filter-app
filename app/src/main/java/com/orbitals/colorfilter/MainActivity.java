@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         filter.setUseLumSatBCT(false);
         loadSavedSettings();
 
-        cameraController = new CameraController(this, textureView, this::checkCameraPermissions, filter);
+        cameraController = new CameraController(this, textureView, this::checkCameraPermissions, filter, this::updateControls);
 
         pickImageLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK) {
@@ -245,7 +245,14 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                         intent.putExtra("lumThreshold", filter.getLumThreshold());
                         intent.putExtra("term", filter.getTerm());
                         intent.putExtra("termMapId", filter.getTermMap() != null ? filter.getTermMap().getId() : null);
+                        intent.putExtra("sampleMode", filter.getSampleMode());
                         settingsLauncher.launch(intent);
+                    }
+
+                    @Override
+                    public void onSampleModeChanged() {
+                        filter.setSampleMode(!filter.getSampleMode());
+                        updateControls();
                     }
                 },
                 filter.getHue(),
@@ -288,7 +295,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         updateControls(false);
     }
 
-    private void updateControls() {
+    public void updateControls() {
         updateControls(true);
     }
 
@@ -305,7 +312,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 fineHueMap,
                 filter.getCurrentTerm(),
                 filter.getTerm(),
-                updateSeekBars
+                updateSeekBars,
+                filter.getSampleMode()
         );
 
         if (isImageMode) {
@@ -379,7 +387,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 swipeStartY = null;
                 // Two-finger touch (pinch / spread)
                 float currentDistance = getDistance(event);
-
                 if (mLastTouchDistance != -1f) {
                     cameraController.adjustZoom(currentDistance / mLastTouchDistance);
                 }
@@ -387,10 +394,12 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 return true; // Consume the event
             default:
                 swipeStartY = null;
-                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP) {
-                    mLastTouchDistance = -1f;
-                }
+                mLastTouchDistance = -1f;
                 break;
+        }
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP) {
+            mLastTouchDistance = -1f;
+            swipeStartY = null;
         }
 
         return false;
@@ -522,22 +531,32 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     private void displayLoadedImage(Boolean reuse) {
         if (loadedImage == null || !isImageMode) return;
 
-        if (processedImage == null || !reuse) {
+        if (processedImage == null || !reuse || filter.getSampleMode()) {
             Mat inputMat = new Mat();
             Utils.bitmapToMat(loadedImage, inputMat);
-            Mat processedMat = filter.process(inputMat);
+            if (filter.getSampleMode()) {
+                Mat centerChunk = cameraController.centerOfImage(inputMat, imageMatrix);
+                if (filter.sampleRegion(centerChunk)) {
+                    updateControls();
+                    reuse = false;
+                }
+            }
+            if ((processedImage == null || !reuse)) {
+                Mat processedMat = filter.process(inputMat);
 
-            processedImage = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(processedMat, processedImage);
+                processedImage = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
+                Utils.matToBitmap(processedMat, processedImage);
 
-            inputMat.release();
-            processedMat.release();
+                inputMat.release();
+                processedMat.release();
+            }
         }
 
         Canvas canvas = textureView.lockCanvas();
         if (canvas != null) {
-            canvas.drawColor(Color.BLACK); // Clear the canvas
-            canvas.drawBitmap(processedImage, imageMatrix, null); // Draw the image
+            canvas.drawColor(Color.BLACK);
+            canvas.drawBitmap(processedImage, imageMatrix, null);
+            cameraController.drawSamplingCircle(canvas);
             textureView.unlockCanvasAndPost(canvas);
         }
     }
@@ -557,38 +576,38 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     if (mLastTouchDistance > 0) {
                         float scale = newDistance / mLastTouchDistance;
 
-                        // Get current scale
                         imageMatrix.getValues(matrixValues);
                         float currentScale = matrixValues[Matrix.MSCALE_X];
 
-                        // Calculate new scale within limits
                         float minScale = Math.min(textureView.getWidth() / loadedImage.getWidth(), textureView.getHeight() / loadedImage.getHeight());
                         float maxScale = Math.max(2.0f, Math.max(textureView.getWidth() / (float) loadedImage.getWidth(), textureView.getHeight() / (float) loadedImage.getHeight()) * 2);
 
                         float newScale = Math.min(Math.max(currentScale * scale, minScale), maxScale);
                         scale = newScale / currentScale;
 
-                        // Scale around center point between fingers
                         float centerX = (event.getX(0) + event.getX(1)) / 2;
                         float centerY = (event.getY(0) + event.getY(1)) / 2;
                         imageMatrix.postScale(scale, scale, centerX, centerY);
                     }
                     mLastTouchDistance = newDistance;
+                    lastTouch.set(-1, -1);
                 } else if (event.getPointerCount() == 1) {
-                    // Handle pan
-                    float dx = event.getX() - lastTouch.x;
-                    float dy = event.getY() - lastTouch.y;
+                    if (lastTouch.x >= 0 && lastTouch.y >= 0) {
+                        // Handle pan
+                        float dx = event.getX() - lastTouch.x;
+                        float dy = event.getY() - lastTouch.y;
 
-                    imageMatrix.postTranslate(dx, dy);
+                        imageMatrix.postTranslate(dx, dy);
+                    }
                     lastTouch.set(event.getX(), event.getY());
                 }
                 constrainImage();
                 displayLoadedImage(true);
                 return true;
-
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
                 mLastTouchDistance = -1;
+                lastTouch.set(-1, -1);
                 return true;
         }
         return false;
@@ -685,6 +704,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
             }
             filter.setTermMap(settingsTermMap);
             filter.setTerm(prefs.getInt(SettingsActivity.KEY_TERM, curTerm));
+            filter.setSampleMode(prefs.getBoolean(SettingsActivity.KEY_SAMPLE_MODE, filter.getSampleMode()));
         }
         filter.setUseLumSatBCT(prefs.getBoolean(SettingsActivity.KEY_SHOW_BCT_CONTROLS, filter.getUseLumSatBCT()));
     }

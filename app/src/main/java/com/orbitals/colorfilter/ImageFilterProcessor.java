@@ -1,14 +1,23 @@
 package com.orbitals.colorfilter;
 
+import android.util.Log;
+
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 
 public class ImageFilterProcessor {
+
+    /**
+     * @noinspection SpellCheckingInspection
+     */
+    private static final String TAG = "com.orbitals.colorfilter.ImageFilterProcessor";
 
     public enum FilterMode {
         NONE,
@@ -24,8 +33,11 @@ public class ImageFilterProcessor {
     private int lumThreshold = 100;
     private int term = 0;
     private boolean useLumSatBCT = true;
+    private boolean sampleMode = false;
     private TermMap termMap;
     private FilterMode filterMode = FilterMode.NONE;
+
+    private int sampleSize = 40;  // in dp
 
     /**
      * Set several settings at once.
@@ -146,6 +158,23 @@ public class ImageFilterProcessor {
         return useLumSatBCT;
     }
 
+    public void setSampleMode(boolean sampleMode) {
+        this.sampleMode = sampleMode;
+    }
+
+    public boolean getSampleMode() {
+        return sampleMode;
+    }
+
+    public int getSampleSize() {
+        return sampleSize;
+    }
+
+    /** @noinspection unused*/
+    public void SetSampleSize(int sampleSize) {
+        this.sampleSize = sampleSize;
+    }
+
     /**
      * Process an input matrix image, filtering it based on the current filter mode and other
      * parameters.
@@ -225,5 +254,71 @@ public class ImageFilterProcessor {
         mask.release();
         hsv.release();
         return output;
+    }
+
+    public boolean sampleRegion(Mat input) {
+        int width = input.cols();
+        int height = input.rows();
+        if (width < 1 || height < 1) {
+            return false;
+        }
+        int rad = Math.max(width, height) / 2;
+        int rad2 = rad * rad;
+        int cx = width / 2;
+        int cy = height / 2;
+        if (termMap != null) {
+            Imgproc.cvtColor(input, input, Imgproc.COLOR_RGBA2RGB);
+            Mat terms = termMap.createMap(input);
+            Map<Byte, Integer> termCounts = new HashMap<>();
+            for (int j = 0; j < height; j++) {
+                for (int i = 0; i < width; i++) {
+                    if ((j - cy) * (j - cy) + (i - cx) * (i - cx) > rad2) {
+                        continue;
+                    }
+                    byte val = (byte)terms.get(j, i)[0];
+                     //noinspection DataFlowIssue
+                    termCounts.put(val, termCounts.getOrDefault(val, 0) + 1);
+                }
+            }
+            int modalTerm = -1;
+            int maxCount = 0;
+            for (Map.Entry<Byte, Integer> entry : termCounts.entrySet()) {
+                 if (entry.getValue() > maxCount) {
+                    maxCount = entry.getValue();
+                    modalTerm = entry.getKey();
+                }
+            }
+            Log.d(TAG, "Modal term " + modalTerm);
+            if (modalTerm != term) {
+                term = modalTerm;
+                return true;
+            }
+        } else {
+            Imgproc.cvtColor(input, input, Imgproc.COLOR_RGBA2RGB);
+            Imgproc.cvtColor(input, input, Imgproc.COLOR_RGB2HSV);
+            // now find the most common hue angle
+            double sumCos = 0;
+            double sumSin = 0;
+            for (int j = 0; j < height; j++) {
+                for (int i = 0; i < width; i++) {
+                    if ((j - cy) * (j - cy) + (i - cx) * (i - cx) > rad2) {
+                        continue;
+                    }
+                    double val = input.get(j, i)[0] * Math.PI / 90;
+                    sumCos += Math.cos(val);
+                    sumSin += Math.sin(val);
+                }
+            }
+            int commonHue = (int) (Math.atan2(sumSin, sumCos) * 90 / Math.PI) * 2;
+            if (commonHue < 0) {
+                commonHue += 360;
+            }
+            Log.d(TAG, "Common hue " + commonHue);
+            if (commonHue != hue) {
+                hue = commonHue;
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -29,6 +29,7 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_SAT_THRESHOLD = "sat_threshold";
     public static final String KEY_LUM_THRESHOLD = "lum_threshold";
     public static final String KEY_TERM = "term";
+    public static final String KEY_SAMPLE_MODE = "sample_mode";
     public static final String KEY_SHOW_BCT_CONTROLS = "show_bct_controls";
 
     private Button setDefaultsButton;
@@ -41,6 +42,7 @@ public class SettingsActivity extends AppCompatActivity {
     private int currentLumThreshold;
     private int currentTerm;
     private String currentTermMapId;
+    private boolean currentSampleMode;
 
     private boolean settingsChanged = false;
     private boolean defaultsLoaded = false;
@@ -58,6 +60,7 @@ public class SettingsActivity extends AppCompatActivity {
         currentLumThreshold = intent.getIntExtra("lumThreshold", 0);
         currentTerm = intent.getIntExtra("term", 0);
         currentTermMapId = intent.getStringExtra("termMapId");
+        currentSampleMode = intent.getBooleanExtra("sampleMode", false);
 
         Toolbar toolbar = findViewById(R.id.settingsToolbar);
         setSupportActionBar(toolbar);
@@ -131,6 +134,7 @@ public class SettingsActivity extends AppCompatActivity {
         int lumThreshold = prefs.getInt(KEY_LUM_THRESHOLD, 0);
         int term = prefs.getInt(KEY_TERM, 1);
         String termMapId = prefs.getString(KEY_TERM_MAP, null);
+        boolean sampleMode = prefs.getBoolean(KEY_SAMPLE_MODE, false);
 
         currentFilterMode = filterModeOrdinal;
         currentHue = hue;
@@ -139,6 +143,7 @@ public class SettingsActivity extends AppCompatActivity {
         currentLumThreshold = lumThreshold;
         currentTerm = term;
         currentTermMapId = termMapId;
+        currentSampleMode = sampleMode;
     }
 
     private void saveSettings() {
@@ -159,6 +164,7 @@ public class SettingsActivity extends AppCompatActivity {
         editor.putInt(KEY_LUM_THRESHOLD, currentLumThreshold);
         editor.putInt(KEY_TERM, currentTerm);
         editor.putString(KEY_TERM_MAP, currentTermMapId);
+        editor.putBoolean(KEY_SAMPLE_MODE, currentSampleMode);
 
         editor.apply();
     }
@@ -171,7 +177,8 @@ public class SettingsActivity extends AppCompatActivity {
                 prefs.getInt(KEY_HUE_WIDTH, -1) == currentHueWidth &&
                 prefs.getInt(KEY_SAT_THRESHOLD, -1) == currentSatThreshold &&
                 prefs.getInt(KEY_LUM_THRESHOLD, -1) == currentLumThreshold &&
-                prefs.getInt(KEY_TERM, -1) == currentTerm;
+                prefs.getInt(KEY_TERM, -1) == currentTerm &&
+                prefs.getBoolean(KEY_SAMPLE_MODE, false) == currentSampleMode;
 
         String savedTermMapId = prefs.getString(KEY_TERM_MAP, null);
         boolean termMapMatches = (savedTermMapId == null && currentTermMapId == null) ||

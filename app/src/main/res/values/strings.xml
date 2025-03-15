@@ -39,4 +39,5 @@
     <string name="version_format">Version: %s</string>
     <string name="app_description">Identify colors by Basic Color Terms or hue in a live camera or image.</string>
     <string name="github_link">https://github.com/manthey/color-filter-app</string>
+    <string name="sampling_mode">Sampling Mode</string>
 </resources>
