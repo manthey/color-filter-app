@@ -43,7 +43,7 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
     - name: Start logcat
-      run: adb logcat -c && adb logcat *:S com.orbitals.colorfilter*:V > logcat.txt &
+      run: adb logcat -c && adb logcat *:V > logcat.txt &
     - name: Run Instrumented Tests
       uses: reactivecircus/android-emulator-runner@v2
       with:
@@ -57,7 +57,7 @@ jobs:
           ./gradlew jacocoTestReport
     - name: Show logcat
       if: always()
-      run: cat logcat.txt
+      run: cat logcat.txt | grep colorfilter
     - name: Upload Jacoco Reports
       uses: actions/upload-artifact@v4
       with:
