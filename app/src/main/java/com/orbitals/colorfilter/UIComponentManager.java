@@ -39,6 +39,8 @@ public class UIComponentManager {
         void onLoadImageRequested();
 
         void onSettingsRequested();
+
+        void onSampleModeChanged();
     }
 
     public UIComponentManager(Activity activity) {
@@ -96,12 +98,14 @@ public class UIComponentManager {
         Button loadImageButton = getView(R.id.loadImageButton);
         Button bctButton = getView(R.id.bctButton);
         Button settingsButton = getView(R.id.settingsButton);
+        Button sampleModeButton = getView(R.id.sampleButton);
 
         switchCameraButton.setOnClickListener(v -> listener.onCameraSwitch(false));
         filterButton.setOnClickListener(v -> listener.onFilterModeChanged());
         loadImageButton.setOnClickListener(v -> listener.onLoadImageRequested());
         bctButton.setOnClickListener(v -> listener.onTermMapChanged());
         settingsButton.setOnClickListener(v -> listener.onSettingsRequested());
+        sampleModeButton.setOnClickListener(v -> listener.onSampleModeChanged());
 
         // Set up seekbar listeners
         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
@@ -179,7 +183,8 @@ public class UIComponentManager {
             HashMap<Integer, String> fineHueMap,
             String currentTerm,
             int term,
-            boolean updateSeekBars) {
+            boolean updateSeekBars,
+            boolean sampleMode) {
 
         Button filterButton = getView(R.id.filterButton);
         switch (filterMode) {
@@ -234,6 +239,8 @@ public class UIComponentManager {
             bctSeekBar.setProgress(term);
 
         }
+        Button sampleButton = getView(R.id.sampleButton);
+        sampleButton.setSelected(sampleMode);
     }
 
     /**

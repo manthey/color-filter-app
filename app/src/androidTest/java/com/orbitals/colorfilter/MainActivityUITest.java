@@ -3,8 +3,7 @@ package com.orbitals.colorfilter;
 import static androidx.test.espresso.intent.Intents.intended;
 import static androidx.test.espresso.intent.Intents.intending;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasAction;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertNotNull;
 
 import android.app.Activity;
 import android.app.Instrumentation;
@@ -57,7 +56,7 @@ public class MainActivityUITest {
 
         // Wait for launcher
         final String launcherPackage = getLauncherPackageName();
-        assertThat(launcherPackage, notNullValue());
+        assertNotNull(launcherPackage);
         device.wait(Until.hasObject(By.pkg(launcherPackage).depth(0)), LAUNCH_TIMEOUT);
 
         // Initialize Espresso Intents
@@ -66,6 +65,7 @@ public class MainActivityUITest {
         Context context = ApplicationProvider.getApplicationContext();
         final Intent intent = context.getPackageManager()
                 .getLaunchIntentForPackage(PACKAGE_NAME);
+        assert intent != null;
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);    // Clear out any previous instances
         context.startActivity(intent);
         device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), LAUNCH_TIMEOUT);
@@ -86,16 +86,19 @@ public class MainActivityUITest {
         // Wait after clicking
         device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
 
-        UiObject2 filterButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000);
-        filterButton.click();
-        Log.d(TAG, "Clicked filter button");
+        for (int i = 0; i < 5; i++) {
+            UiObject2 filterButton = device.wait(
+                    Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000);
+            filterButton.click();
+            Log.d(TAG, "Clicked filter button");
+        }
     }
 
     @Test
     public void testImageModeFeatures() {
         // 1. Set up intent response for the gallery picker
         // Create a sample bitmap to return as the selected image
+        //noinspection unused
         Bitmap sampleBitmap = BitmapFactory.decodeResource(
                 ApplicationProvider.getApplicationContext().getResources(),
                 android.R.drawable.ic_menu_report_image); // Using a system resource as sample
@@ -161,14 +164,12 @@ public class MainActivityUITest {
             UiObject2 permissionButton = device.wait(
                     Until.findObject(By.text(Pattern.compile(".*WHILE.*", Pattern.CASE_INSENSITIVE))),
                     2000);
-
             if (permissionButton == null) {
                 // If not found by text, try by resource ID containing "allow_foreground"
                 permissionButton = device.wait(
                         Until.findObject(By.res(Pattern.compile(".*allow_foreground.*"))),
                         1000);
             }
-
             if (permissionButton != null) {
                 permissionButton.click();
                 Log.d(TAG, "Clicked permission button matching WHILE or allow_foreground");
@@ -176,16 +177,12 @@ public class MainActivityUITest {
                 device.wait(Until.gone(By.text(Pattern.compile(".*WHILE.*", Pattern.CASE_INSENSITIVE))), 1000);
                 continue;
             }
-
             // Try other common permission buttons
             String[] commonButtonTexts = {"ONLY THIS TIME", "ALLOW", "Allow", "YES", "OK"};
             boolean buttonClicked = false;
 
             for (String buttonText : commonButtonTexts) {
-                UiObject2 otherButton = device.wait(
-                        Until.findObject(By.text(buttonText)),
-                        500);  // Short timeout for each
-
+                UiObject2 otherButton = device.wait(Until.findObject(By.text(buttonText)),500);
                 if (otherButton != null) {
                     otherButton.click();
                     Log.d(TAG, "Clicked permission button: " + buttonText);
@@ -194,11 +191,9 @@ public class MainActivityUITest {
                     break;
                 }
             }
-
             if (buttonClicked) {
                 continue;
             }
-
             // If we've handled all dialogs or none found, break
             if (device.wait(Until.hasObject(By.pkg(PACKAGE_NAME).depth(0)), 1000)) {
                 break;

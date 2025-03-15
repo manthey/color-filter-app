@@ -43,7 +43,7 @@ public class CameraControllerTest {
         Handler handler = mock(Handler.class);
         Supplier<Boolean> permissionSupplier = () -> true;
 
-        cameraController = new CameraController(context, textureView, permissionSupplier, filterProcessor);
+        cameraController = new CameraController(context, textureView, permissionSupplier, filterProcessor, null);
         cameraController.setBackgroundHandler(handler);
     }
 
