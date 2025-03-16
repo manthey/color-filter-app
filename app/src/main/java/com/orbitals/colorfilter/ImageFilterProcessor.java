@@ -280,6 +280,7 @@ public class ImageFilterProcessor {
                     termCounts.put(val, termCounts.getOrDefault(val, 0) + 1);
                 }
             }
+            terms.release();
             int modalTerm = -1;
             int maxCount = 0;
             for (Map.Entry<Byte, Integer> entry : termCounts.entrySet()) {

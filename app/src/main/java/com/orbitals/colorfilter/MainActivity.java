@@ -540,6 +540,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                     updateControls();
                     reuse = false;
                 }
+                centerChunk.release();
             }
             if ((processedImage == null || !reuse)) {
                 Mat processedMat = filter.process(inputMat);

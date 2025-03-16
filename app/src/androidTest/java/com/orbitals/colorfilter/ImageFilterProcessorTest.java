@@ -60,7 +60,8 @@ public class ImageFilterProcessorTest {
         assertNotNull(output);
         assertEquals(100, output.rows());
         assertEquals(100, output.cols());
-        // Add more specific test cases
+        input.release();
+        output.release();
     }
 
     @Test

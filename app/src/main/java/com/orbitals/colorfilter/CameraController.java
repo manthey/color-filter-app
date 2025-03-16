@@ -326,6 +326,7 @@ public class CameraController {
                     if (filter.sampleRegion(centerChunk) && updateCallback != null) {
                         ((Activity) context).runOnUiThread(updateCallback::onFilterUpdated);
                     }
+                    centerChunk.release();
                 }
                 // Process the image
                 Mat processedMat = filter.process(rgbMat);
