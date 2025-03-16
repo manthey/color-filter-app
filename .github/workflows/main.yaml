@@ -75,6 +75,33 @@ jobs:
         else
           echo "Jacoco coverage file not found."
         fi
+    - name: Parse Coverage per Method
+      run: |
+        # Install xmlstarlet to parse XML
+        sudo apt-get install -y xmlstarlet
+        COVERAGE_FILE=$(find app/build/reports -name "report.xml")
+
+        calculate_percentage() {
+          local covered=$1
+          local total=$2
+          if [ $total -eq 0 ]; then
+            echo "100.00"
+          else
+            echo "scale=2; 100* $covered / $total" | bc
+          fi
+        }
+
+        echo "Method Coverage Details:"
+        xmlstarlet sel -t -m "//method" \
+          -v "concat(../../@name, '.', ../@name, '.', @name)" -o " " \
+          -m "counter[@type='INSTRUCTION']" -v "@covered" -o " " -v "@missed" -n \
+          "$COVERAGE_FILE" | while read -r method covered missed || [[ -n "$method" ]]; do
+            if [ -n "$covered" ] && [ -n "$missed" ]; then
+              total=$((covered + missed))
+              percentage=$(calculate_percentage "$covered" "$total")
+              echo "${percentage}|${method}: ${covered}/${total} (${percentage}%)"
+            fi
+        done | sort -n | cut -d'|' -f2-
     - name: Build AAR
       run: ./gradlew assembleRelease
     - name: Build AAB

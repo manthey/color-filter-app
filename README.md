@@ -1,5 +1,5 @@
-Color Filter Android App
-========================
+Basic Color Terms Filter Android App
+====================================
 
 This app is intended to help colorblind people determine what color terms are 
 used by people with color vision.  The basic use is to point the camera at an

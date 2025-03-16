@@ -92,6 +92,23 @@ public class MainActivityUITest {
             filterButton.click();
             Log.d(TAG, "Clicked filter button");
         }
+        clickSeek("bctSeekBar", 0.5);
+        UiObject2 bctButton = device.wait(
+                Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
+        bctButton.click();
+        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
+        clickSeek("hueSeekBar", 0.3);
+        clickSeek("hueWidthSeekBar", 0.3);
+        clickSeek("saturationSeekBar", 0.3);
+        clickSeek("luminanceSeekBar", 0.3);
+        bctButton.click();
+        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
+        UiObject2 sampleButton = device.wait(
+                Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
+        sampleButton.click();
+        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
+        bctButton.click();
+        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
     }
 
     @Test
@@ -141,13 +158,7 @@ public class MainActivityUITest {
         // Wait for filter to apply
         device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 1000);
 
-        UiObject2 bctSeekBar = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "bctSeekBar")), 2000);
-        int width = bctSeekBar.getVisibleBounds().width();
-        bctSeekBar.drag(new android.graphics.Point(width / 2, 0), 30);
-
-        // Wait for the change to apply
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 1000);
+        clickSeek("bctSeekBar", 0.5);
 
         UiObject2 cameraButton = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "switchCameraButton")), 2000);
@@ -182,7 +193,7 @@ public class MainActivityUITest {
             boolean buttonClicked = false;
 
             for (String buttonText : commonButtonTexts) {
-                UiObject2 otherButton = device.wait(Until.findObject(By.text(buttonText)),500);
+                UiObject2 otherButton = device.wait(Until.findObject(By.text(buttonText)), 500);
                 if (otherButton != null) {
                     otherButton.click();
                     Log.d(TAG, "Clicked permission button: " + buttonText);
@@ -210,5 +221,13 @@ public class MainActivityUITest {
         PackageManager pm = ApplicationProvider.getApplicationContext().getPackageManager();
         ResolveInfo resolveInfo = pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
         return Objects.requireNonNull(resolveInfo).activityInfo.packageName;
+    }
+
+    private void clickSeek(String resourceId, double position) {
+        UiObject2 seekBar = device.wait(
+                Until.findObject(By.res(PACKAGE_NAME, resourceId)), 2000);
+        int width = seekBar.getVisibleBounds().width();
+        seekBar.drag(new android.graphics.Point((int) (width * position), 0), 30);
+        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 1000);
     }
 }
