@@ -4,9 +4,13 @@ import static androidx.test.espresso.intent.Intents.intended;
 import static androidx.test.espresso.intent.Intents.intending;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasAction;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 import android.app.Activity;
 import android.app.Instrumentation;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -30,6 +34,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -96,76 +103,61 @@ public class MainActivityUITest {
         UiObject2 bctButton = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
         bctButton.click();
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "hueSeekBar")), 2000);
         clickSeek("hueSeekBar", 0.3);
         clickSeek("hueWidthSeekBar", 0.3);
         clickSeek("saturationSeekBar", 0.3);
         clickSeek("luminanceSeekBar", 0.3);
         bctButton.click();
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
         UiObject2 sampleButton = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
         sampleButton.click();
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
         bctButton.click();
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
     }
 
     @Test
     public void testImageModeFeatures() {
-        // 1. Set up intent response for the gallery picker
-        // Create a sample bitmap to return as the selected image
-        //noinspection unused
         Bitmap sampleBitmap = BitmapFactory.decodeResource(
                 ApplicationProvider.getApplicationContext().getResources(),
                 android.R.drawable.ic_menu_report_image); // Using a system resource as sample
+        Uri dummyUri = Uri.parse("android.resource://" + PACKAGE_NAME + "/" + android.R.drawable.ic_menu_report_image);
 
         // Create a result intent with the sample image
         Intent resultData = new Intent();
-        resultData.setData(Uri.parse("content://media/external/images/media/123")); // Dummy URI
-
+        resultData.setData(dummyUri);
         // Set up the intent result
         Instrumentation.ActivityResult result = new Instrumentation.ActivityResult(
                 Activity.RESULT_OK, resultData);
-
-        // Stub the intent
         intending(hasAction(Intent.ACTION_PICK)).respondWith(result);
 
-        // 2. Click the load image button using UiAutomator
         UiObject2 loadImageButton = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "loadImageButton")), 2000);
         loadImageButton.click();
 
-        // 3. Verify the gallery intent was sent
         intended(hasAction(Intent.ACTION_PICK));
 
-        // 4. Wait for image to load
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
 
-        // 5. Test pinch-to-zoom on the image
         UiObject2 textureView = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
 
         textureView.pinchOpen(0.20f);
 
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 1000);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000);
 
-        // 6. Test filter button in image mode
         UiObject2 filterButton = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000);
         filterButton.click();
 
-        // Wait for filter to apply
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 1000);
-
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctSeekBar")), 2000);
         clickSeek("bctSeekBar", 0.5);
 
         UiObject2 cameraButton = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "switchCameraButton")), 2000);
         cameraButton.click();
-
-        // Wait to confirm we're back to camera mode
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 2000);
     }
 
     private void handlePermissionDialogs() {
@@ -228,6 +220,5 @@ public class MainActivityUITest {
                 Until.findObject(By.res(PACKAGE_NAME, resourceId)), 2000);
         int width = seekBar.getVisibleBounds().width();
         seekBar.drag(new android.graphics.Point((int) (width * position), 0), 30);
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 1000);
     }
 }
