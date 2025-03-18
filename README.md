@@ -1,10 +1,20 @@
 Basic Color Terms Filter Android App
 ====================================
 
-This app is intended to help colorblind people determine what color terms are 
-used by people with color vision.  The basic use is to point the camera at an
-object and cycle through the color terms to determine which one has the
-greatest response.  Some terms, like orange and brown, are quite light
+This app aims to answer two questions that constantly plague colorblind people:
+
+- **What color is that?**
+
+- **Which thing is some color**
+
+In the first instance, color used as a reference by the color-sighted, and can
+be a useful way to discriminate between different items.  In the second 
+instance, knowing the color used to describe something can be used to identify
+the thing.
+
+The basic use of the app is to point the camera at an  object and see the basic
+color term used for it, or to cycle through the color terms to determine what 
+items are a particular color.  Some terms, like orange and brown, are quite light
 sensitive.  Further, some basic color terms vary by speaker (e.g., teal can be
 treated as synonymous with aqua, turquoise, or cyan).
 
@@ -34,26 +44,26 @@ Views
 Modes
 -----
 
+- **BCT**: The filter is based on basic color terms.  There is a color map for
+  all colors and intensities to basic color terms.  Internally some smoothing 
+  is applied to try to reduce point variation in colors.
+
 - **HSV**: The filter is based on hue angle, ranging from the hue width below
   the hue angle to the hue width above the hue angle.  The color names are
   based on the fully saturated colors used in css color specifications, which
   means the colors include uncommon words and are inaccurate for anything other
   than high saturations and luminances.
 
-- **BCT**: The filter is based on basic color terms.  There is a color map for
-  all colors and intensities to basic color terms.  Internally a blur filter is
-  applied to try to reduce point variation in colors.
-
 
 The Color Term Map
 ------------------
 
-Currently the only term map is based on Lindsey, D. T., and A. M. Brown. 2014.
+Currently the only term maps are based on Lindsey, D. T., and A. M. Brown. 2014.
 "The Color Lexicon of American English." Journal of Vision. Association for 
 Research in Vision and Ophthalmology (ARVO). https://doi.org/10.1167/14.2.17.  
-Mostly this drawn from Figure 9 as accessed via
+The 20 term map is mostly this drawn from Figure 9 as accessed via
 https://jov.arvojournals.org/article.aspx?articleid=2121523 using the 20 basic 
-color terms.
+color terms identified there.  The 11 term map is based on Figure 5.
 
 This was processed by computing the Munsell color values listed in the chart
 mentioned in the paper.  Each of the color response maps in Figure 9 was
