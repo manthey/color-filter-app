@@ -8,8 +8,8 @@
     <string name="filter_button_binary">Binary</string>
     <string name="filter_button_saturation">Saturat.</string>
     <string name="term_button_hsv">HSV</string>
-    <string name="camera_button">Switch Camera</string>string>
-    <string name="image_button">Select Image</string>string>
+    <string name="camera_button">Switch Camera</string>
+    <string name="image_button">Select Image</string>
 
     <!-- Labels -->
     <string name="hue">Hue</string>
