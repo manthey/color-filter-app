@@ -36,6 +36,7 @@ public class ImageFilterProcessor {
     private boolean sampleMode = false;
     private TermMap termMap;
     private FilterMode filterMode = FilterMode.NONE;
+    private String lastCurrentTerm;
 
     private int sampleSize = 40;  // in dp
 
@@ -132,7 +133,13 @@ public class ImageFilterProcessor {
      * @param termMap Either null or a TermMap.
      */
     public void setTermMap(TermMap termMap) {
+        if (this.termMap != null) {
+            lastCurrentTerm = getCurrentTerm();
+        }
         this.termMap = termMap;
+        if (termMap != null && lastCurrentTerm != null && termMap.getTerms().contains(lastCurrentTerm)) {
+            term = termMap.getTerms().indexOf(lastCurrentTerm);
+        }
         if (termMap != null && term >= termMap.getTerms().size()) {
             term = termMap.getTerms().size() - 1;
         }

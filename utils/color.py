@@ -8,30 +8,6 @@ import PIL.Image
 import PIL.ImageOps
 import scipy
 
-# This is used for the palette for the viewable color terms map
-ViewingColors = {
-    'black': '000000',
-    'red': 'FF0000',
-    'orange': 'E87D53',
-    'yellow': 'FFFF00',
-    'green': '00FF00',
-    'teal': '00FFFF',
-    'blue': '0000FF',
-    'purple': '420063',
-    'maroon': '660029',
-    'pink': 'FF7DA8',
-    'gold': 'A67700',
-    'peach': 'FFB593',
-    'beige': 'FFD9AA',
-    'brown': '8F3E00',
-    'olive': '4D4300',
-    'gray': '808080',
-    'lavender': 'D5ABEA',
-    'magenta': 'FF00FF',
-    'lime': 'ACD489',
-    'white': 'FFFFFF',
-}
-
 
 def xyY_to_rgb(xyY):
     """
@@ -202,7 +178,8 @@ def rgb_categories(labrgb, labcat, catvals):
     cats = np.zeros((labrgb.shape[0], ), dtype=np.uint8)
     chunksize = 65536
     for chunk in range(0, labrgb.shape[0], chunksize):
-        print(chunk // chunksize)
+        sys.stdout.write(f'{chunk // chunksize}\r')
+        sys.stdout.flush()
         # Calculate the Euclidean distance between each color
         distances = np.linalg.norm(labrgb[chunk:chunk + chunksize, np.newaxis] - labcat, axis=2)
         indices = np.argmin(distances, axis=1)
@@ -230,116 +207,236 @@ def ansicolor(color, text):
     return f'\033[48;2;{color[0]};{color[1]};{color[2]}m{text}\033[49m'
 
 
-# This image is Figure 9 of
-#   Lindsey, D. T., and A. M. Brown. 2014. "The Color Lexicon of American
-#   English." Journal of Vision. Association for Research in Vision and
-#   Ophthalmology (ARVO). https://doi.org/10.1167/14.2.17.
-# Accessed via https://jov.arvojournals.org/article.aspx?articleid=2121523
-#   I think I could use Figure 5 to extract BCT11 (rather than this, which is
-# BCT20).
-image_path = 'i1534-7362-14-2-17-f09.jpeg'
-results = image_to_colors(image_path)
-_, hexgrid, hexgray = munsell_table()
+def make_base_data():
+    _, hexgrid, hexgray = munsell_table()
 
-table = [[None for _ in range(40)] for _ in range(8)]
-maxt = [[0.1 for _ in range(40)] for _ in range(8)]
-# Set defaults for where the certainty appears to be less than 0.1
-for x in range(len(table[0])):
-    table[0][x] = 'white'
-    table[1][x] = 'gy'
-    table[-2][x] = 'gy'
-    table[-1][x] = 'bk'
-for clr, grid in results.items():
-    for y, row in enumerate(grid):
-        for x, val in enumerate(row):
-            if val > maxt[y][x]:
-                maxt[y][x] = val
-                table[y][x] = clr
-# There isn't a corresponding figure in the paper for the neutrals.  Maybe
-# Figure 5 supports the top one or two being white and the bottom two to four
-# being black.
-graytbl = ['bk', 'bk', 'gy', 'gy', 'gy', 'gy', 'gy', 'gy', 'white', 'white']
+    if os.path.exists('labrgb.npz'):
+        labrgb = np.load('labrgb.npz')['arr_0']
+    else:
+        labrgb = np.zeros((256 ** 3, 3), dtype=float)
+        for r in range(256):
+            print(r)
+            for g in range(256):
+                for b in range(256):
+                    labrgb[r * 65536 + g * 256 + b, :3] = colour.XYZ_to_Lab(
+                        colour.sRGB_to_XYZ([r / 255, g / 255, b / 255]))
+        np.savez('labrgb.npz', labrgb)
+    return labrgb, hexgrid, hexgray
 
-print(results)
-print(table)
-for row in table:
-    print(''.join([str(val)[:2] for val in row]))
-if len(sys.argv) >= 2:
+
+def generate_bct20(hexgrid, hexgray):
+    # This image is Figure 9 of
+    #   Lindsey, D. T., and A. M. Brown. 2014. "The Color Lexicon of American
+    #   English." Journal of Vision. Association for Research in Vision and
+    #   Ophthalmology (ARVO). https://doi.org/10.1167/14.2.17.
+    # Accessed via https://jov.arvojournals.org/article.aspx?articleid=2121523
+    #   I think I could use Figure 5 to extract BCT11 (rather than this, which
+    #   is BCT20).
+    image_path = 'i1534-7362-14-2-17-f09.jpeg'
+    results = image_to_colors(image_path)
+
+    # This is used for the palette for the viewable color terms map
+    viewingColors = {
+        'black': '000000',
+        'red': 'FF0000',
+        'orange': 'E87D53',
+        'yellow': 'FFFF00',
+        'green': '00FF00',
+        'teal': '00FFFF',
+        'blue': '0000FF',
+        'purple': '420063',
+        'maroon': '660029',
+        'pink': 'FF7DA8',
+        'gold': 'A67700',
+        'peach': 'FFB593',
+        'beige': 'FFD9AA',
+        'brown': '8F3E00',
+        'olive': '4D4300',
+        'gray': '808080',
+        'lavender': 'D5ABEA',
+        'magenta': 'FF00FF',
+        'lime': 'ACD489',
+        'white': 'FFFFFF',
+    }
+
+    table = [[None for _ in range(40)] for _ in range(8)]
+    maxt = [[0.1 for _ in range(40)] for _ in range(8)]
+    # Set defaults for where the certainty appears to be less than 0.1
+    for x in range(len(table[0])):
+        table[0][x] = 'white'
+        table[1][x] = 'gy'
+        table[-2][x] = 'gy'
+        table[-1][x] = 'bk'
+    for clr, grid in results.items():
+        for y, row in enumerate(grid):
+            for x, val in enumerate(row):
+                if val > maxt[y][x]:
+                    maxt[y][x] = val
+                    table[y][x] = clr
+    # There isn't a corresponding figure in the paper for the neutrals.  Maybe
+    # Figure 5 supports the top one or two being white and the bottom two to
+    # four being black.
+    graytbl = ['bk', 'bk', 'gy', 'gy', 'gy', 'gy', 'gy', 'gy', 'white', 'white']
+
+    print(results)
+    print(table)
     for row in table:
-        print(''.join([str(val)[:2] if str(val)[:2] == sys.argv[1] else '  ' for val in row]))
-# Prepopulate this with colors at some extremes
-hexdict = {
-    'FFFFFF': 'white',
-    '000000': 'bk',
-    'FF0000': 'red',
-    '00FF00': 'green',
-    '0000FF': 'blue',
-    '00FFFF': 'teal',
-    'FF00FF': 'magenta',
-    'FFFF00': 'yellow',
-}
-for hx, val in zip(hexgray, graytbl):
-    hexdict[hx] = val
-for y in range(len(table)):
-    for hx, val in zip(hexgrid[y], table[y]):
+        print(''.join([str(val)[:2] for val in row]))
+    # Prepopulate this with colors at some extremes
+    hexdict = {
+        'FFFFFF': 'white',
+        '000000': 'bk',
+        'FF0000': 'red',
+        '00FF00': 'green',
+        '0000FF': 'blue',
+        '00FFFF': 'teal',
+        'FF00FF': 'magenta',
+        'FFFF00': 'yellow',
+    }
+    for hx, val in zip(hexgray, graytbl):
         hexdict[hx] = val
-pprint.pprint(hexdict)
+    for y in range(len(table)):
+        for hx, val in zip(hexgrid[y], table[y]):
+            hexdict[hx] = val
+    pprint.pprint(hexdict)
+    return hexdict, viewingColors
 
-labdict = {idx: colour.XYZ_to_Lab(colour.sRGB_to_XYZ(
-    [int(hx[i:i + 2], 16) / 255 for i in range(0, 6, 2)]))
-    for idx, hx in enumerate(hexdict)}
-cats = {}
-labcat = []
-labcatidx = []
-for clr in ViewingColors:
-    cat = clr
-    cats[cat] = len(cats)
-for hx, cat in hexdict.items():
-    cat = {'bk': 'black', 'gy': 'gray'}.get(cat, cat)
-    labval = colour.XYZ_to_Lab(colour.sRGB_to_XYZ(
-        [int(hx[i:i + 2], 16) / 255 for i in range(0, 6, 2)]))
-    labcat.append(labval)
-    if cat not in cats:
+
+def generate_bct11(hexgrid, hexgray):
+    image_path = 'm_i1534-7362-14-2-17-f05.jpeg'
+    left, upper, right, lower = 284, 40, 516, 87
+    xstride = (right - left) / 40
+    ystride = (lower - upper) / 8
+    x0 = left + xstride / 2
+    y0 = upper + ystride / 2
+
+    img = np.array(PIL.Image.open(image_path))
+
+    viewingColors = {
+        'black': '000000',
+        'red': 'FF0000',
+        'orange': 'E87D53',
+        'yellow': 'FFFF00',
+        'green': '00FF00',
+        'blue': '0000FF',
+        'purple': '420063',
+        'pink': 'FF7DA8',
+        'brown': '8F3E00',
+        'gray': '808080',
+        'white': 'FFFFFF',
+    }
+
+    colors = {
+        'pink': 'FF95B2',
+        'red': 'FF0000',
+        'orange': 'FF7942',
+        'brown': '7B6939',
+        'yellow': 'FFFF00',
+        'green': '00FF00',
+        'blue': '0000FF',
+        'purple': '8500FF',
+    }
+    revclr = {}
+    color_cats = {}
+    color_cats_maxed = {}
+    for idx, (key, color) in enumerate(colors.items()):
+        color_cats[idx] = [int(color[i:i + 2], 16) for i in range(0, 6, 2)]
+        color_cats_maxed[idx] = np.array(color_cats[idx]).astype(float)
+        color_cats_maxed[idx] /= np.amax(color_cats_maxed[idx])
+        revclr[idx] = key
+
+    # Initialize the grid
+    grid = np.zeros((8, 40), dtype=int)
+
+    table = [['white' for _ in range(40)] for _ in range(8)]
+    # Iterate over the pixels in the image
+    for j in range(8):
+        for i in range(40):
+            rgb = img[int(y0 + ystride * j), int(x0 + xstride * i), :].astype(float)
+            rgb /= np.amax(rgb)
+            closest_color = min(
+                color_cats.keys(),
+                key=lambda x: np.linalg.norm(color_cats_maxed[x] - rgb))
+            if j == 7 and closest_color == 2:
+                closest_color = 3
+            grid[j, i] = closest_color
+            if j or 0 < i < 28 or i >= 36:
+                table[j][i] = revclr[closest_color]
+    for pos in (28, 29, 30, 35):
+        table[0][pos] = table[1][pos]
+    for row in table:
+        print(''.join([str(val)[:2] for val in row]))
+    graytbl = ['bk', 'bk', 'gy', 'gy', 'gy', 'gy', 'gy', 'gy', 'white', 'white']
+
+    print('Numpy array (8x40):')
+    for row in range(grid.shape[0]):
+        print(''.join([f'{grid[row][col]:1d}' for col in range(grid.shape[1])]))
+
+    hexdict = {
+        'FFFFFF': 'white',
+        '000000': 'bk',
+        'FF0000': 'red',
+        '00FF00': 'green',
+        '0000FF': 'blue',
+        'FFFF00': 'yellow',
+    }
+    for hx, val in zip(hexgray, graytbl):
+        hexdict[hx] = val
+    for y in range(len(table)):
+        for hx, val in zip(hexgrid[y], table[y]):
+            hexdict[hx] = val
+    pprint.pprint(hexdict)
+    return hexdict, viewingColors
+
+
+def hexdict_to_termmap(hexdict, viewcolors, labrgb, basename):
+    cats = {}
+    labcat = []
+    labcatidx = []
+    for clr in viewcolors:
+        cat = clr
         cats[cat] = len(cats)
-    labcatidx.append(cats[cat])
-labcat = np.array(labcat)
+    for hx, cat in hexdict.items():
+        cat = {'bk': 'black', 'gy': 'gray'}.get(cat, cat)
+        labval = colour.XYZ_to_Lab(colour.sRGB_to_XYZ(
+            [int(hx[i:i + 2], 16) / 255 for i in range(0, 6, 2)]))
+        labcat.append(labval)
+        if cat not in cats:
+            cats[cat] = len(cats)
+        labcatidx.append(cats[cat])
+    labcat = np.array(labcat)
 
-if os.path.exists('labrgb.npz'):
-    labrgb = np.load('labrgb.npz')['arr_0']
-else:
-    labrgb = np.zeros((256 ** 3, 3), dtype=float)
+    catrgb = rgb_categories(labrgb, labcat, np.array(labcatidx))
+    print([k.capitalize() for k in cats.keys()])
+    counts = np.bincount(catrgb.flatten())
+    countlist = sorted([(counts[idx], k.capitalize()) for idx, k in enumerate(cats)], reverse=True)
+    for v, k in countlist:
+        print(f'{k:8s} {v:8d}')
+    flatimg = np.zeros((4096, 4096), np.uint8)
     for r in range(256):
-        print(r)
-        for g in range(256):
-            for b in range(256):
-                labrgb[r * 65536 + g * 256 + b, :3] = colour.XYZ_to_Lab(
-                    colour.sRGB_to_XYZ([r / 255, g / 255, b / 255]))
-    np.savez('labrgb.npz', labrgb)
+        x = (r % 16) * 256
+        y = (r // 16) * 256
+        flatimg[y:y + 256, x:x + 256] = catrgb[r]
+    greyimg = PIL.Image.fromarray(flatimg, mode='L')
+    greyimg.save(f'{basename}.png', optimize=True)
+    palimg = PIL.Image.fromarray(flatimg, mode='P')
+    palette = []
+    for clr in cats.keys():
+        hx = viewcolors[clr]
+        palette.extend(int(hx[i * 2:i * 2 + 2], 16) for i in range(3))
+    palimg.putpalette(palette)
+    palimg.save(f'{basename}_pal.png', optimize=True)
+    centers = find_center_indices(catrgb)
+    for idx, clr in enumerate(cats.keys()):
+        cref = list(int(viewcolors[clr][i * 2:i * 2 + 2], 16) for i in range(3))
+        print(f'{centers[idx][0]:02X}{centers[idx][1]:02X}{centers[idx][2]:02X}',
+              viewcolors[clr], ansicolor(centers[idx], '  '),
+              ansicolor(viewcolors[clr], '  '), f'{clr:8s}',
+              catrgb[cref[0]][cref[1]][cref[2]] == idx)
 
-catrgb = rgb_categories(labrgb, labcat, np.array(labcatidx))
-print([k.capitalize() for k in cats.keys()])
-counts = np.bincount(catrgb.flatten())
-countlist = sorted([(counts[idx], k.capitalize()) for idx, k in enumerate(cats)], reverse=True)
-for v, k in countlist:
-    print(f'{k:8s} {v:8d}')
-flatimg = np.zeros((4096, 4096), np.uint8)
-for r in range(256):
-    x = (r % 16) * 256
-    y = (r // 16) * 256
-    flatimg[y:y + 256, x:x + 256] = catrgb[r]
-greyimg = PIL.Image.fromarray(flatimg, mode='L')
-greyimg.save('bct20_en_us.png', optimize=True)
-palimg = PIL.Image.fromarray(flatimg, mode='P')
-palette = []
-for clr in cats.keys():
-    hx = ViewingColors[clr]
-    palette.extend(int(hx[i * 2:i * 2 + 2], 16) for i in range(3))
-palimg.putpalette(palette)
-palimg.save('bct20_en_us_pal.png', optimize=True)
-centers = find_center_indices(catrgb)
-for idx, clr in enumerate(cats.keys()):
-    cref = list(int(ViewingColors[clr][i * 2:i * 2 + 2], 16) for i in range(3))
-    print(f'{centers[idx][0]:02X}{centers[idx][1]:02X}{centers[idx][2]:02X}',
-          ViewingColors[clr], ansicolor(centers[idx], '  '),
-          ansicolor(ViewingColors[clr], '  '), f'{clr:8s}',
-          catrgb[cref[0]][cref[1]][cref[2]] == idx)
+
+labrgb, hexgrid, hexgray = make_base_data()
+hexdict20, viewcolors20 = generate_bct20(hexgrid, hexgray)
+hexdict_to_termmap(hexdict20, viewcolors20, labrgb, 'bct20_en_us')
+hexdict11, viewcolors11 = generate_bct11(hexgrid, hexgray)
+hexdict_to_termmap(hexdict11, viewcolors11, labrgb, 'bct11_en_us')

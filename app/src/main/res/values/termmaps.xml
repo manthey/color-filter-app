@@ -10,6 +10,7 @@
     </declare-styleable>
     <array name="term_map_ids">
         <item>@array/term_map_bct20</item>
+        <item>@array/term_map_bct11</item>
     </array>
     <array name="term_map_bct20">
         <item>BCT20</item>
@@ -42,6 +43,30 @@
         <item>Lavender</item>
         <item>Magenta</item>
         <item>Lime</item>
+        <item>White</item>
+    </string-array>
+    <array name="term_map_bct11">
+        <item>BCT11</item>
+        <item>en_US_BCT11</item>
+        <item>BCT11 English (US)</item>
+        <item>Taken from Lindsey, D. T., and A. M. Brown. 2014.
+            "The Color Lexicon of American English." Journal of Vision.
+            Association for Research in Vision and Ophthalmology (ARVO).
+            https://doi.org/10.1167/14.2.17</item>
+        <item>@array/term_map_bct11_terms</item>
+        <item>@raw/bct11_en_us</item>
+    </array>
+    <string-array name="term_map_bct11_terms">
+        <item>Black</item>
+        <item>Red</item>
+        <item>Orange</item>
+        <item>Yellow</item>
+        <item>Green</item>
+        <item>Blue</item>
+        <item>Purple</item>
+        <item>Pink</item>
+        <item>Brown</item>
+        <item>Gray</item>
         <item>White</item>
     </string-array>
 </resources>
