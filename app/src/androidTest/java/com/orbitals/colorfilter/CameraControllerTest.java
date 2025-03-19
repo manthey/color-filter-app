@@ -39,7 +39,7 @@ public class CameraControllerTest {
 
         Context context = ApplicationProvider.getApplicationContext();
         TextureView textureView = mock(TextureView.class);
-        ImageFilterProcessor filterProcessor = mock(ImageFilterProcessor.class);
+        FilterProcessor filterProcessor = mock(FilterProcessor.class);
         Handler handler = mock(Handler.class);
         Supplier<Boolean> permissionSupplier = () -> true;
 

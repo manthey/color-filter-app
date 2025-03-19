@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.Point;
 import android.net.Uri;
 import android.util.Log;
 
@@ -139,6 +140,7 @@ public class MainActivityUITest {
                 Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
 
         textureView.pinchOpen(0.20f);
+        textureView.drag(new Point(100, 0));
 
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000);
 
@@ -152,6 +154,21 @@ public class MainActivityUITest {
         UiObject2 cameraButton = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "switchCameraButton")), 2000);
         cameraButton.click();
+        textureView = device.wait(
+                Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
+        textureView.pinchOpen(0.20f);
+        textureView.drag(new Point(0, 140));
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
+        UiObject2 sampleButton = device.wait(
+                Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
+        sampleButton.click();
+        UiObject2 bctButton = device.wait(
+                Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
+        bctButton.click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("BCT11")), 2000);
+        bctButton.click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("HSV")), 2000);
     }
 
     private void handlePermissionDialogs() {

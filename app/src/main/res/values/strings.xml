@@ -32,7 +32,7 @@
     <string name="bct_controls_description">Show saturation and luminance in BCT mode.  If not shown, the thresholds are treated as zero.</string>
     <string name="set_defaults_button">Set Defaults</string>
     <string name="set_defaults_description">Use current settings as defaults</string>
-    <string name="load_defaults_button">Defaults</string>
+    <string name="load_defaults_button">Load Defaults</string>
     <string name="load_defaults_description">Restore default settings</string>
     <string name="defaults_saved">Default settings saved</string>
     <string name="defaults_loaded">Default settings loaded</string>

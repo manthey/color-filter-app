@@ -172,7 +172,7 @@ public class UIComponentManager {
      * @param fineHueMap   The fine hue name mapping
      */
     public void updateUI(
-            ImageFilterProcessor.FilterMode filterMode,
+            FilterProcessor.FilterMode filterMode,
             int hue,
             int hueWidth,
             int satThreshold,

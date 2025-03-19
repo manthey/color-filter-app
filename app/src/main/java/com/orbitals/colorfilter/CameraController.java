@@ -7,10 +7,8 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
-import android.graphics.Paint;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -27,6 +25,7 @@ import android.hardware.display.DisplayManager;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Size;
 import android.view.Display;
@@ -52,7 +51,7 @@ public class CameraController {
     private final TextureView textureView;
     private final Context context;
     private final Supplier<Boolean> checkCameraPermissions;
-    private final ImageFilterProcessor filter;
+    private final FilterProcessor filter;
 
     /**
      * @noinspection SpellCheckingInspection
@@ -72,6 +71,7 @@ public class CameraController {
     private float mMaxZoom;
     private Matrix matrix;
     private final Semaphore cameraOpenCloseLock = new Semaphore(1);
+    private HandlerThread backgroundThread;
 
     private final CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
         @Override
@@ -88,7 +88,7 @@ public class CameraController {
 
     public CameraController(
             Context context, TextureView textureView, Supplier<Boolean> checkCameraPermissions,
-            ImageFilterProcessor filter, FilterUpdateCallback updateCallback) {
+            FilterProcessor filter, FilterUpdateCallback updateCallback) {
         this.context = context;
         this.textureView = textureView;
         this.checkCameraPermissions = checkCameraPermissions;
@@ -322,7 +322,7 @@ public class CameraController {
                 Utils.bitmapToMat(inputBmp, rgbMat);
 
                 if (filter.getSampleMode()) {
-                    Mat centerChunk = centerOfImage(rgbMat, matrix);
+                    Mat centerChunk = Utilities.centerOfImage(context, textureView, filter, rgbMat, matrix);
                     if (filter.sampleRegion(centerChunk) && updateCallback != null) {
                         ((Activity) context).runOnUiThread(updateCallback::onFilterUpdated);
                     }
@@ -357,7 +357,7 @@ public class CameraController {
                     matrix.postScale(scale, scale);
                     matrix.postTranslate(dx, dy);
                     canvas.drawBitmap(bmp, matrix, null);
-                    drawSamplingCircle(canvas);
+                    Utilities.drawSamplingCircle(context, filter, canvas);
                     textureView.unlockCanvasAndPost(canvas);
                 }
                 rgbMat.release();
@@ -425,50 +425,24 @@ public class CameraController {
         }
     }
 
-    public void drawSamplingCircle(Canvas canvas) {
-        if (!filter.getSampleMode()) {
-            return;
+    protected void startBackgroundThread() {
+        backgroundThread = new HandlerThread("Camera Background");
+        backgroundThread.start();
+        setBackgroundHandler(new Handler(backgroundThread.getLooper()));
+    }
+
+    protected void stopBackgroundThread() {
+        if (backgroundThread != null) {
+            backgroundThread.quitSafely();
+            try {
+                backgroundThread.join();
+                backgroundThread = null;
+                setBackgroundHandler(null);
+            } catch (InterruptedException e) {
+                Log.e(TAG, "InterruptedException", e);
+            }
         }
-
-        // Convert dp to pixels
-        float density = context.getResources().getDisplayMetrics().density;
-        float strokeWidth = 2 * density; // 2dp stroke width
-        float circleDiameter = filter.getSampleSize() * density; // dp diameter for circle
-
-        int width = canvas.getWidth();
-        int height = canvas.getHeight();
-        Paint whitePaint = new Paint();
-        whitePaint.setColor(Color.WHITE);
-        whitePaint.setStyle(Paint.Style.STROKE);
-        whitePaint.setStrokeWidth(strokeWidth);
-        whitePaint.setAntiAlias(true);
-        Paint blackPaint = new Paint();
-        blackPaint.setColor(Color.BLACK);
-        blackPaint.setStyle(Paint.Style.STROKE);
-        blackPaint.setStrokeWidth(strokeWidth);
-        blackPaint.setAntiAlias(true);
-        canvas.drawCircle(width * 0.5f, height * 0.5f, (circleDiameter - strokeWidth) / 2, whitePaint);
-        canvas.drawCircle(width * 0.5f, height * 0.5f, (circleDiameter + strokeWidth) / 2, blackPaint);
     }
 
-    public Mat centerOfImage(Mat input, Matrix imageMatrix) {
-        float density = context.getResources().getDisplayMetrics().density;
-        int sampleSizePx = (int) (filter.getSampleSize() * density);
 
-        float viewCenterX = textureView.getWidth() / 2f;
-        float viewCenterY = textureView.getHeight() / 2f;
-
-        Matrix invertedMatrix = new Matrix();
-        imageMatrix.invert(invertedMatrix);
-        float[] points = new float[]{viewCenterX, viewCenterY};
-        invertedMatrix.mapPoints(points);
-        int x0 = Math.max(0, Math.min(input.cols(), (int) (points[0] - sampleSizePx / 2f)));
-        int y0 = Math.max(0, Math.min(input.rows(), (int) (points[1] - sampleSizePx / 2f)));
-        int x1 = Math.max(0, Math.min(input.cols(), (int) (points[0] + sampleSizePx / 2f)));
-        int y1 = Math.max(0, Math.min(input.rows(), (int) (points[1] + sampleSizePx / 2f)));
-
-        Log.d(TAG, "centerOfImage " + input.cols() + " " + input.rows() + " " + density + " " + sampleSizePx + " " + viewCenterX + " " + viewCenterY + " " + x0 + " " + y0 + " " + x1 + " " + y1);
-        org.opencv.core.Rect roi = new org.opencv.core.Rect(x0, y0, x1 - x0, y1 - y0);
-        return input.submat(roi);
-    }
 }

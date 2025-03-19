@@ -22,9 +22,9 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 @RunWith(AndroidJUnit4.class)
-public class ImageFilterProcessorTest {
+public class FilterProcessorTest {
 
-    private ImageFilterProcessor processor;
+    private FilterProcessor processor;
     private Mat testImage;
 
     @Before
@@ -33,7 +33,7 @@ public class ImageFilterProcessorTest {
             throw new RuntimeException("Failed to initialize OpenCV");
         }
 
-        processor = new ImageFilterProcessor();
+        processor = new FilterProcessor();
 
         Bitmap testBitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(testBitmap);
@@ -46,8 +46,8 @@ public class ImageFilterProcessorTest {
 
     @Test
     public void testIncludeFilter() {
-        ImageFilterProcessor processor = new ImageFilterProcessor();
-        processor.setFilterSettings(0, 14, 100, 100, ImageFilterProcessor.FilterMode.INCLUDE);
+        FilterProcessor processor = new FilterProcessor();
+        processor.setFilterSettings(0, 14, 100, 100, FilterProcessor.FilterMode.INCLUDE);
 
         // Create a test Mat
         Mat input = Mat.ones(100, 100, CvType.CV_8UC3);
@@ -66,7 +66,7 @@ public class ImageFilterProcessorTest {
 
     @Test
     public void testGettersAndSetters() {
-        ImageFilterProcessor processor = new ImageFilterProcessor();
+        FilterProcessor processor = new FilterProcessor();
         processor.setHue(100);
         assertEquals(100, processor.getHue());
 
@@ -82,24 +82,24 @@ public class ImageFilterProcessorTest {
 
     @Test
     public void testAllFilterModes() {
-        processor.setFilterSettings(0, 14, 100, 100, ImageFilterProcessor.FilterMode.NONE);
+        processor.setFilterSettings(0, 14, 100, 100, FilterProcessor.FilterMode.NONE);
         Mat result = processor.process(testImage.clone());
         assertNotNull(result);
         assertEquals(testImage.size(), result.size());
 
-        processor.setFilterMode(ImageFilterProcessor.FilterMode.INCLUDE);
+        processor.setFilterMode(FilterProcessor.FilterMode.INCLUDE);
         result = processor.process(testImage.clone());
         assertNotNull(result);
 
-        processor.setFilterMode(ImageFilterProcessor.FilterMode.EXCLUDE);
+        processor.setFilterMode(FilterProcessor.FilterMode.EXCLUDE);
         result = processor.process(testImage.clone());
         assertNotNull(result);
 
-        processor.setFilterMode(ImageFilterProcessor.FilterMode.BINARY);
+        processor.setFilterMode(FilterProcessor.FilterMode.BINARY);
         result = processor.process(testImage.clone());
         assertNotNull(result);
 
-        processor.setFilterMode(ImageFilterProcessor.FilterMode.SATURATION);
+        processor.setFilterMode(FilterProcessor.FilterMode.SATURATION);
         result = processor.process(testImage.clone());
         assertNotNull(result);
     }
@@ -107,7 +107,7 @@ public class ImageFilterProcessorTest {
     @Test
     public void testHueRanges() {
         // Test extreme hue values
-        processor.setFilterSettings(0, 14, 100, 100, ImageFilterProcessor.FilterMode.INCLUDE);
+        processor.setFilterSettings(0, 14, 100, 100, FilterProcessor.FilterMode.INCLUDE);
         Mat result = processor.process(testImage.clone());
         assertNotNull(result);
 
@@ -123,11 +123,11 @@ public class ImageFilterProcessorTest {
     @Test
     public void testHueWidthWrapping() {
         // Test hue width wrapping around 360 degrees
-        processor.setFilterSettings(350, 30, 100, 100, ImageFilterProcessor.FilterMode.INCLUDE);
+        processor.setFilterSettings(350, 30, 100, 100, FilterProcessor.FilterMode.INCLUDE);
         Mat result = processor.process(testImage.clone());
         assertNotNull(result);
 
-        processor.setFilterSettings(10, 30, 100, 100, ImageFilterProcessor.FilterMode.INCLUDE);
+        processor.setFilterSettings(10, 30, 100, 100, FilterProcessor.FilterMode.INCLUDE);
         result = processor.process(testImage.clone());
         assertNotNull(result);
     }
@@ -135,15 +135,15 @@ public class ImageFilterProcessorTest {
     @Test
     public void testThresholds() {
         // Test different saturation and luminance thresholds
-        processor.setFilterSettings(0, 14, 0, 0, ImageFilterProcessor.FilterMode.INCLUDE);
+        processor.setFilterSettings(0, 14, 0, 0, FilterProcessor.FilterMode.INCLUDE);
         Mat result = processor.process(testImage.clone());
         assertNotNull(result);
 
-        processor.setFilterSettings(0, 14, 255, 255, ImageFilterProcessor.FilterMode.INCLUDE);
+        processor.setFilterSettings(0, 14, 255, 255, FilterProcessor.FilterMode.INCLUDE);
         result = processor.process(testImage.clone());
         assertNotNull(result);
 
-        processor.setFilterSettings(0, 14, 128, 128, ImageFilterProcessor.FilterMode.INCLUDE);
+        processor.setFilterSettings(0, 14, 128, 128, FilterProcessor.FilterMode.INCLUDE);
         result = processor.process(testImage.clone());
         assertNotNull(result);
     }
