@@ -127,7 +127,7 @@ public class SettingsActivity extends AppCompatActivity {
     private void loadDefaultSettings() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
 
-        int filterModeOrdinal = prefs.getInt(KEY_FILTER_MODE, ImageFilterProcessor.FilterMode.EXCLUDE.ordinal());
+        int filterModeOrdinal = prefs.getInt(KEY_FILTER_MODE, FilterProcessor.FilterMode.EXCLUDE.ordinal());
         int hue = prefs.getInt(KEY_HUE, 0);
         int hueWidth = prefs.getInt(KEY_HUE_WIDTH, 14);
         int satThreshold = prefs.getInt(KEY_SAT_THRESHOLD, 0);

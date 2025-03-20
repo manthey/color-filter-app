@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class ImageFilterProcessor {
+public class FilterProcessor {
 
     /**
      * @noinspection SpellCheckingInspection
