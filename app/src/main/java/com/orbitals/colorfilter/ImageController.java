@@ -72,6 +72,7 @@ public class ImageController {
                         matrix.postRotate(orientation);
                         loadedImage = Bitmap.createBitmap(loadedImage, 0, 0, loadedImage.getWidth(), loadedImage.getHeight(), matrix, true);
                     }
+                    loadedImage = checkImageMemoryUse(loadedImage);
                     setupImageMatrix();
                     displayLoadedImage();
                     return loadedImage;
@@ -82,6 +83,23 @@ public class ImageController {
             }
         }
         return null;
+    }
+
+    private Bitmap checkImageMemoryUse(Bitmap image) {
+        while (true) {
+            long estimatedMemory = (long) image.getWidth() * image.getHeight() * 4;
+            long availableMemory = Runtime.getRuntime().maxMemory() - Runtime.getRuntime().totalMemory();
+            if (estimatedMemory > availableMemory * 0.3) {
+                Log.w(TAG, "Reducing image resolution from " +
+                        image.getWidth() + " x " + image.getHeight() + " to " +
+                        (image.getWidth() / 2) + " x " + (image.getHeight() / 2) +
+                        " to prevent memory exhaustion");
+                image = Bitmap.createScaledBitmap(image, image.getWidth() / 2, image.getHeight() / 2, true);
+            } else {
+                break;
+            }
+        }
+        return image;
     }
 
     public int getOrientation(Uri photoUri) {
@@ -140,9 +158,10 @@ public class ImageController {
         }
 
         if (processedImage == null || !reuse || filter.getSampleMode()) {
-            Mat inputMat = new Mat();
-            Utils.bitmapToMat(loadedImage, inputMat);
+            Mat inputMat = null;
             if (filter.getSampleMode()) {
+                inputMat = new Mat();
+                Utils.bitmapToMat(loadedImage, inputMat);
                 Mat centerChunk = Utilities.centerOfImage(context, textureView, filter, inputMat, imageMatrix);
                 if (filter.sampleRegion(centerChunk) && updateCallback != null) {
                     ((Activity) context).runOnUiThread(updateCallback::onFilterUpdated);
@@ -151,13 +170,23 @@ public class ImageController {
                 centerChunk.release();
             }
             if ((processedImage == null || !reuse)) {
+                if (processedImage != null) {
+                    processedImage.recycle();
+                    processedImage = null;
+                }
+                if (inputMat == null) {
+                    inputMat = new Mat();
+                    Utils.bitmapToMat(loadedImage, inputMat);
+                }
                 Mat processedMat = filter.process(inputMat);
-
+                inputMat.release();
+                inputMat = null;
                 processedImage = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(processedMat, processedImage);
-
-                inputMat.release();
                 processedMat.release();
+            }
+            if (inputMat != null) {
+                inputMat.release();
             }
         }
 

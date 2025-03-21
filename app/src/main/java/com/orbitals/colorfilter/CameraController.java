@@ -316,10 +316,9 @@ public class CameraController {
 
                 // Convert JPEG bytes to Bitmap
                 Bitmap inputBmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-
-                // Convert Bitmap to Mat for processing
                 Mat rgbMat = new Mat();
                 Utils.bitmapToMat(inputBmp, rgbMat);
+                inputBmp.recycle();
 
                 if (filter.getSampleMode()) {
                     Mat centerChunk = Utilities.centerOfImage(context, textureView, filter, rgbMat, matrix);
