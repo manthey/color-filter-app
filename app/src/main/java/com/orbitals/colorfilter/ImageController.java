@@ -178,25 +178,23 @@ public class ImageController {
         float minScale = Math.min((float) textureView.getWidth() / loadedImage.getWidth(), (float) textureView.getHeight() / loadedImage.getHeight());
         imageMatrix.getValues(matrixValues);
         float currentScale = matrixValues[Matrix.MSCALE_X];
+        float centerX = textureView.getWidth() / 2f;
+        float centerY = textureView.getHeight() / 2f;
         if (currentScale < minScale) {
-            imageMatrix.postScale(minScale / currentScale, minScale / currentScale, textureView.getWidth() / 2f, textureView.getHeight() / 2f);
+            imageMatrix.postScale(minScale / currentScale, minScale / currentScale, centerX, centerY);
+            rect = new RectF(0, 0, loadedImage.getWidth(), loadedImage.getHeight());
             imageMatrix.mapRect(rect);
         }
 
-        // Constrain horizontal movement
-        if (rect.width() <= textureView.getWidth()) {
-            dx = (textureView.getWidth() - rect.width()) / 2 - rect.left;
-        } else {
-            if (rect.left > 0) dx = -rect.left;
-            if (rect.right < textureView.getWidth()) dx = textureView.getWidth() - rect.right;
+        if (rect.right < centerX) {
+            dx = centerX - rect.right;
+        } else if (rect.left > centerX) {
+            dx = centerX - rect.left;
         }
-
-        // Constrain vertical movement
-        if (rect.height() <= textureView.getHeight()) {
-            dy = (textureView.getHeight() - rect.height()) / 2 - rect.top;
-        } else {
-            if (rect.top > 0) dy = -rect.top;
-            if (rect.bottom < textureView.getHeight()) dy = textureView.getHeight() - rect.bottom;
+        if (rect.bottom < centerY) {
+            dy = centerY - rect.bottom;
+        } else if (rect.top > centerY) {
+            dy = centerY - rect.top;
         }
         imageMatrix.postTranslate(dx, dy);
     }
