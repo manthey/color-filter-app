@@ -435,6 +435,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         } else {
             cameraController.reopenCamera();
         }
+        uiManager.adjustButtonVisibilityForScreenWidth();
     }
 
 
@@ -517,5 +518,4 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
         filter.setUseLumSatBCT(prefs.getBoolean(SettingsActivity.KEY_SHOW_BCT_CONTROLS, filter.getUseLumSatBCT()));
     }
-
 }
