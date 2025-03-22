@@ -2,12 +2,23 @@ package com.orbitals.colorfilter;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.graphics.drawable.Drawable;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.PopupMenu;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import androidx.appcompat.content.res.AppCompatResources;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -15,8 +26,16 @@ import java.util.Map;
  * This class centralizes UI-related operations to improve testability.
  */
 public class UIComponentManager {
+    /**
+     * @noinspection SpellCheckingInspection
+     */
+    private static final String TAG = "com.orbitals.colorfilter.UIComponentManager";
     private final Activity activity;
     private final Map<Integer, View> viewCache = new HashMap<>();
+    PopupMenu popupMenu = null;
+    private final List<Button> hiddenButtons = new ArrayList<>();
+    private boolean lastSampleMode = false;
+    private boolean lastLightMode = false;
 
     // Listener interface for filter control events
     public interface FilterControlListener {
@@ -41,10 +60,14 @@ public class UIComponentManager {
         void onSettingsRequested();
 
         void onSampleModeChanged();
+
+        void onLightChanged();
     }
 
     public UIComponentManager(Activity activity) {
         this.activity = activity;
+        activity.getWindow().getDecorView().getRootView().getViewTreeObserver().addOnGlobalLayoutListener(
+                this::adjustButtonVisibilityForScreenWidth);
     }
 
     /**
@@ -99,6 +122,8 @@ public class UIComponentManager {
         Button bctButton = getView(R.id.bctButton);
         Button settingsButton = getView(R.id.settingsButton);
         Button sampleModeButton = getView(R.id.sampleButton);
+        Button lightButton = getView(R.id.lightButton);
+        Button overflowMenuButton = getView(R.id.overflowMenuButton);
 
         switchCameraButton.setOnClickListener(v -> listener.onCameraSwitch(false));
         filterButton.setOnClickListener(v -> listener.onFilterModeChanged());
@@ -106,6 +131,8 @@ public class UIComponentManager {
         bctButton.setOnClickListener(v -> listener.onTermMapChanged());
         settingsButton.setOnClickListener(v -> listener.onSettingsRequested());
         sampleModeButton.setOnClickListener(v -> listener.onSampleModeChanged());
+        lightButton.setOnClickListener(v -> listener.onLightChanged());
+        overflowMenuButton.setOnClickListener(this::showOverflowMenu);
 
         // Set up seekbar listeners
         hueSeekBar.setOnSeekBarChangeListener(new SimpleSeekBarChangeListener() {
@@ -184,7 +211,8 @@ public class UIComponentManager {
             String currentTerm,
             int term,
             boolean updateSeekBars,
-            boolean sampleMode) {
+            boolean sampleMode,
+            boolean lightMode) {
 
         Button filterButton = getView(R.id.filterButton);
         switch (filterMode) {
@@ -239,8 +267,10 @@ public class UIComponentManager {
             bctSeekBar.setProgress(term);
 
         }
-        Button sampleButton = getView(R.id.sampleButton);
-        sampleButton.setSelected(sampleMode);
+        lastSampleMode = sampleMode;
+        getView(R.id.sampleButton).setSelected(sampleMode);
+        lastLightMode = lightMode;
+        getView(R.id.lightButton).setSelected(lightMode);
     }
 
     /**
@@ -311,4 +341,86 @@ public class UIComponentManager {
             // No implementation needed
         }
     }
+
+    public void adjustButtonVisibilityForScreenWidth() {
+        int screenWidth = activity.getResources().getDisplayMetrics().widthPixels;
+
+        // Get all buttons in order of priority (least important first)
+        List<Button> buttons = Arrays.asList(
+                getView(R.id.settingsButton),      // Lowest priority
+                getView(R.id.lightButton),
+                getView(R.id.loadImageButton),
+                getView(R.id.switchCameraButton),
+                getView(R.id.bctButton),
+                getView(R.id.sampleButton),
+                getView(R.id.filterButton)
+        );
+
+        Button overflowMenuButton = getView(R.id.overflowMenuButton);
+        int overflowButtonWidth = overflowMenuButton.getWidth();
+        int totalButtonsWidth = overflowButtonWidth;
+
+        boolean needsOverflowMenu = false;
+        hiddenButtons.clear();
+        for (int i = buttons.size() - 1; i >= 0; i--) {
+            Button button = buttons.get(i);
+            int buttonWidth = button.getWidth();
+
+            Log.d(TAG, "Overflow Widths " + screenWidth + " " + buttonWidth + " " + overflowButtonWidth + " " + totalButtonsWidth + " " + needsOverflowMenu + " " + i);
+            if ((totalButtonsWidth + buttonWidth <= screenWidth ||
+                    (i == 0 && totalButtonsWidth + buttonWidth - overflowButtonWidth <= screenWidth)) &&
+                    !needsOverflowMenu) {
+                totalButtonsWidth += buttonWidth;
+                button.setVisibility(View.VISIBLE);
+            } else {
+                needsOverflowMenu = true;
+                hiddenButtons.add(button);
+                button.setVisibility(View.GONE);
+            }
+        }
+        overflowMenuButton.setVisibility(needsOverflowMenu ? View.VISIBLE : View.GONE);
+    }
+
+    private void showOverflowMenu(View anchor) {
+        if (popupMenu != null) {
+            popupMenu.dismiss();
+        }
+        popupMenu = new PopupMenu(activity, anchor);
+
+        for (Button button : hiddenButtons) {
+            int itemId = button.getId();
+            MenuItem menuItem = popupMenu.getMenu().add(Menu.NONE, itemId, Menu.NONE, button.getContentDescription());
+            Drawable icon = button.getCompoundDrawablesRelative()[0];
+            if (itemId == R.id.sampleButton && lastSampleMode) {
+                icon = AppCompatResources.getDrawable(button.getContext(), R.drawable.baseline_sample_selected_24);
+            } else if (itemId == R.id.lightButton && lastLightMode) {
+                icon = AppCompatResources.getDrawable(button.getContext(), R.drawable.baseline_flashlight_off_24);
+            }
+            if (icon != null) {
+                icon.setBounds(0, 0, icon.getIntrinsicWidth(), icon.getIntrinsicHeight());
+                menuItem.setIcon(icon);
+            }
+
+            popupMenu.setOnMenuItemClickListener(item -> {
+                View clickedButton = activity.findViewById(item.getItemId());
+                if (clickedButton != null) {
+                    clickedButton.performClick();
+                }
+                return true;
+            });
+
+            try {
+                Field field = popupMenu.getClass().getDeclaredField("mPopup");
+                field.setAccessible(true);
+                Object menuPopupHelper = field.get(popupMenu);
+                if (menuPopupHelper != null) {
+                    menuPopupHelper.getClass().getDeclaredMethod("setForceShowIcon", boolean.class).invoke(menuPopupHelper, true);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to set icons on popup menu");
+            }
+        }
+        popupMenu.show();
+    }
+
 }

@@ -215,6 +215,12 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                         filter.setSampleMode(!filter.getSampleMode());
                         updateControls();
                     }
+
+                    @Override
+                    public void onLightChanged() {
+                        cameraController.setLightMode(!cameraController.getLightMode());
+                        updateControls();
+                    }
                 },
                 filter.getHue(),
                 filter.getHueWidth(),
@@ -274,7 +280,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 filter.getCurrentTerm(),
                 filter.getTerm(),
                 updateSeekBars,
-                filter.getSampleMode()
+                filter.getSampleMode(),
+                cameraController.getLightMode()
         );
 
         if (isImageMode) {
@@ -435,6 +442,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         } else {
             cameraController.reopenCamera();
         }
+        uiManager.adjustButtonVisibilityForScreenWidth();
     }
 
 
@@ -517,5 +525,4 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
         filter.setUseLumSatBCT(prefs.getBoolean(SettingsActivity.KEY_SHOW_BCT_CONTROLS, filter.getUseLumSatBCT()));
     }
-
 }

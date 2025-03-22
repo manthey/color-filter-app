@@ -171,7 +171,7 @@
             <Button
                 android:id="@+id/bctButton"
                 style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="68dp"
+                android:layout_width="72dp"
                 android:layout_height="wrap_content"
                 android:ellipsize="none"
                 android:maxLines="1"
@@ -188,12 +188,28 @@
                 android:drawableStart="@drawable/sample_button_selector" />
 
             <Button
+                android:id="@+id/lightButton"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/flashlight_button"
+                android:drawableStart="@drawable/flashlight_button_selector" />
+
+            <Button
                 android:id="@+id/settingsButton"
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="48dp"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/settings_button"
                 android:drawableStart="@drawable/baseline_settings_24" />
+            <Button
+                android:id="@+id/overflowMenuButton"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/more_options"
+                android:drawableStart="@drawable/baseline_more_vert_24"
+                android:visibility="gone" />
         </LinearLayout>
 
     </LinearLayout>

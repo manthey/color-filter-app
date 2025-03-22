@@ -53,6 +53,8 @@ public class CameraController {
     private final Supplier<Boolean> checkCameraPermissions;
     private final FilterProcessor filter;
 
+    private boolean lightMode = false;
+
     /**
      * @noinspection SpellCheckingInspection
      */
@@ -122,7 +124,8 @@ public class CameraController {
             // Trigger AF when zooming
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
             captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-
+            captureRequestBuilder.set(CaptureRequest.FLASH_MODE,
+                    lightMode && hasFlash() ? CaptureRequest.FLASH_MODE_TORCH : CaptureRequest.FLASH_MODE_OFF);
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
 
         } catch (CameraAccessException e) {
@@ -138,6 +141,7 @@ public class CameraController {
         isFrontCamera = !isFrontCamera;
         closeCamera();
         openCamera();
+        updateTorchState();
     }
 
     public void openCamera() {
@@ -241,33 +245,39 @@ public class CameraController {
             captureRequestBuilder.addTarget(imageReader.getSurface());
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
 
-            List<OutputConfiguration> outputConfigs = new ArrayList<>();
-            OutputConfiguration imageOutputConfig = new OutputConfiguration(imageReader.getSurface());
-            outputConfigs.add(imageOutputConfig);
-            SessionConfiguration config = new SessionConfiguration(
-                    SessionConfiguration.SESSION_REGULAR,
-                    outputConfigs,
-                    context.getMainExecutor(), // Use the main thread for callbacks
-                    new CameraCaptureSession.StateCallback() {
-                        @Override
-                        public void onConfigured(@NonNull CameraCaptureSession session) {
-                            if (cameraDevice == null) {
-                                return;
-                            }
-                            cameraCaptureSession = session;
-                            updatePreview();
-                        }
-
-                        @Override
-                        public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-                            Toast.makeText(context, context.getString(R.string.configuration_change), Toast.LENGTH_SHORT).show();
-                        }
-                    });
+            SessionConfiguration config = getSessionConfiguration();
             cameraDevice.createCaptureSession(config);
-
+            updateTorchState();
         } catch (CameraAccessException e) {
             Log.e(TAG, "CameraAccessException", e);
         }
+    }
+
+    @NonNull
+    private SessionConfiguration getSessionConfiguration() {
+        List<OutputConfiguration> outputConfigs = new ArrayList<>();
+        OutputConfiguration imageOutputConfig = new OutputConfiguration(imageReader.getSurface());
+        outputConfigs.add(imageOutputConfig);
+        // Use the main thread for callbacks
+        return new SessionConfiguration(
+                SessionConfiguration.SESSION_REGULAR,
+                outputConfigs,
+                context.getMainExecutor(), // Use the main thread for callbacks
+                new CameraCaptureSession.StateCallback() {
+                    @Override
+                    public void onConfigured(@NonNull CameraCaptureSession session) {
+                        if (cameraDevice == null) {
+                            return;
+                        }
+                        cameraCaptureSession = session;
+                        updatePreview();
+                    }
+
+                    @Override
+                    public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                        Toast.makeText(context, context.getString(R.string.configuration_change), Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private int getCorrectRotation() {
@@ -375,6 +385,8 @@ public class CameraController {
 
         captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
         captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+        captureRequestBuilder.set(CaptureRequest.FLASH_MODE,
+                lightMode && hasFlash() ? CaptureRequest.FLASH_MODE_TORCH : CaptureRequest.FLASH_MODE_OFF);
         try {
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
         } catch (CameraAccessException e) {
@@ -443,5 +455,31 @@ public class CameraController {
         }
     }
 
+    public boolean getLightMode() {
+        return lightMode;
+    }
 
+    public void setLightMode(boolean lightMode) {
+        this.lightMode = lightMode && hasFlash();
+        updateTorchState();
+    }
+
+    private void updateTorchState() {
+        if (cameraDevice == null || captureRequestBuilder == null || cameraCaptureSession == null) {
+            return;
+        }
+        updatePreview();
+    }
+
+    public boolean hasFlash() {
+        try {
+            CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            Boolean hasFlash = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+            return hasFlash != null && hasFlash;
+        } catch (CameraAccessException e) {
+            Log.e(TAG, "Failed to check flash availability", e);
+            return false;
+        }
+    }
 }
