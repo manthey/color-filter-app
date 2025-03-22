@@ -5,11 +5,14 @@ import android.app.Activity;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.PopupMenu;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import androidx.appcompat.content.res.AppCompatResources;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -31,6 +34,8 @@ public class UIComponentManager {
     private final Map<Integer, View> viewCache = new HashMap<>();
     PopupMenu popupMenu = null;
     private final List<Button> hiddenButtons = new ArrayList<>();
+    private boolean lastSampleMode = false;
+    private boolean lastLightMode = false;
 
     // Listener interface for filter control events
     public interface FilterControlListener {
@@ -55,6 +60,8 @@ public class UIComponentManager {
         void onSettingsRequested();
 
         void onSampleModeChanged();
+
+        void onLightChanged();
     }
 
     public UIComponentManager(Activity activity) {
@@ -115,6 +122,7 @@ public class UIComponentManager {
         Button bctButton = getView(R.id.bctButton);
         Button settingsButton = getView(R.id.settingsButton);
         Button sampleModeButton = getView(R.id.sampleButton);
+        Button lightButton = getView(R.id.lightButton);
         Button overflowMenuButton = getView(R.id.overflowMenuButton);
 
         switchCameraButton.setOnClickListener(v -> listener.onCameraSwitch(false));
@@ -123,6 +131,7 @@ public class UIComponentManager {
         bctButton.setOnClickListener(v -> listener.onTermMapChanged());
         settingsButton.setOnClickListener(v -> listener.onSettingsRequested());
         sampleModeButton.setOnClickListener(v -> listener.onSampleModeChanged());
+        lightButton.setOnClickListener(v -> listener.onLightChanged());
         overflowMenuButton.setOnClickListener(this::showOverflowMenu);
 
         // Set up seekbar listeners
@@ -202,7 +211,8 @@ public class UIComponentManager {
             String currentTerm,
             int term,
             boolean updateSeekBars,
-            boolean sampleMode) {
+            boolean sampleMode,
+            boolean lightMode) {
 
         Button filterButton = getView(R.id.filterButton);
         switch (filterMode) {
@@ -257,8 +267,10 @@ public class UIComponentManager {
             bctSeekBar.setProgress(term);
 
         }
-        Button sampleButton = getView(R.id.sampleButton);
-        sampleButton.setSelected(sampleMode);
+        lastSampleMode = sampleMode;
+        getView(R.id.sampleButton).setSelected(sampleMode);
+        lastLightMode = lightMode;
+        getView(R.id.lightButton).setSelected(lightMode);
     }
 
     /**
@@ -345,10 +357,8 @@ public class UIComponentManager {
         );
 
         Button overflowMenuButton = getView(R.id.overflowMenuButton);
-
-        overflowMenuButton.measure(View.MeasureSpec.AT_MOST, View.MeasureSpec.AT_MOST);
-        // padding and overflow button
-        int totalButtonsWidth = 16 + overflowMenuButton.getWidth();
+        int overflowButtonWidth = overflowMenuButton.getWidth();
+        int totalButtonsWidth = overflowButtonWidth;
 
         boolean needsOverflowMenu = false;
         hiddenButtons.clear();
@@ -356,7 +366,10 @@ public class UIComponentManager {
             Button button = buttons.get(i);
             int buttonWidth = button.getWidth();
 
-            if (totalButtonsWidth + buttonWidth <= screenWidth && !needsOverflowMenu) {
+            Log.d(TAG, "Overflow Widths " + screenWidth + " " + buttonWidth + " " + overflowButtonWidth + " " + totalButtonsWidth + " " + needsOverflowMenu + " " + i);
+            if ((totalButtonsWidth + buttonWidth <= screenWidth ||
+                    (i == 0 && totalButtonsWidth + buttonWidth - overflowButtonWidth <= screenWidth)) &&
+                    !needsOverflowMenu) {
                 totalButtonsWidth += buttonWidth;
                 button.setVisibility(View.VISIBLE);
             } else {
@@ -376,11 +389,16 @@ public class UIComponentManager {
 
         for (Button button : hiddenButtons) {
             int itemId = button.getId();
-            popupMenu.getMenu().add(Menu.NONE, itemId, Menu.NONE, button.getContentDescription());
+            MenuItem menuItem = popupMenu.getMenu().add(Menu.NONE, itemId, Menu.NONE, button.getContentDescription());
             Drawable icon = button.getCompoundDrawablesRelative()[0];
+            if (itemId == R.id.sampleButton && lastSampleMode) {
+                icon = AppCompatResources.getDrawable(button.getContext(), R.drawable.baseline_sample_selected_24);
+            } else if (itemId == R.id.lightButton && lastLightMode) {
+                icon = AppCompatResources.getDrawable(button.getContext(), R.drawable.baseline_flashlight_off_24);
+            }
             if (icon != null) {
                 icon.setBounds(0, 0, icon.getIntrinsicWidth(), icon.getIntrinsicHeight());
-                popupMenu.getMenu().findItem(itemId).setIcon(icon);
+                menuItem.setIcon(icon);
             }
 
             popupMenu.setOnMenuItemClickListener(item -> {
