@@ -266,4 +266,42 @@ public class ImageController {
         constrainImage();
         displayLoadedImage(true);
     }
+
+    public void refreshImageWithCorrectAspectRatio() {
+        if (loadedImage == null) {
+            return;
+        }
+        float[] matrixValues = new float[9];
+        imageMatrix.getValues(matrixValues);
+        float currentScaleX = matrixValues[Matrix.MSCALE_X];
+        float currentScaleY = matrixValues[Matrix.MSCALE_Y];
+        float currentTransX = matrixValues[Matrix.MTRANS_X];
+        float currentTransY = matrixValues[Matrix.MTRANS_Y];
+        float currentScale = (currentScaleX + currentScaleY) / 2f;
+        float centerY = textureView.getHeight() / 2f;
+        // Wait for the textureView to complete its layout
+        textureView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                // Remove the listener to avoid multiple calls
+                textureView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+
+                setupImageMatrix();
+                float[] newBaseValues = new float[9];
+                imageMatrix.getValues(newBaseValues);
+                float baseScale = newBaseValues[Matrix.MSCALE_X];
+                float relativeScale = currentScale / baseScale;
+                imageMatrix.postScale(
+                        relativeScale, relativeScale,
+                        textureView.getWidth() / 2f, textureView.getHeight() / 2f);
+                float deltaY = centerY - textureView.getHeight() / 2f;
+                imageMatrix.postTranslate(
+                        currentTransX - newBaseValues[Matrix.MTRANS_X],
+                        currentTransY - newBaseValues[Matrix.MTRANS_Y] - deltaY
+                );
+                constrainImage();
+                displayLoadedImage(false);
+            }
+        });
+    }
 }
