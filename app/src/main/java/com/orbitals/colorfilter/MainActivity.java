@@ -146,6 +146,9 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                             }
                         }
                         updateControls();
+                        if (isImageMode) {
+                            imageController.refreshImageWithCorrectAspectRatio();
+                        }
                     }
 
                     @Override
