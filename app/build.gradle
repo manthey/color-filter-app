@@ -21,6 +21,16 @@ android {
             useSupportLibrary true
         }
     }
+    if (System.getenv("SIGNING_STORE_FILE") != null) {
+        signingConfigs {
+            release {
+                storeFile file(System.getenv("SIGNING_STORE_FILE") ?: "")
+                storePassword System.getenv("SIGNING_STORE_PASSWORD") ?: ""
+                keyAlias System.getenv("SIGNING_KEY_ALIAS") ?: ""
+                keyPassword System.getenv("SIGNING_KEY_PASSWORD") ?: ""
+            }
+        }
+    }
     buildTypes {
         debug {
             testCoverageEnabled true
@@ -30,6 +40,9 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (System.getenv("SIGNING_STORE_FILE") != null) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {

@@ -100,9 +100,21 @@ jobs:
               echo "${percentage}|${method}: ${covered}/${total} (${percentage}%)"
             fi
         done | sort -n | cut -d'|' -f2-
+    - name: Decode Keystore
+      run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
     - name: Build AAR
+      env:
+        SIGNING_STORE_FILE: ${{ github.workspace }}/keystore.jks
+        SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: ./gradlew assembleRelease
     - name: Build AAB
+      env:
+        SIGNING_STORE_FILE: ${{ github.workspace }}/keystore.jks
+        SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: ./gradlew bundleRelease
     # - name: Check
     #   run: find app/build -name "*.aab" && find app/build -name "*.apk" && find app/build -name "*.aar" && ls -lR app/build
