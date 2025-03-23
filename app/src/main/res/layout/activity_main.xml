@@ -48,7 +48,7 @@
                     android:layout_height="wrap_content"
                     android:max="360"
                     android:progressTint="?android:attr/textColorPrimary"
-                    android:thumb="@drawable/seekbar_thumb"
+                    android:thumb="@drawable/seekbar_thumb_selector"
                     android:thumbOffset="9dp" />
 
                 <TextView
@@ -64,7 +64,7 @@
                     android:layout_height="wrap_content"
                     android:max="180"
                     android:progressTint="?android:attr/textColorPrimary"
-                    android:thumb="@drawable/seekbar_thumb"
+                    android:thumb="@drawable/seekbar_thumb_selector"
                     android:thumbOffset="9dp" />
 
             </LinearLayout>
@@ -89,7 +89,7 @@
                     android:layout_height="wrap_content"
                     android:max="19"
                     android:progressTint="?android:attr/textColorPrimary"
-                    android:thumb="@drawable/seekbar_thumb"
+                    android:thumb="@drawable/seekbar_thumb_selector"
                     android:thumbOffset="9dp" />
             </LinearLayout>
         </LinearLayout>
@@ -113,7 +113,7 @@
                 android:layout_height="wrap_content"
                 android:max="255"
                 android:progressTint="?android:attr/textColorPrimary"
-                android:thumb="@drawable/seekbar_thumb"
+                android:thumb="@drawable/seekbar_thumb_selector"
                 android:thumbOffset="9dp" />
 
             <TextView
@@ -129,7 +129,7 @@
                 android:layout_height="wrap_content"
                 android:max="255"
                 android:progressTint="?android:attr/textColorPrimary"
-                android:thumb="@drawable/seekbar_thumb"
+                android:thumb="@drawable/seekbar_thumb_selector"
                 android:thumbOffset="9dp" />
         </LinearLayout>
 
