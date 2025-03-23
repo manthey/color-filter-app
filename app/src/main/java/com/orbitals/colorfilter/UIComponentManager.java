@@ -253,7 +253,7 @@ public class UIComponentManager {
         }
 
         updateSeekLabels(hue, hueWidth, satThreshold, lumThreshold, currentTerm, coarseHueMap, fineHueMap);
-        if (updateSeekBars) {
+        if (updateSeekBars || sampleMode != lastSampleMode) {
             SeekBar hueSeekBar = getView(R.id.hueSeekBar);
             SeekBar hueWidthSeekBar = getView(R.id.hueWidthSeekBar);
             SeekBar saturationSeekBar = getView(R.id.saturationSeekBar);
@@ -265,7 +265,8 @@ public class UIComponentManager {
             saturationSeekBar.setProgress(satThreshold);
             luminanceSeekBar.setProgress(lumThreshold);
             bctSeekBar.setProgress(term);
-
+            hueSeekBar.setSelected(sampleMode);
+            bctSeekBar.setSelected(sampleMode);
         }
         lastSampleMode = sampleMode;
         getView(R.id.sampleButton).setSelected(sampleMode);
