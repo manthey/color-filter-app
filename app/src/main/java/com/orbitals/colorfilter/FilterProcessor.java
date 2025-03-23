@@ -177,7 +177,9 @@ public class FilterProcessor {
         return sampleSize;
     }
 
-    /** @noinspection unused*/
+    /**
+     * @noinspection unused
+     */
     public void SetSampleSize(int sampleSize) {
         this.sampleSize = sampleSize;
     }
@@ -190,44 +192,45 @@ public class FilterProcessor {
      * @return An image matrix in RGB format with the image applied.
      */
     public Mat process(Mat input) {
-        Mat hsv = new Mat();
+        Mat mask = null;
         Imgproc.cvtColor(input, input, Imgproc.COLOR_RGBA2RGB);
+        Mat hsv = new Mat();
         Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGB2HSV);
-
-        // Define lower and upper bounds for the hue range
-        int lowerHue = (int) (hue / 2.0 - hueWidth / 2.0);
-        int upperHue = (int) (hue / 2.0 + hueWidth / 2.0);
-        if (termMap != null) {
-            lowerHue = 0;
-            upperHue = 360 / 2;
-        }
-        Scalar lowerBound = new Scalar(Math.max(0, lowerHue), satThreshold, lumThreshold);
-        Scalar upperBound = new Scalar(Math.min(180, upperHue), 255, 255);
-
-        Mat mask = new Mat();
-        Core.inRange(hsv, lowerBound, upperBound, mask);
-
-        // Handle hue wrapping
-        if (lowerHue < 0 || upperHue > 180) {
-            Mat mask2 = new Mat();
-            if (lowerHue < 0) {
-                Core.inRange(hsv, new Scalar(lowerHue + 180, satThreshold, lumThreshold), new Scalar(180, 255, 255), mask2);
-            } else {
-                Core.inRange(hsv, new Scalar(0, satThreshold, lumThreshold), new Scalar(upperHue - 180, 255, 255), mask2);
+        if (termMap == null || useLumSatBCT) {
+            // Define lower and upper bounds for the hue range
+            int lowerHue = (int) (hue / 2.0 - hueWidth / 2.0);
+            int upperHue = (int) (hue / 2.0 + hueWidth / 2.0);
+            if (termMap != null) {
+                lowerHue = 0;
+                upperHue = 360 / 2;
             }
-            Core.bitwise_or(mask, mask2, mask);
-            mask2.release();
-        }
+            Scalar lowerBound = new Scalar(Math.max(0, lowerHue), satThreshold, lumThreshold);
+            Scalar upperBound = new Scalar(Math.min(180, upperHue), 255, 255);
 
+            mask = new Mat();
+            Core.inRange(hsv, lowerBound, upperBound, mask);
+
+            // Handle hue wrapping
+            if (lowerHue < 0 || upperHue > 180) {
+                Mat mask2 = new Mat();
+                if (lowerHue < 0) {
+                    Core.inRange(hsv, new Scalar(lowerHue + 180, satThreshold, lumThreshold), new Scalar(180, 255, 255), mask2);
+                } else {
+                    Core.inRange(hsv, new Scalar(0, satThreshold, lumThreshold), new Scalar(upperHue - 180, 255, 255), mask2);
+                }
+                Core.bitwise_or(mask, mask2, mask);
+                mask2.release();
+            }
+        }
         Mat output = Mat.zeros(input.size(), input.type());
         if (termMap != null) {
             Mat termMask = termMap.createMask(input, term);
-            if (useLumSatBCT) {
+            if (useLumSatBCT && mask != null) {
                 Core.bitwise_and(mask, termMask, mask);
+                termMask.release();
             } else {
-                termMask.copyTo(mask);
+                mask = termMask;
             }
-            termMask.release();
         }
         switch (filterMode) {
             case NONE:
@@ -237,7 +240,9 @@ public class FilterProcessor {
                 input.copyTo(output, mask);
                 break;
             case EXCLUDE:
-                Core.bitwise_not(mask, mask);
+                if (mask != null) {
+                    Core.bitwise_not(mask, mask);
+                }
                 output.setTo(new Scalar(255, 255, 255));
                 input.copyTo(output, mask);
                 break;
@@ -258,8 +263,11 @@ public class FilterProcessor {
                 sss.release();
                 break;
         }
-        mask.release();
+        if (mask != null) {
+            mask.release();
+        }
         hsv.release();
+
         return output;
     }
 
@@ -282,8 +290,8 @@ public class FilterProcessor {
                     if ((j - cy) * (j - cy) + (i - cx) * (i - cx) > rad2) {
                         continue;
                     }
-                    byte val = (byte)terms.get(j, i)[0];
-                     //noinspection DataFlowIssue
+                    byte val = (byte) terms.get(j, i)[0];
+                    //noinspection DataFlowIssue
                     termCounts.put(val, termCounts.getOrDefault(val, 0) + 1);
                 }
             }
@@ -291,7 +299,7 @@ public class FilterProcessor {
             int modalTerm = -1;
             int maxCount = 0;
             for (Map.Entry<Byte, Integer> entry : termCounts.entrySet()) {
-                 if (entry.getValue() > maxCount) {
+                if (entry.getValue() > maxCount) {
                     maxCount = entry.getValue();
                     modalTerm = entry.getKey();
                 }
