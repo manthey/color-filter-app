@@ -395,7 +395,7 @@ public class UIComponentManager {
             if (itemId == R.id.sampleButton && lastSampleMode) {
                 icon = AppCompatResources.getDrawable(button.getContext(), R.drawable.baseline_sample_selected_24);
             } else if (itemId == R.id.lightButton && lastLightMode) {
-                icon = AppCompatResources.getDrawable(button.getContext(), R.drawable.baseline_flashlight_off_24);
+                icon = AppCompatResources.getDrawable(button.getContext(), R.drawable.baseline_flashlight_on_24);
             }
             if (icon != null) {
                 icon.setBounds(0, 0, icon.getIntrinsicWidth(), icon.getIntrinsicHeight());
