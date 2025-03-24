@@ -26,16 +26,6 @@ To provide its core functionality, the App requires the following permissions:
     device** in real-time. These images are **not** collected, stored (by the
     app itself), or transmitted anywhere.
 
-- **Storage/Gallery Access Permission (e.g., `android.permission.READ_EXTERNAL_STORAGE` or scoped storage access for newer Android versions):**
-    
-  - **Purpose:** This permission is required to allow you to open existing
-    photos or images from your device's gallery or storage to apply color i
-    filters using the App.
-
-  - **Usage:** Images accessed from your gallery or storage are processed
-    **locally on your device**. These images are **not** collected, stored (by 
-    the app itself), or transmitted anywhere.
-
 **3. Data Storage**
 
 The App **does not store** any personal data, images, metadata, or usage 
