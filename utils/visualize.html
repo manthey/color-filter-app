@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Volumetric Categorical Data Visualization</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      #ui {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 10px;
+        border-radius: 4px;
+        font-family: sans-serif;
+        font-size: 14px;
+      }
+    </style>
+    <!-- Use an importmap so that our "three" modules come from a CDN -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.152.2/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.152.2/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="ui">
+      <label for="categorySelect">Selected Color</label>
+      <select id="categorySelect"></select>
+      <br />
+      <label for="opacitySelect">Selected Opacity</label>
+      <input
+        type="range"
+        id="opacitySelect"
+        min="0"
+        max="1"
+        step="0.01"
+        value="0.8"
+      /><span id="opacityValue">0.8</span>
+      <br />
+      <label for="opacityOther">Other Opacity</label>
+      <input
+        type="range"
+        id="opacityOther"
+        min="0"
+        max="1"
+        step="0.01"
+        value="0.1"
+      /><span id="opacityOtherValue">0.1</span>
+    </div>
+    <canvas id="c"></canvas>
+    <script type="module">
+      // Import Three.js and OrbitControls via our importmap
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      //
+      // OVERVIEW
+      //
+      // This example loads a greyscale PNG (4096×4096 pixels) named
+      // "bct20_en_us.png" that encodes a 256×256×256 volume:
+      // • The PNG is subdivided into 16×16 sub‐images (each 256×256 pixels).
+      // • Each sub–image encodes a fixed "r" value (r from 0 to 255) with
+      //   sub–image 0 being in the upper–left and 255 in the lower–right.
+      // • Within each sub–image the horizontal pixel coordinate gives "b"
+      //   (0 on the left to 255 on the right) and the vertical pixel coordinate
+      //   gives "g" (0 on top to 255 on the bottom).
+      //
+      // In the shader we "invert" that mapping: given a normalized voxel coordinate
+      // pos = (r, g, b) ∈ [0,1]^3 we compute
+      //   r_voxel = floor( pos.x * 255 ),
+      //   g_voxel = floor( pos.y * 255 ),
+      //   b_voxel = floor( pos.z * 255 ),
+      // then determine which tile (sub–image) stores that voxel:
+      //   subImgX = mod( r_voxel, 16 )
+      //   subImgY = floor( r_voxel / 16 )
+      // and finally use
+      //   pixelX = subImgX * 256 + b_voxel
+      //   pixelY = subImgY * 256 + g_voxel
+      // to sample the PNG’s red channel (with nearest filtering).
+      //
+      // The fragment shader does ray marching through the unit cube
+      // (our volume is mapped into [0,1]^3). At each step (of size voxelSize = 1/256)
+      // it "samples" the category by our function sampleVolume( pos ).
+      // If any of the 6-neighbor voxels differs from the current sample (or if we are
+      // at the boundary) then we consider that the voxel is on a boundary.
+      // The deposited color comes from a constant palette of 20 colors. If the category
+      // equals the user–selected category then the surface is rendered at a higher opacity.
+      //
+      // (For brevity and clarity, no interpolation or lighting has been added.
+      // All boundaries are drawn – front and back – so that they remain visible
+      // irrespective of orientation.)
+      //
+
+      // Global variables
+      let renderer, scene, camera, controls;
+      let volumeMesh;
+      let shaderMaterial;
+      const uiCategory = document.getElementById("categorySelect");
+      const uiOpacity = document.getElementById("opacitySelect");
+      const uiOpacityValue = document.getElementById("opacityValue");
+      const uiOpacityOther = document.getElementById("opacityOther");
+      const uiOpacityOtherValue = document.getElementById("opacityOtherValue");
+
+      // Populate the category menu with options 0–19
+      for (let i = 0; i < 20; i++) {
+        const option = document.createElement("option");
+        option.value = i;
+        option.text = i;
+        uiCategory.appendChild(option);
+      }
+
+      init();
+      animate();
+
+      function init() {
+        // Renderer
+        renderer = new THREE.WebGLRenderer({
+          canvas: document.getElementById("c"),
+          antialias: true,
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+
+        // Scene
+        scene = new THREE.Scene();
+
+        // Camera – use a perspective camera
+        camera = new THREE.PerspectiveCamera(
+          45,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        camera.position.set(1.5, 1.5, 1.5);
+
+        // OrbitControls so the user can rotate the view
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0.5, 0.5, 0.5);
+        controls.update();
+
+        // Load the PNG file (assumed to be in the same folder)
+        const loader = new THREE.TextureLoader();
+        loader.load("bct20_en_us.png", (texture) => {
+          // The PNG is 4096×4096; use nearest filtering (no blending)
+          texture.minFilter = THREE.NearestFilter;
+          texture.magFilter = THREE.NearestFilter;
+          texture.generateMipmaps = false;
+          texture.wrapS = THREE.ClampToEdgeWrapping;
+          texture.wrapT = THREE.ClampToEdgeWrapping;
+          // Now build our volume ray–marching shader
+          shaderMaterial = createVolumeShaderMaterial(texture);
+          // Create a cube geometry covering [0,1]^3.
+          // (Note: BoxGeometry(1,1,1) is centered at (0,0,0) so we add 0.5 in the vertex shader)
+          const geometry = new THREE.BoxGeometry(1, 1, 1);
+          volumeMesh = new THREE.Mesh(geometry, shaderMaterial);
+          scene.add(volumeMesh);
+        });
+
+        window.addEventListener("resize", onWindowResize, false);
+
+        // UI: update the shader uniform when the user picks a different category or opacity.
+        uiCategory.addEventListener("change", function () {
+          if (shaderMaterial)
+            shaderMaterial.uniforms.selectedCategory.value = parseInt(
+              this.value
+            );
+        });
+        uiOpacity.addEventListener("input", function () {
+          uiOpacityValue.innerText = this.value;
+          if (shaderMaterial)
+            shaderMaterial.uniforms.selectedOpacity.value = parseFloat(
+              this.value
+            );
+        });
+        uiOpacityOther.addEventListener("input", function () {
+          uiOpacityOtherValue.innerText = this.value;
+          if (shaderMaterial)
+            shaderMaterial.uniforms.otherOpacity.value = parseFloat(
+              this.value
+            );
+        });
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        // In each frame, update the shader’s cameraPos uniform. We transform the camera’s
+        // world position into the volumeMesh’s local space so that the ray–marching (which is done in [0,1]^3)
+        if (volumeMesh && shaderMaterial) {
+          const localCamPos = volumeMesh.worldToLocal(camera.position.clone());
+          shaderMaterial.uniforms.cameraPos.value.copy(localCamPos);
+        }
+        renderer.render(scene, camera);
+      }
+
+      // Create a ShaderMaterial that performs volume ray–marching.
+      // The uniform "volumeTex" is the loaded PNG texture. The shader will "re-map"
+      // a 3D voxel coordinate (r, g, b) ∈ [0,1]^3 into the correct (u,v) inside the PNG.
+      function createVolumeShaderMaterial(volumeTexture) {
+        const material = new THREE.ShaderMaterial({
+          uniforms: {
+            volumeTex: { value: volumeTexture },
+            selectedCategory: { value: 0 },
+            selectedOpacity: { value: 0.8 },
+            otherOpacity: { value: 0.1 },
+            cameraPos: { value: new THREE.Vector3() },
+            voxelSize: { value: 1.0 / 256.0 },
+            steps: { value: 600 },
+          },
+          vertexShader: `
+            // The vertex shader passes the vertex "position" (shifted to [0,1]^3)
+            // to the fragment shader as vPos.
+            varying vec3 vPos;
+            void main(){
+              // BoxGeometry(1,1,1) is centered at (0,0,0) – add 0.5 so that vPos ∈ [0,1]^3.
+              vPos = position + 0.5;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(vPos, 1.0);
+            }
+          `,
+          fragmentShader: `
+precision highp float;
+precision highp int;
+uniform sampler2D volumeTex;
+uniform int selectedCategory;
+uniform float selectedOpacity;
+uniform float otherOpacity;
+uniform vec3 cameraPos;
+uniform float voxelSize;
+uniform int steps;
+varying vec3 vPos;
+
+// Define a palette of 20 distinct colors
+const vec3 palette[20] = vec3[20](
+  vec3(0.1, 0.1, 0.1),
+  vec3(1.0, 0.0, 0.0),
+  vec3(0.91, 0.49, 0.32),
+  vec3(1.0, 1.0, 0.0),
+  vec3(0.0, 1.0, 0.0),
+  vec3(0.0, 1.0, 1.0),
+  vec3(0.0, 0.0, 1.0),
+  vec3(0.26, 0.0, 0.39),
+  vec3(0.4, 0.0, 0.16),
+  vec3(1.0, 0.49, 0.66),
+  vec3(0.65, 0.47, 0.0),
+  vec3(1.0, 0.71, 0.58),
+  vec3(1.0, 0.85, 0.67),
+  vec3(0.56, 0.24, 0.0),
+  vec3(0.3, 0.26, 0.0),
+  vec3(0.5, 0.5, 0.5),
+  vec3(0.83, 0.67, 0.92),
+  vec3(1.0, 0.0, 0.0),
+  vec3(0.67, 0.83, 0.54),
+  vec3(1.0, 1.0, 1.0)
+);
+
+// Light direction (fixed in view space, pointing from upper-right to lower-left relative to the viewer)
+const vec3 lightDir = normalize(vec3(-1.0, -1.0, -1.0));
+
+// Function to compute the category from the volume texture
+float sampleVolume(vec3 pos) {
+  float r_voxel = floor(pos.x * 255.0 + 0.5);
+  float g_voxel = floor(pos.y * 255.0 + 0.5);
+  float b_voxel = floor(pos.z * 255.0 + 0.5);
+  float subImgX = 15.0 - mod(r_voxel, 16.0);
+  float subImgY = floor(r_voxel / 16.0);
+  float pixelX = subImgX * 256.0 + b_voxel;
+  float pixelY = subImgY * 256.0 + g_voxel;
+  vec2 uv = vec2(pixelX / 4096.0, pixelY / 4096.0);
+  float v = texture(volumeTex, uv).r;
+  return floor(v * 255.0 + 0.5);
+}
+
+// Ray-box intersection for a unit cube [0,1]^3
+vec2 intersectBox(vec3 orig, vec3 dir) {
+  vec3 invDir = 1.0 / dir;
+  vec3 tMinTemp = (vec3(0.0) - orig) * invDir;
+  vec3 tMaxTemp = (vec3(1.0) - orig) * invDir;
+  vec3 tMin = min(tMinTemp, tMaxTemp);
+  vec3 tMax = max(tMinTemp, tMaxTemp);
+  float t0 = max(max(tMin.x, tMin.y), tMin.z);
+  float t1 = min(min(tMax.x, tMax.y), tMax.z);
+  return vec2(t0, t1);
+}
+
+void main() {
+  vec3 rayOrigin = cameraPos;
+  vec3 rayDir = normalize(vPos - cameraPos);
+  vec2 tHit = intersectBox(rayOrigin, rayDir);
+  if (tHit.x > tHit.y) discard;
+
+  float t0 = max(tHit.x, 0.0);
+  float t1 = tHit.y;
+  float dt = (t1 - t0) / float(steps);
+  vec4 accumulatedColor = vec4(0.0);
+
+  float t = t0;
+  for (int i = 0; i < steps; i++) {
+    if (t > t1) break;
+    vec3 pos = rayOrigin + t * rayDir;
+
+    if (any(lessThan(pos, vec3(0.0))) || any(greaterThan(pos, vec3(1.0)))) {
+      t += dt;
+      continue;
+    }
+
+    float cat = sampleVolume(pos);
+    bool isBoundary = false;
+
+    // Always highlight the outer edges of the cube
+    if (pos.x < voxelSize || pos.x > 1.0 - voxelSize ||
+        pos.y < voxelSize || pos.y > 1.0 - voxelSize ||
+        pos.z < voxelSize || pos.z > 1.0 - voxelSize) {
+      isBoundary = true;
+    } else {
+      float cat_xp = sampleVolume(pos + vec3(voxelSize, 0.0, 0.0));
+      float cat_xm = sampleVolume(pos - vec3(voxelSize, 0.0, 0.0));
+      float cat_yp = sampleVolume(pos + vec3(0.0, voxelSize, 0.0));
+      float cat_ym = sampleVolume(pos - vec3(0.0, voxelSize, 0.0));
+      float cat_zp = sampleVolume(pos + vec3(0.0, 0.0, voxelSize));
+      float cat_zm = sampleVolume(pos - vec3(0.0, 0.0, voxelSize));
+      if (cat != cat_xp || cat != cat_xm || cat != cat_yp ||
+          cat != cat_ym || cat != cat_zp || cat != cat_zm) {
+        isBoundary = true;
+      }
+    }
+
+    if (isBoundary) {
+      // Compute surface normal
+      vec3 normal = normalize(vec3(
+        sampleVolume(pos + vec3(voxelSize, 0.0, 0.0)) - sampleVolume(pos - vec3(voxelSize, 0.0, 0.0)),
+        sampleVolume(pos + vec3(0.0, voxelSize, 0.0)) - sampleVolume(pos - vec3(0.0, voxelSize, 0.0)),
+        sampleVolume(pos + vec3(0.0, 0.0, voxelSize)) - sampleVolume(pos - vec3(0.0, 0.0, voxelSize))
+      ));
+
+      // Compute light intensity based on the fixed light direction
+      float lightIntensity = max(dot(normal, lightDir), 0.5);
+
+      // Use the "selected" opacity if this voxel’s category matches; else use a lower opacity
+      float opacity = (cat == float(selectedCategory)) ? selectedOpacity : otherOpacity;
+      int index = int(mod(cat, 20.0));
+      vec3 col = palette[index] * lightIntensity;
+
+      vec4 sampleColor = vec4(col, opacity);
+
+      // Front-to-back compositing
+      accumulatedColor.rgb += (1.0 - accumulatedColor.a) * sampleColor.rgb * sampleColor.a;
+      accumulatedColor.a += (1.0 - accumulatedColor.a) * sampleColor.a;
+      if (accumulatedColor.a >= 0.95) break;
+    }
+    t += dt;
+  }
+
+  gl_FragColor = accumulatedColor;
+}          
+          `,
+          transparent: true,
+          depthWrite: false,
+        });
+        return material;
+      }
+    </script>
+  </body>
+</html>
