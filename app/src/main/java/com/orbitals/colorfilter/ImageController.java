@@ -35,19 +35,12 @@ public class ImageController {
     private final Context context;
     private final TextureView textureView;
     private final FilterProcessor filter;
-
-    private Bitmap loadedImage = null;
     private final Matrix imageMatrix = new Matrix();
     private final RectF imageBounds = new RectF();
     private final float[] matrixValues = new float[9];
-    private Bitmap processedImage = null;
-
-
-    public interface FilterUpdateCallback {
-        void onFilterUpdated();
-    }
-
     private final FilterUpdateCallback updateCallback;
+    private Bitmap loadedImage = null;
+    private Bitmap processedImage = null;
 
     public ImageController(Context context, TextureView textureView, FilterProcessor filter, FilterUpdateCallback updateCallback) {
         this.context = context;
@@ -304,5 +297,9 @@ public class ImageController {
                 displayLoadedImage(false);
             }
         });
+    }
+
+    public interface FilterUpdateCallback {
+        void onFilterUpdated();
     }
 }

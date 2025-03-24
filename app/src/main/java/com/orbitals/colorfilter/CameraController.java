@@ -48,17 +48,23 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 public class CameraController {
-    private final TextureView textureView;
-    private final Context context;
-    private final Supplier<Boolean> checkCameraPermissions;
-    private final FilterProcessor filter;
-
-    private boolean lightMode = false;
-
     /**
      * @noinspection SpellCheckingInspection
      */
     private static final String TAG = "com.orbitals.colorfilter.CameraController";
+    private final TextureView textureView;
+    private final Context context;
+    private final Supplier<Boolean> checkCameraPermissions;
+    private final FilterProcessor filter;
+    private final Semaphore cameraOpenCloseLock = new Semaphore(1);
+    private final CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+            super.onCaptureCompleted(session, request, result);
+        }
+    };
+    private final FilterUpdateCallback updateCallback;
+    private boolean lightMode = false;
     private CameraDevice cameraDevice;
     private CameraCaptureSession cameraCaptureSession;
     private CaptureRequest.Builder captureRequestBuilder;
@@ -68,25 +74,97 @@ public class CameraController {
     private boolean isFrontCamera = false;  // Flag for front/back camera
     private Handler backgroundHandler;
     private float mScaleFactor = 1.0f;
-
     private float mMinZoom;
     private float mMaxZoom;
     private Matrix matrix;
-    private final Semaphore cameraOpenCloseLock = new Semaphore(1);
-    private HandlerThread backgroundThread;
-
-    private final CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
+    private final ImageReader.OnImageAvailableListener imageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
-        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-            super.onCaptureCompleted(session, request, result);
+        public void onImageAvailable(ImageReader reader) {
+            try (Image image = reader.acquireLatestImage()) {
+                if (image == null) {
+                    return;
+                }
+
+                ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                byte[] bytes = new byte[buffer.capacity()];
+                buffer.get(bytes);
+
+                // Convert JPEG bytes to Bitmap
+                Bitmap inputBmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                Mat rgbMat = new Mat();
+                Utils.bitmapToMat(inputBmp, rgbMat);
+                inputBmp.recycle();
+
+                if (filter.getSampleMode()) {
+                    Mat centerChunk = Utilities.centerOfImage(context, textureView, filter, rgbMat, matrix);
+                    if (filter.sampleRegion(centerChunk) && updateCallback != null) {
+                        ((Activity) context).runOnUiThread(updateCallback::onFilterUpdated);
+                    }
+                    centerChunk.release();
+                }
+                // Process the image
+                Mat processedMat = filter.process(rgbMat);
+
+                // Convert back to Bitmap for display
+                Bitmap bmp = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
+                Utils.matToBitmap(processedMat, bmp);
+
+                // Display the bitmap on the TextureView
+                Canvas canvas = textureView.lockCanvas();
+                if (canvas != null) {
+                    float viewWidth = textureView.getWidth();
+                    float viewHeight = textureView.getHeight();
+                    float bmpWidth = bmp.getWidth();
+                    float bmpHeight = bmp.getHeight();
+                    matrix = new Matrix();
+                    int rotation = getCorrectRotation();
+                    if (isFrontCamera) {
+                        matrix.postScale(1, -1, bmpWidth / 2, bmpHeight / 2);
+                    }
+                    matrix.postRotate(rotation, bmpWidth / 2, bmpHeight / 2);
+                    float scale = Math.max(viewWidth / bmpWidth, viewHeight / bmpHeight);
+                    if (rotation == 90 || rotation == 270) {
+                        scale = Math.max(viewWidth / bmpHeight, viewHeight / bmpWidth);
+                    }
+                    float dx = (viewWidth - bmpWidth * scale) / 2;
+                    float dy = (viewHeight - bmpHeight * scale) / 2;
+                    matrix.postScale(scale, scale);
+                    matrix.postTranslate(dx, dy);
+                    canvas.drawBitmap(bmp, matrix, null);
+                    Utilities.drawSamplingCircle(context, filter, canvas);
+                    textureView.unlockCanvasAndPost(canvas);
+                }
+                rgbMat.release();
+                processedMat.release();
+            }
         }
     };
+    private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
+        @Override
+        public void onOpened(@NonNull CameraDevice camera) {
+            cameraOpenCloseLock.release(); //Release on opening.
+            Log.d(TAG, "onOpened");
+            cameraDevice = camera;
+            createCameraPreview();
+        }
 
-    public interface FilterUpdateCallback {
-        void onFilterUpdated();
-    }
+        @Override
+        public void onDisconnected(@NonNull CameraDevice camera) {
+            cameraOpenCloseLock.release();
+            cameraDevice.close();
+            cameraDevice = null;
+        }
 
-    private final FilterUpdateCallback updateCallback;
+        @Override
+        public void onError(@NonNull CameraDevice camera, int error) {
+            cameraOpenCloseLock.release();
+            if (cameraDevice != null) {
+                cameraDevice.close();
+                cameraDevice = null;
+            }
+        }
+    };
+    private HandlerThread backgroundThread;
 
     public CameraController(
             Context context, TextureView textureView, Supplier<Boolean> checkCameraPermissions,
@@ -199,41 +277,6 @@ public class CameraController {
         }
     }
 
-    static class CompareSizesByArea implements Comparator<Size> {
-        @Override
-        public int compare(Size lhs, Size rhs) {
-            return Long.signum((long) lhs.getWidth() * lhs.getHeight() -
-                    (long) rhs.getWidth() * rhs.getHeight());
-        }
-    }
-
-
-    private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
-        @Override
-        public void onOpened(@NonNull CameraDevice camera) {
-            cameraOpenCloseLock.release(); //Release on opening.
-            Log.d(TAG, "onOpened");
-            cameraDevice = camera;
-            createCameraPreview();
-        }
-
-        @Override
-        public void onDisconnected(@NonNull CameraDevice camera) {
-            cameraOpenCloseLock.release();
-            cameraDevice.close();
-            cameraDevice = null;
-        }
-
-        @Override
-        public void onError(@NonNull CameraDevice camera, int error) {
-            cameraOpenCloseLock.release();
-            if (cameraDevice != null) {
-                cameraDevice.close();
-                cameraDevice = null;
-            }
-        }
-    };
-
     protected void createCameraPreview() {
         try {
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
@@ -311,69 +354,6 @@ public class CameraController {
             return 0;
         }
     }
-
-    private final ImageReader.OnImageAvailableListener imageAvailableListener = new ImageReader.OnImageAvailableListener() {
-        @Override
-        public void onImageAvailable(ImageReader reader) {
-            try (Image image = reader.acquireLatestImage()) {
-                if (image == null) {
-                    return;
-                }
-
-                ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                byte[] bytes = new byte[buffer.capacity()];
-                buffer.get(bytes);
-
-                // Convert JPEG bytes to Bitmap
-                Bitmap inputBmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                Mat rgbMat = new Mat();
-                Utils.bitmapToMat(inputBmp, rgbMat);
-                inputBmp.recycle();
-
-                if (filter.getSampleMode()) {
-                    Mat centerChunk = Utilities.centerOfImage(context, textureView, filter, rgbMat, matrix);
-                    if (filter.sampleRegion(centerChunk) && updateCallback != null) {
-                        ((Activity) context).runOnUiThread(updateCallback::onFilterUpdated);
-                    }
-                    centerChunk.release();
-                }
-                // Process the image
-                Mat processedMat = filter.process(rgbMat);
-
-                // Convert back to Bitmap for display
-                Bitmap bmp = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
-                Utils.matToBitmap(processedMat, bmp);
-
-                // Display the bitmap on the TextureView
-                Canvas canvas = textureView.lockCanvas();
-                if (canvas != null) {
-                    float viewWidth = textureView.getWidth();
-                    float viewHeight = textureView.getHeight();
-                    float bmpWidth = bmp.getWidth();
-                    float bmpHeight = bmp.getHeight();
-                    matrix = new Matrix();
-                    int rotation = getCorrectRotation();
-                    if (isFrontCamera) {
-                        matrix.postScale(1, -1, bmpWidth / 2, bmpHeight / 2);
-                    }
-                    matrix.postRotate(rotation, bmpWidth / 2, bmpHeight / 2);
-                    float scale = Math.max(viewWidth / bmpWidth, viewHeight / bmpHeight);
-                    if (rotation == 90 || rotation == 270) {
-                        scale = Math.max(viewWidth / bmpHeight, viewHeight / bmpWidth);
-                    }
-                    float dx = (viewWidth - bmpWidth * scale) / 2;
-                    float dy = (viewHeight - bmpHeight * scale) / 2;
-                    matrix.postScale(scale, scale);
-                    matrix.postTranslate(dx, dy);
-                    canvas.drawBitmap(bmp, matrix, null);
-                    Utilities.drawSamplingCircle(context, filter, canvas);
-                    textureView.unlockCanvasAndPost(canvas);
-                }
-                rgbMat.release();
-                processedMat.release();
-            }
-        }
-    };
 
     protected void updatePreview() {
         if (cameraDevice == null) {
@@ -480,6 +460,18 @@ public class CameraController {
         } catch (CameraAccessException e) {
             Log.e(TAG, "Failed to check flash availability", e);
             return false;
+        }
+    }
+
+    public interface FilterUpdateCallback {
+        void onFilterUpdated();
+    }
+
+    static class CompareSizesByArea implements Comparator<Size> {
+        @Override
+        public int compare(Size lhs, Size rhs) {
+            return Long.signum((long) lhs.getWidth() * lhs.getHeight() -
+                    (long) rhs.getWidth() * rhs.getHeight());
         }
     }
 }
