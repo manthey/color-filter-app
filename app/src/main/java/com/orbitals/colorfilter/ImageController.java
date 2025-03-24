@@ -295,6 +295,7 @@ public class ImageController {
                         relativeScale, relativeScale,
                         textureView.getWidth() / 2f, textureView.getHeight() / 2f);
                 float deltaY = centerY - textureView.getHeight() / 2f;
+                imageMatrix.getValues(newBaseValues);
                 imageMatrix.postTranslate(
                         currentTransX - newBaseValues[Matrix.MTRANS_X],
                         currentTransY - newBaseValues[Matrix.MTRANS_Y] - deltaY
