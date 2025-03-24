@@ -21,7 +21,7 @@ android {
             useSupportLibrary true
         }
     }
-    if (System.getenv("SIGNING_STORE_FILE") != null) {
+    if (System.getenv("SIGNING_STORE_FILE") != null && file(System.getenv("SIGNING_STORE_FILE")).exists()) {
         signingConfigs {
             release {
                 storeFile file(System.getenv("SIGNING_STORE_FILE") ?: "")
@@ -40,7 +40,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            if (System.getenv("SIGNING_STORE_FILE") != null) {
+            if (System.getenv("SIGNING_STORE_FILE") != null && file(System.getenv("SIGNING_STORE_FILE")).exists()) {
                 signingConfig signingConfigs.release
             }
         }

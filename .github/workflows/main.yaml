@@ -101,7 +101,7 @@ jobs:
             fi
         done | sort -n | cut -d'|' -f2-
     - name: Decode Keystore
-      run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+      run: if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks; fi
     - name: Build AAR
       env:
         SIGNING_STORE_FILE: ${{ github.workspace }}/keystore.jks

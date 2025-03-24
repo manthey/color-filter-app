@@ -1,12 +1,16 @@
+# pip install colour-science scipy PILLOW numpy tqdm
+
+import argparse
+import multiprocessing
 import os
 import pprint
-import sys
 
 import colour
 import numpy as np
 import PIL.Image
 import PIL.ImageOps
 import scipy
+import tqdm
 
 
 def xyY_to_rgb(xyY):
@@ -161,7 +165,17 @@ def image_to_colors(image_path):
     return results
 
 
-def rgb_categories(labrgb, labcat, catvals):
+def process_delta2000_chunk(args):
+    labrgb, labcat, catvals = args
+    results = []
+    for rgblab in labrgb:
+        deltas = np.array([colour.difference.delta_E_CIE2000(rgblab, catlab) for catlab in labcat])
+        term_idx = np.argmin(deltas)
+        results.append((term_idx, catvals[term_idx]))
+    return results
+
+
+def rgb_categories(labrgb, labcat, catvals, delta2000=False):
     """
     Compute categoric values.
 
@@ -177,13 +191,42 @@ def rgb_categories(labrgb, labcat, catvals):
     labrgb = labrgb.reshape(-1, 3)
     cats = np.zeros((labrgb.shape[0], ), dtype=np.uint8)
     chunksize = 65536
-    for chunk in range(0, labrgb.shape[0], chunksize):
-        sys.stdout.write(f'{chunk // chunksize}\r')
-        sys.stdout.flush()
+    for chunk in tqdm.tqdm(range(0, labrgb.shape[0], chunksize)):
         # Calculate the Euclidean distance between each color
         distances = np.linalg.norm(labrgb[chunk:chunk + chunksize, np.newaxis] - labcat, axis=2)
         indices = np.argmin(distances, axis=1)
         cats[chunk:chunk + chunksize] = catvals[indices]
+    if delta2000:
+        chunksize = 4096
+        with multiprocessing.Pool() as pool:
+            results = pool.map(
+                process_delta2000_chunk,
+                [(labrgb[ridx:ridx+chunksize, :], labcat, catvals)
+                 for ridx in range(0, labrgb.shape[0], chunksize)])
+        results = [item for sublist in results for item in sublist]
+        differ = 0
+        for idx, (_term_idx, term) in tqdm(enumerate(results), total=len(labrgb)):
+            if term != cats[idx]:
+                print(f'{differ + 1} {idx:06X} {cats[idx]} {term}')
+                cats[idx] = term
+                differ += 1
+        """
+        differ = 0
+        for idx, rgblab in enumerate(tqdm.tqdm(labrgb)):
+            best = -1
+            term = None
+            for cidx, catlab in enumerate(labcat):
+                delta = colour.difference.delta_E_CIE2000(rgblab, catlab)
+                if term is None or delta < best:
+                    term = catvals[cidx]
+                    best = delta
+            if term != cats[idx]:
+                print(f'{differ + 1} {idx:06X} {cats[idx]} {term}')
+                cats[idx] = term
+                differ += 1
+        """
+    print(differ)
+    # ##DWM::
     return cats.reshape(256, 256, 256)
 
 
@@ -214,8 +257,7 @@ def make_base_data():
         labrgb = np.load('labrgb.npz')['arr_0']
     else:
         labrgb = np.zeros((256 ** 3, 3), dtype=float)
-        for r in range(256):
-            print(r)
+        for r in tqdm.tqdm(range(256)):
             for g in range(256):
                 for b in range(256):
                     labrgb[r * 65536 + g * 256 + b, :3] = colour.XYZ_to_Lab(
@@ -389,7 +431,7 @@ def generate_bct11(hexgrid, hexgray):
     return hexdict, viewingColors
 
 
-def hexdict_to_termmap(hexdict, viewcolors, labrgb, basename):
+def hexdict_to_termmap(hexdict, viewcolors, labrgb, basename, delta2000=False):
     cats = {}
     labcat = []
     labcatidx = []
@@ -406,7 +448,7 @@ def hexdict_to_termmap(hexdict, viewcolors, labrgb, basename):
         labcatidx.append(cats[cat])
     labcat = np.array(labcat)
 
-    catrgb = rgb_categories(labrgb, labcat, np.array(labcatidx))
+    catrgb = rgb_categories(labrgb, labcat, np.array(labcatidx), delta2000)
     print([k.capitalize() for k in cats.keys()])
     counts = np.bincount(catrgb.flatten())
     countlist = sorted([(counts[idx], k.capitalize()) for idx, k in enumerate(cats)], reverse=True)
@@ -435,8 +477,28 @@ def hexdict_to_termmap(hexdict, viewcolors, labrgb, basename):
               catrgb[cref[0]][cref[1]][cref[2]] == idx)
 
 
-labrgb, hexgrid, hexgray = make_base_data()
-hexdict20, viewcolors20 = generate_bct20(hexgrid, hexgray)
-hexdict_to_termmap(hexdict20, viewcolors20, labrgb, 'bct20_en_us')
-hexdict11, viewcolors11 = generate_bct11(hexgrid, hexgray)
-hexdict_to_termmap(hexdict11, viewcolors11, labrgb, 'bct11_en_us')
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Convert figures from the Lindsey and Brown paper to term '
+        'maps that can be used by the color-filter-app.')
+    parser.add_argument(
+        '--bct20', action=argparse.BooleanOptionalAction, default=True,
+        help='Generate the BCT20 term map.  The file '
+        'i1534-7362-14-2-17-f09.jpeg must be in the currenct directory.')
+    parser.add_argument(
+        '--bct11', action=argparse.BooleanOptionalAction, default=True,
+        help='Generate the BCT11 term map.  The file '
+        'm_i1534-7362-14-2-17-f05.jpeg must be in the currenct directory.')
+    parser.add_argument(
+        '--delta2000', '--e2000', '--delta_e_cie2000', action='store_true',
+        help='Use delta_E_CIE2000 for color comparisions.  If not specified, '
+        'delta_E_CIE1976 is used.')
+    opts = parser.parse_args()
+
+    labrgb, hexgrid, hexgray = make_base_data()
+    if opts.bct20:
+        hexdict20, viewcolors20 = generate_bct20(hexgrid, hexgray)
+        hexdict_to_termmap(hexdict20, viewcolors20, labrgb, 'bct20_en_us', opts.delta2000)
+    if opts.bct11:
+        hexdict11, viewcolors11 = generate_bct11(hexgrid, hexgray)
+        hexdict_to_termmap(hexdict11, viewcolors11, labrgb, 'bct11_en_us', opts.delta2000)
