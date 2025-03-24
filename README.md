@@ -5,18 +5,18 @@ This app aims to answer two questions that constantly plague colorblind people:
 
 - **What color is that?**
 
-- **Which thing is some color**
+- **Which items are that color?**
 
-In the first instance, color used as a reference by the color-sighted, and can
-be a useful way to discriminate between different items.  In the second 
+In the first instance, color is used as a reference by the color-sighted, and 
+can be a useful way to discriminate between different items.  In the second 
 instance, knowing the color used to describe something can be used to identify
 the thing.
 
 The basic use of the app is to point the camera at an  object and see the basic
 color term used for it, or to cycle through the color terms to determine what 
-items are a particular color.  Some terms, like orange and brown, are quite light
-sensitive.  Further, some basic color terms vary by speaker (e.g., teal can be
-treated as synonymous with aqua, turquoise, or cyan).
+items are a particular color.  Some terms, like orange and brown, are quite 
+light sensitive.  Further, some basic color terms vary by speaker (e.g., teal
+can be treated as synonymous with aqua, turquoise, or cyan).
 
 The app shows either a zoomable live camera view or lets the user select an
 image.  The camera or image can be shown either filtered by hue or basic color
@@ -76,13 +76,23 @@ teal, purple, and yellow.  These colors were all converted to L\*a\*b\*.
 
 For the entire 256 x 256 x 256 sRGB 8-bit color cube, the L\*a\*b\* values were
 computed at each point.  Each point in the color cube was assigned the color 
-term closest to a L\*a\*b\* value that had been found in the previous step.  
-This color cube is written out as a grayscale PNG where pixel values are the 
-index into the terms list.  It is written as a grid of 16 x 16 images, each
-256 x 256 pixels ordered from red = 0 at the top left, red = 1 just to the 
-right of that, all the way to red = 255 at the bottom right.  In each sub
-image, blue runs left (0) to right (255) and green runs top (0) to bottom 
-(255).  The term order is listed by the processing program and must match the
-PNG.  The PNG is also written out in a palettized form to make it easier for
-color-sighted people to check the results.
+term closest to a L\*a\*b\* value that had been found in the previous step.
+The closeness algorithm used was delta_E_CIE2000.  This color cube is written
+out as a grayscale PNG where pixel values are the index into the terms list.
+It is written as a grid of 16 x 16 images, each 256 x 256 pixels ordered from
+red = 0 at the top left, red = 1 just to the right of that, all the way to 
+red = 255 at the bottom right.  In each sub image, blue runs left (0) to right
+(255) and green runs top (0) to bottom (255).  The term order is listed by the
+processing program and must match the PNG.  The PNG is also written out in a
+palettized form to make it easier for color-sighted people to check the 
+results.
+
+Limitations
+-----------
+
+Lighting and white balance affect the results.  In dim areas, the color term 
+might be a darker form of what a color-sighted person picks (e.g., tomato 
+ketchup might be reported as brown rather than red).  In common English, we use
+a completely different set of words to describe skin tones, so the basic color
+term reported would not be the term used to describe someone's complexion.
 
