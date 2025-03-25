@@ -1,7 +1,6 @@
 [versions]
 activityCompose = "1.10.1"
-#noinspection AndroidGradlePluginVersion
-agp = "8.6.1"
+agp = "8.9.1"
 appcompat = "1.7.0"
 composeBom = "2025.03.00"
 coreKtx = "1.15.0"
