@@ -11,44 +11,21 @@ import PIL.ImageOps
 import scipy
 import tqdm.contrib.concurrent
 
+verbose = 0
 
-def xyY_to_rgb(xyY):
+
+def munsell_color_to_lab(munsell_notation):
     """
-    Convert xyY color space to sRGB color space.  The xyY color space is using
-    the C illuminant, and the sRGB color space uses the D65 illuminant.
-
-    :param xyY: triple in xyY color space.
-    :returns: triple in sRGB color space.
-    """
-    XYZ = colour.xyY_to_XYZ(xyY)
-    whitepoint_c = colour.xy_to_XYZ(
-        colour.CCS_ILLUMINANTS['CIE 1931 2 Degree Standard Observer']['C'])
-    whitepoint_d65 = colour.xy_to_XYZ(
-        colour.CCS_ILLUMINANTS['CIE 1931 2 Degree Standard Observer']['D65'])
-    XYZ_adapted = colour.adaptation.chromatic_adaptation_VonKries(XYZ, whitepoint_c, whitepoint_d65)
-
-    sRGB = colour.XYZ_to_sRGB(XYZ_adapted)
-    #  same as:
-    # RGB_linear = colour.XYZ_to_RGB(
-    #     XYZ,
-    #     colour.RGB_COLOURSPACES['sRGB'].whitepoint,
-    #     colour.RGB_COLOURSPACES['sRGB'].whitepoint,
-    #     colour.RGB_COLOURSPACES['sRGB'].matrix_XYZ_to_RGB
-    # )
-    # sRGB = colour.models.eotf_inverse_sRGB(RGB_linear)
-    return sRGB
-
-
-def munsell_color_to_sRGB(munsell_notation):
-    """
-    Convert a munsell color notation to an sRGB color.
+    Convert a munsell color notation to a L*a*b* color.
 
     :param: munsell notation string like N<number>/ or <hue> <number>/<chroma>.
     :returns: a sRGB triple.
     """
     xyY = colour.munsell_colour_to_xyY(munsell_notation)
-    rgb = xyY_to_rgb(xyY)
-    return rgb
+    XYZ = colour.xyY_to_XYZ(xyY)
+    lab = colour.XYZ_to_Lab(
+        XYZ, colour.CCS_ILLUMINANTS['CIE 1931 2 Degree Standard Observer']['D65'])
+    return lab
 
 
 def rgb_to_hex(rgb):
@@ -67,21 +44,19 @@ def munsell_table():
     Create a list of hex colors based on munsell colors.  This includes 10
     neutrals and 40 x 8 chroma values.
 
-    :returns: an array of 330 colors, an array of 10 neutrals, and an array of
-        [8][40] chroma colors with the more saturated values in the first row.
+    :returns: an array of 10 neutrals and an array of [8][40] chroma colors
+        with the more saturated values in the first row.
     """
-    colors = []
     grid = [[None for _ in range(40)] for _ in range(8)]
     gray = [None for _ in range(10)]
 
-    achromatic_values = np.linspace(1.5, 9.5, 10)
+    # from
+    # https://linguistics.berkeley.edu/wcs/data/cnum-maps/WCS-Munsell-chart.txt
+    achromatic_values = [1.5, 2, 3, 4, 5, 6, 7, 8, 9, 9.5]
 
     for gidx, value in enumerate(achromatic_values):
         munsell_notation = f'N{value:.1f}/'
-        rgb = munsell_color_to_sRGB(munsell_notation)
-        rgb = np.clip(rgb, 0, 1)
-        colors.append(rgb_to_hex(rgb))
-        gray[gidx] = rgb_to_hex(rgb)
+        gray[gidx] = munsell_color_to_lab(munsell_notation)
 
     hues = []
     for hue_letter in ['R', 'YR', 'Y', 'GY', 'G', 'BG', 'B', 'PB', 'P', 'RP']:
@@ -90,34 +65,25 @@ def munsell_table():
 
     values = np.linspace(2.0, 9.0, 8)
 
+    # from
+    # https://linguistics.berkeley.edu/wcs/data/cnum-maps/WCS-Munsell-chart.txt
+    chromagrid = {
+        9: [2, 2, 2, 2, 2, 2, 2, 2, 4, 6, 6, 6, 6, 4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],  # noqa
+        8: [6, 6, 6, 6, 6, 6, 8, 14, 16, 14, 12, 12, 12, 10, 10, 8, 8, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 6, 6, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6],  # noqa
+        7: [8, 8, 10, 10, 10, 14, 14, 14, 12, 12, 12, 12, 12, 12, 10, 10, 10, 8, 8, 8, 8, 8, 6, 6, 6, 6, 6, 8, 8, 8, 6, 6, 6, 6, 8, 8, 10, 10, 8, 8],  # noqa
+        6: [12, 12, 12, 14, 16, 12, 12, 12, 10, 10, 10, 10, 10, 10, 12, 12, 10, 10, 10, 10, 8, 8, 8, 8, 8, 8, 8, 10, 10, 10, 8, 8, 8, 8, 10, 10, 10, 10, 12, 12],  # noqa
+        5: [14, 14, 14, 16, 14, 12, 10, 10, 8, 8, 8, 8, 8, 8, 10, 12, 12, 10, 10, 10, 10, 8, 8, 8, 8, 8, 8, 10, 12, 12, 10, 10, 10, 10, 10, 12, 12, 12, 14, 14],  # noqa
+        4: [14, 14, 14, 14, 10, 8, 8, 6, 6, 6, 6, 6, 6, 6, 8, 8, 10, 10, 10, 10, 8, 8, 8, 8, 6, 6, 8, 8, 10, 10, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10],  # noqa
+        3: [10, 10, 12, 10, 8, 6, 6, 6, 4, 4, 4, 4, 4, 4, 6, 6, 8, 8, 10, 8, 6, 6, 6, 6, 6, 6, 6, 8, 10, 10, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10],  # noqa
+        2: [8, 8, 8, 6, 4, 4, 4, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 6, 6, 6, 4, 4, 4, 4, 4, 4, 6, 6, 6, 8, 10, 8, 8, 8, 6, 6, 8, 8, 8, 8],  # noqa
+    }
+
     for hidx, hue in enumerate(hues):
         for vidx, value in enumerate(values):
-            # Start with a moderate chroma that should exist for most hue-value
-            # combinations
-            chroma = 6
-
-            # Try to find a valid chroma for this hue-value combination
-            valid_color = False
-            while not valid_color and chroma > 0:
-                try:
-                    munsell_notation = f'{hue} {value:.1f}/{chroma:.1f}'
-                    rgb = munsell_color_to_sRGB(munsell_notation)
-
-                    # Check if RGB values are valid (not NaN and within range
-                    # after clipping)
-                    rgb_clipped = np.clip(rgb, 0, 1)
-                    if not np.isnan(rgb).any() and np.allclose(rgb, rgb_clipped, atol=0.2):
-                        valid_color = True
-                        colors.append(rgb_to_hex(rgb_clipped))
-                        grid[7 - vidx][hidx] = rgb_to_hex(rgb_clipped)
-                    else:
-                        chroma -= 1
-                except Exception:
-                    chroma -= 1
-
-            if not valid_color:
-                print(f'Could not find valid color for {hue} {value:.1f}/')
-    return colors, grid, gray
+            chroma = chromagrid[int(value)][hidx]
+            munsell_notation = f'{hue} {value:.1f}/{chroma:.1f}'
+            grid[7 - vidx][hidx] = munsell_color_to_lab(munsell_notation)
+    return grid, gray
 
 
 def image_to_colors(image_path):
@@ -164,13 +130,16 @@ def image_to_colors(image_path):
     return results
 
 
-def process_delta2000_chunk(args):
-    labrgb, labcat, catvals = args
+def process_difference_chunk(args):
+    labrgb, labcat, catvals, delta2000 = args
     results = []
     for rgblab in labrgb:
-        deltas = np.array(colour.difference.delta_E_CIE2000(rgblab, labcat))
+        if delta2000:
+            deltas = np.array(colour.difference.delta_E_CIE2000(rgblab, labcat))
+        else:
+            deltas = np.array(colour.difference.delta_E_CIE1976(rgblab, labcat))
         term_idx = np.argmin(deltas)
-        results.append((term_idx, catvals[term_idx]))
+        results.append(catvals[term_idx])
     return results
 
 
@@ -184,31 +153,19 @@ def rgb_categories(labrgb, labcat, catvals, delta2000=False):
         labels.
     :param catvals: A list matching the length of labcat where the values are
         the indices into the terms list.
+    :param delta2000: False to use delta_E_CIE1976, True to use delta_E_CIE2000
     :returns: A numpy uint8 array of [256][256][256] of the color terms indices
         that are closest to the L*a*b* values of the labcat values.
     """
     labrgb = labrgb.reshape(-1, 3)
     cats = np.zeros((labrgb.shape[0], ), dtype=np.uint8)
-    chunksize = 65536
-    for chunk in tqdm.tqdm(range(0, labrgb.shape[0], chunksize)):
-        # Calculate the Euclidean distance between each color
-        distances = np.linalg.norm(labrgb[chunk:chunk + chunksize, np.newaxis] - labcat, axis=2)
-        indices = np.argmin(distances, axis=1)
-        cats[chunk:chunk + chunksize] = catvals[indices]
-    if delta2000:
-        labchunksize = 4096
-        results = tqdm.contrib.concurrent.process_map(
-            process_delta2000_chunk,
-            [(labrgb[ridx:ridx+labchunksize, :], labcat, catvals)
-             for ridx in range(0, labrgb.shape[0], labchunksize)],
-            chunksize=1)
-        results = [item for sublist in results for item in sublist]
-        differ = 0
-        for idx, (_term_idx, term) in tqdm.tqdm(enumerate(results)):
-            if term != cats[idx]:
-                cats[idx] = term
-                differ += 1
-        print(f'Differences between E1976 and E2000: {differ}')
+    chunksize = 8192
+    results = tqdm.contrib.concurrent.process_map(
+        process_difference_chunk,
+        [(labrgb[ridx:ridx + chunksize, :], labcat, catvals, delta2000)
+         for ridx in range(0, labrgb.shape[0], chunksize)],
+        chunksize=1)
+    cats = np.array([item for sublist in results for item in sublist])
     return cats.reshape(256, 256, 256)
 
 
@@ -233,22 +190,20 @@ def ansicolor(color, text):
 
 
 def make_base_data():
-    _, hexgrid, hexgray = munsell_table()
+    labgrid, labgray = munsell_table()
 
     if os.path.exists('labrgb.npz'):
         labrgb = np.load('labrgb.npz')['labrgb']
     else:
-        labrgb = np.zeros((256 ** 3, 3), dtype=float)
-        for r in tqdm.tqdm(range(256)):
-            for g in range(256):
-                for b in range(256):
-                    labrgb[r * 65536 + g * 256 + b, :3] = [r / 255, g / 255, b / 255]
+        labrgb = np.indices((256, 256, 256)).transpose((1, 2, 3, 0))
+        labrgb = labrgb.reshape(-1, 3)
+        labrgb = labrgb / 255.0
         labrgb = colour.XYZ_to_Lab(colour.sRGB_to_XYZ(labrgb))
         np.savez_compressed('labrgb.npz', labrgb=labrgb)
-    return labrgb, hexgrid, hexgray
+    return labrgb, labgrid, labgray
 
 
-def generate_bct20(hexgrid, hexgray):
+def generate_bct20(labgrid, labgray):
     # This image is Figure 9 of
     #   Lindsey, D. T., and A. M. Brown. 2014. "The Color Lexicon of American
     #   English." Journal of Vision. Association for Research in Vision and
@@ -302,8 +257,9 @@ def generate_bct20(hexgrid, hexgray):
     # four being black.
     graytbl = ['bk', 'bk', 'gy', 'gy', 'gy', 'gy', 'gy', 'gy', 'white', 'white']
 
-    print(results)
-    print(table)
+    if verbose >= 2:
+        print(results)
+        print(table)
     for row in table:
         print(''.join([str(val)[:2] for val in row]))
     # Prepopulate this with colors at some extremes
@@ -317,18 +273,23 @@ def generate_bct20(hexgrid, hexgray):
         'FF00FF': 'magenta',
         'FFFF00': 'yellow',
     }
-    for hx, val in zip(hexgray, graytbl):
-        hexdict[hx] = val
+    labdict = {
+        tuple(colour.XYZ_to_Lab(colour.sRGB_to_XYZ(
+            [int(hx[i:i + 2], 16) / 255 for i in range(0, 6, 2)]))): v
+        for hx, v in hexdict.items()}
+    for lab, val in zip(labgray, graytbl):
+        labdict[tuple(lab)] = val
     for y in range(len(table)):
-        for hx, val in zip(hexgrid[y], table[y]):
-            hexdict[hx] = val
-    pprint.pprint(hexdict)
-    return hexdict, viewingColors
+        for lab, val in zip(labgrid[y], table[y]):
+            labdict[tuple(lab)] = val
+    if verbose >= 1:
+        pprint.pprint(labdict)
+    return labdict, viewingColors
 
 
-def generate_bct11(hexgrid, hexgray):
-    image_path = 'm_i1534-7362-14-2-17-f05.jpeg'
-    left, upper, right, lower = 284, 40, 516, 87
+def generate_bct11(labgrid, labgray):
+    image_path = 'i1534-7362-14-2-17-f05.jpeg'
+    left, upper, right, lower = 699, 102, 1269, 212
     xstride = (right - left) / 40
     ystride = (lower - upper) / 8
     x0 = left + xstride / 2
@@ -392,9 +353,10 @@ def generate_bct11(hexgrid, hexgray):
         print(''.join([str(val)[:2] for val in row]))
     graytbl = ['bk', 'bk', 'gy', 'gy', 'gy', 'gy', 'gy', 'gy', 'white', 'white']
 
-    print('Numpy array (8x40):')
-    for row in range(grid.shape[0]):
-        print(''.join([f'{grid[row][col]:1d}' for col in range(grid.shape[1])]))
+    if verbose >= 2:
+        print('Numpy array (8x40):')
+        for row in range(grid.shape[0]):
+            print(''.join([f'{grid[row][col]:1d}' for col in range(grid.shape[1])]))
 
     hexdict = {
         'FFFFFF': 'white',
@@ -404,27 +366,30 @@ def generate_bct11(hexgrid, hexgray):
         '0000FF': 'blue',
         'FFFF00': 'yellow',
     }
-    for hx, val in zip(hexgray, graytbl):
-        hexdict[hx] = val
+    labdict = {
+        tuple(colour.XYZ_to_Lab(colour.sRGB_to_XYZ(
+            [int(hx[i:i + 2], 16) / 255 for i in range(0, 6, 2)]))): v
+        for hx, v in hexdict.items()}
+    for lab, val in zip(labgray, graytbl):
+        labdict[tuple(lab)] = val
     for y in range(len(table)):
-        for hx, val in zip(hexgrid[y], table[y]):
-            hexdict[hx] = val
-    pprint.pprint(hexdict)
-    return hexdict, viewingColors
+        for lab, val in zip(labgrid[y], table[y]):
+            labdict[tuple(lab)] = val
+    if verbose >= 1:
+        pprint.pprint(labdict)
+    return labdict, viewingColors
 
 
-def hexdict_to_termmap(hexdict, viewcolors, labrgb, basename, delta2000=False):
+def labdict_to_termmap(labdict, viewcolors, labrgb, basename, delta2000=False):
     cats = {}
     labcat = []
     labcatidx = []
     for clr in viewcolors:
         cat = clr
         cats[cat] = len(cats)
-    for hx, cat in hexdict.items():
+    for labval, cat in labdict.items():
         cat = {'bk': 'black', 'gy': 'gray'}.get(cat, cat)
-        labval = colour.XYZ_to_Lab(colour.sRGB_to_XYZ(
-            [int(hx[i:i + 2], 16) / 255 for i in range(0, 6, 2)]))
-        labcat.append(labval)
+        labcat.append(list(labval))
         if cat not in cats:
             cats[cat] = len(cats)
         labcatidx.append(cats[cat])
@@ -470,17 +435,23 @@ if __name__ == '__main__':
     parser.add_argument(
         '--bct11', action=argparse.BooleanOptionalAction, default=True,
         help='Generate the BCT11 term map.  The file '
-        'm_i1534-7362-14-2-17-f05.jpeg must be in the currenct directory.')
+        'i1534-7362-14-2-17-f05.jpeg must be in the currenct directory.')
     parser.add_argument(
-        '--delta2000', '--delta_e_cie2000', action='store_true',
-        help='Use delta_E_CIE2000 for color comparisions.  If not specified, '
-        'delta_E_CIE1976 is used.')
+        '--delta2000', '--delta_e_cie2000', action='store_true', default=True,
+        help='Use delta_E_CIE2000 for color comparisions (default)')
+    parser.add_argument(
+        '--delta1976', '--delta_e_cie1976', dest='delta2000', action='store_false',
+        help='Use delta_E_CIE1976 for color comparisions.')
+    parser.add_argument(
+        '--verbose', '-v', action='count', default=0,
+        help='Increase verbosity')
     opts = parser.parse_args()
+    verbose = opts.verbose
 
-    labrgb, hexgrid, hexgray = make_base_data()
+    labrgb, labgrid, labgray = make_base_data()
     if opts.bct20:
-        hexdict20, viewcolors20 = generate_bct20(hexgrid, hexgray)
-        hexdict_to_termmap(hexdict20, viewcolors20, labrgb, 'bct20_en_us', opts.delta2000)
+        labdict20, viewcolors20 = generate_bct20(labgrid, labgray)
+        labdict_to_termmap(labdict20, viewcolors20, labrgb, 'bct20_en_us', opts.delta2000)
     if opts.bct11:
-        hexdict11, viewcolors11 = generate_bct11(hexgrid, hexgray)
-        hexdict_to_termmap(hexdict11, viewcolors11, labrgb, 'bct11_en_us', opts.delta2000)
+        labdict11, viewcolors11 = generate_bct11(labgrid, labgray)
+        labdict_to_termmap(labdict11, viewcolors11, labrgb, 'bct11_en_us', opts.delta2000)
