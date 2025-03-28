@@ -138,13 +138,13 @@ task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'crea
     ))
 }
 
-def getVersionFromGit() {
-    def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'describe', '--tags', '--long', '--match', 'v[0-9]*.[0-9]*.[0-9]*'
-        standardOutput = stdout
-    }
-    def describe = stdout.toString().trim()
+static def getVersionFromGit() {
+    def process = new ProcessBuilder('git', 'describe', '--tags', '--long', '--match', 'v[0-9]*.[0-9]*.[0-9]*')
+            .redirectErrorStream(true)
+            .start()
+    process.waitFor()
+    def stdout = new BufferedReader(new InputStreamReader(process.getInputStream())).getText()
+    def describe = stdout.trim()
 
     // Parse the git describe output (format: v1.2.3-5-g3c4d5e6)
     def matcher = describe =~ /v(\d+)\.(\d+)\.(\d+)(?:-(\d+)-g([a-f0-9]+))?/
