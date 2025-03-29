@@ -1,12 +1,7 @@
 package com.orbitals.colorfilter;
 
-import static androidx.test.espresso.intent.Intents.intended;
-import static androidx.test.espresso.intent.Intents.intending;
-import static androidx.test.espresso.intent.matcher.IntentMatchers.hasAction;
 import static org.junit.Assert.assertNotNull;
 
-import android.app.Activity;
-import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -118,23 +113,7 @@ public class MainActivityUITest {
 
     @Test
     public void testImageModeFeatures() {
-          Uri dummyUri = Uri.parse("android.resource://" + PACKAGE_NAME + "/" + android.R.drawable.ic_menu_report_image);
-
-        // Create a result intent with the sample image
-        Intent resultData = new Intent();
-        resultData.setData(dummyUri);
-        // Set up the intent result
-        Instrumentation.ActivityResult result = new Instrumentation.ActivityResult(
-                Activity.RESULT_OK, resultData);
-        intending(hasAction(Intent.ACTION_PICK)).respondWith(result);
-
-        UiObject2 loadImageButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "loadImageButton")), 2000);
-        loadImageButton.click();
-
-        intended(hasAction(Intent.ACTION_PICK));
-
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
+        TestUtils.loadImage(device, Uri.parse("android.resource://" + PACKAGE_NAME + "/" + android.R.drawable.ic_menu_report_image));
 
         UiObject2 textureView = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
@@ -164,7 +143,6 @@ public class MainActivityUITest {
         sampleButton.click();
         UiObject2 bctButton = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
         bctButton.click();
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("BCT11")), 2000);
         bctButton.click();
@@ -230,6 +208,6 @@ public class MainActivityUITest {
         UiObject2 seekBar = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, resourceId)), 2000);
         int width = seekBar.getVisibleBounds().width();
-        seekBar.drag(new android.graphics.Point((int) (width * position), 0), 30);
+        seekBar.drag(new android.graphics.Point((int) (width * position), 0), 10000);
     }
 }

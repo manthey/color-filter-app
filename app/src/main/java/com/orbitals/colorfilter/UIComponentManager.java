@@ -367,7 +367,7 @@ public class UIComponentManager {
             Button button = buttons.get(i);
             int buttonWidth = button.getWidth();
 
-            Log.d(TAG, "Overflow Widths " + screenWidth + " " + buttonWidth + " " + overflowButtonWidth + " " + totalButtonsWidth + " " + needsOverflowMenu + " " + i);
+            //Log.d(TAG, "Overflow Widths " + screenWidth + " " + buttonWidth + " " + overflowButtonWidth + " " + totalButtonsWidth + " " + needsOverflowMenu + " " + i);
             if ((totalButtonsWidth + buttonWidth <= screenWidth ||
                     (i == 0 && totalButtonsWidth + buttonWidth - overflowButtonWidth <= screenWidth)) &&
                     !needsOverflowMenu) {
