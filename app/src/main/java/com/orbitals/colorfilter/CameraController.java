@@ -81,10 +81,9 @@ public class CameraController {
         @Override
         public void onImageAvailable(ImageReader reader) {
             try (Image image = reader.acquireLatestImage()) {
-                if (image == null) {
+                 if (image == null) {
                     return;
                 }
-
                 ByteBuffer buffer = image.getPlanes()[0].getBuffer();
                 byte[] bytes = new byte[buffer.capacity()];
                 buffer.get(bytes);
@@ -102,14 +101,19 @@ public class CameraController {
                     }
                     centerChunk.release();
                 }
-                // Process the image
-                Mat processedMat = filter.process(rgbMat);
+                Mat processedMat;
+                try {
+                    processedMat = filter.process(rgbMat);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to process using filter", e);
+                    rgbMat.release();
+                    return;
+                }
 
                 // Convert back to Bitmap for display
                 Bitmap bmp = Bitmap.createBitmap(processedMat.cols(), processedMat.rows(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(processedMat, bmp);
 
-                // Display the bitmap on the TextureView
                 Canvas canvas = textureView.lockCanvas();
                 if (canvas != null) {
                     float viewWidth = textureView.getWidth();
@@ -139,6 +143,7 @@ public class CameraController {
             }
         }
     };
+
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
