@@ -139,6 +139,10 @@ public class ImageController {
         // Set bounds for pan limits
         imageBounds.set(0, 0, imageWidth, imageHeight);
         imageMatrix.mapRect(imageBounds);
+        imageMatrix.getValues(matrixValues);
+        Log.d(TAG, "setupImageMatrix textureView " + textureView.getWidth() + " " + textureView.getHeight() +
+                " image " + loadedImage.getWidth() + " " +loadedImage.getHeight() +
+                " dx/dy " + dx + " " + dy + " scale " + matrixValues[Matrix.MSCALE_X]);
     }
 
     public void displayLoadedImage() {
@@ -219,6 +223,10 @@ public class ImageController {
             dy = centerY - rect.top;
         }
         imageMatrix.postTranslate(dx, dy);
+        imageMatrix.getValues(matrixValues);
+        Log.d(TAG, "constrainImage textureView " + textureView.getWidth() + " " + textureView.getHeight() +
+                " image " + loadedImage.getWidth() + " " +loadedImage.getHeight() +
+                " dx/dy " + dx + " " + dy + " scale " + matrixValues[Matrix.MSCALE_X]);
     }
 
     public void clearImage() {

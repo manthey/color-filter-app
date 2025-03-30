@@ -19,24 +19,13 @@ def munsell_color_to_lab(munsell_notation):
     Convert a munsell color notation to a L*a*b* color.
 
     :param: munsell notation string like N<number>/ or <hue> <number>/<chroma>.
-    :returns: a sRGB triple.
+    :returns: a L*a*b* triple.
     """
     xyY = colour.munsell_colour_to_xyY(munsell_notation)
     XYZ = colour.xyY_to_XYZ(xyY)
     lab = colour.XYZ_to_Lab(
         XYZ, colour.CCS_ILLUMINANTS['CIE 1931 2 Degree Standard Observer']['D65'])
     return lab
-
-
-def rgb_to_hex(rgb):
-    """
-    Convert an sRGB triple (scale of [0, 1]) to a six digit hexadecimal number.
-
-    :param: sRGB triple.
-    :returns: hex string in the form RRGGBB.
-    """
-    rgb = (np.clip(rgb, 0, 1) * 255).astype(int)
-    return f'{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}'
 
 
 def munsell_table():
@@ -148,7 +137,8 @@ def rgb_categories(labrgb, labcat, catvals, delta2000=False):
     Compute categoric values.
 
     :param labrgb: A numpy array of [256][256][256][3] of L*a*b* values for the
-        sRGB color cube with axes in the order R, G, B, L*a*b*.
+        sRGB or other colorspace color cube with axes in the order R, G, B,
+        L*a*b*.
     :param labcat: An array of L*a*b* colors associated with differet categoric
         labels.
     :param catvals: A list matching the length of labcat where the values are
@@ -189,21 +179,35 @@ def ansicolor(color, text):
     return f'\033[48;2;{color[0]};{color[1]};{color[2]}m{text}\033[49m'
 
 
-def make_base_data():
+def make_base_data(colorspace='sRGB'):
+    filename = f'labrgb_{colorspace.lower()}.npz'
     labgrid, labgray = munsell_table()
 
-    if os.path.exists('labrgb.npz'):
-        labrgb = np.load('labrgb.npz')['labrgb']
+    if os.path.exists(filename):
+        labrgb = np.load(filename)['labrgb']
     else:
-        labrgb = np.indices((256, 256, 256)).transpose((1, 2, 3, 0))
-        labrgb = labrgb.reshape(-1, 3)
-        labrgb = labrgb / 255.0
-        labrgb = colour.XYZ_to_Lab(colour.sRGB_to_XYZ(labrgb))
-        np.savez_compressed('labrgb.npz', labrgb=labrgb)
+        basergb = np.indices((256, 256, 256)).transpose((1, 2, 3, 0))
+        basergb = basergb.reshape(-1, 3)
+        basergb = basergb / 255.0
+        if colorspace.lower() == 'srgb':
+            xyz = colour.sRGB_to_XYZ(basergb)
+        else:
+            model = None
+            for key in dir(colour.models):
+                if (key.startswith('RGB_COLOURSPACE_') and
+                        key.split('RGB_COLOURSPACE_')[1].lower() == colorspace.lower()):
+                    model = getattr(colour.models, key)
+                    break
+            xyz = colour.RGB_to_XYZ(
+                basergb, model.primaries, model.whitepoint,
+                model.matrix_RGB_to_XYZ, gamma=None, oecf=model.oecf,
+                deduction_callable=model.use_derived_matrix_RGB_to_XYZ)
+        labrgb = colour.XYZ_to_Lab(xyz)
+        np.savez_compressed(filename, labrgb=labrgb)
     return labrgb, labgrid, labgray
 
 
-def generate_bct20(labgrid, labgray):
+def generate_bct20(labgrid, labgray, labrgb):
     # This image is Figure 9 of
     #   Lindsey, D. T., and A. M. Brown. 2014. "The Color Lexicon of American
     #   English." Journal of Vision. Association for Research in Vision and
@@ -273,10 +277,7 @@ def generate_bct20(labgrid, labgray):
         'FF00FF': 'magenta',
         'FFFF00': 'yellow',
     }
-    labdict = {
-        tuple(colour.XYZ_to_Lab(colour.sRGB_to_XYZ(
-            [int(hx[i:i + 2], 16) / 255 for i in range(0, 6, 2)]))): v
-        for hx, v in hexdict.items()}
+    labdict = {tuple(labrgb[int(hx, 16)]): v for hx, v in hexdict.items()}
     for lab, val in zip(labgray, graytbl):
         labdict[tuple(lab)] = val
     for y in range(len(table)):
@@ -287,7 +288,7 @@ def generate_bct20(labgrid, labgray):
     return labdict, viewingColors
 
 
-def generate_bct11(labgrid, labgray):
+def generate_bct11(labgrid, labgray, labrgb):
     image_path = 'i1534-7362-14-2-17-f05.jpeg'
     left, upper, right, lower = 699, 102, 1269, 212
     xstride = (right - left) / 40
@@ -366,10 +367,7 @@ def generate_bct11(labgrid, labgray):
         '0000FF': 'blue',
         'FFFF00': 'yellow',
     }
-    labdict = {
-        tuple(colour.XYZ_to_Lab(colour.sRGB_to_XYZ(
-            [int(hx[i:i + 2], 16) / 255 for i in range(0, 6, 2)]))): v
-        for hx, v in hexdict.items()}
+    labdict = {tuple(labrgb[int(hx, 16)]): v for hx, v in hexdict.items()}
     for lab, val in zip(labgray, graytbl):
         labdict[tuple(lab)] = val
     for y in range(len(table)):
@@ -443,15 +441,29 @@ if __name__ == '__main__':
         '--delta1976', '--delta_e_cie1976', dest='delta2000', action='store_false',
         help='Use delta_E_CIE1976 for color comparisions.')
     parser.add_argument(
+        '--colorspace', default='sRGB',
+        help='Specify a color space.  sRGB is the default.')
+    parser.add_argument(
+        '--srgb', dest='colorspace', action='store_const', const='sRGB',
+        help='Use the sRGB color space')
+    parser.add_argument(
+        '--p3', dest='colorspace', action='store_const', const='P3',
+        help='Use the P3 color space')
+    parser.add_argument(
+        '--bt2020', dest='colorspace', action='store_const', const='bt2020',
+        help='Use the BT2020 color space')
+    parser.add_argument(
         '--verbose', '-v', action='count', default=0,
         help='Increase verbosity')
     opts = parser.parse_args()
     verbose = opts.verbose
 
-    labrgb, labgrid, labgray = make_base_data()
+    labrgb, labgrid, labgray = make_base_data(opts.colorspace)
     if opts.bct20:
-        labdict20, viewcolors20 = generate_bct20(labgrid, labgray)
-        labdict_to_termmap(labdict20, viewcolors20, labrgb, 'bct20_en_us', opts.delta2000)
+        labdict20, viewcolors20 = generate_bct20(labgrid, labgray, labrgb)
+        labdict_to_termmap(labdict20, viewcolors20, labrgb,
+        f'bct20_en_us_{opts.colorspace.lower()}', opts.delta2000)
     if opts.bct11:
-        labdict11, viewcolors11 = generate_bct11(labgrid, labgray)
-        labdict_to_termmap(labdict11, viewcolors11, labrgb, 'bct11_en_us', opts.delta2000)
+        labdict11, viewcolors11 = generate_bct11(labgrid, labgray, labrgb)
+        labdict_to_termmap(labdict11, viewcolors11, labrgb,
+        f'bct11_en_us_{opts.colorspace.lower()}', opts.delta2000)

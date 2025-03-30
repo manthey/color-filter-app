@@ -1,18 +1,10 @@
 package com.orbitals.colorfilter;
 
-import static androidx.test.espresso.intent.Intents.intended;
-import static androidx.test.espresso.intent.Intents.intending;
-import static androidx.test.espresso.intent.matcher.IntentMatchers.hasAction;
 import static org.junit.Assert.assertNotNull;
 
-import android.app.Activity;
-import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.graphics.Point;
-import android.net.Uri;
 import android.util.Log;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -28,9 +20,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import java.util.Objects;
-import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
 public class MainActivityUITest {
@@ -54,7 +43,7 @@ public class MainActivityUITest {
         device.pressHome();
 
         // Wait for launcher
-        final String launcherPackage = getLauncherPackageName();
+        final String launcherPackage = TestUtils.getLauncherPackageName();
         assertNotNull(launcherPackage);
         device.wait(Until.hasObject(By.pkg(launcherPackage).depth(0)), LAUNCH_TIMEOUT);
 
@@ -68,7 +57,7 @@ public class MainActivityUITest {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);    // Clear out any previous instances
         context.startActivity(intent);
         device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), LAUNCH_TIMEOUT);
-        handlePermissionDialogs();
+        TestUtils.handlePermissionDialogs(device);
     }
 
     @After
@@ -118,23 +107,7 @@ public class MainActivityUITest {
 
     @Test
     public void testImageModeFeatures() {
-          Uri dummyUri = Uri.parse("android.resource://" + PACKAGE_NAME + "/" + android.R.drawable.ic_menu_report_image);
-
-        // Create a result intent with the sample image
-        Intent resultData = new Intent();
-        resultData.setData(dummyUri);
-        // Set up the intent result
-        Instrumentation.ActivityResult result = new Instrumentation.ActivityResult(
-                Activity.RESULT_OK, resultData);
-        intending(hasAction(Intent.ACTION_PICK)).respondWith(result);
-
-        UiObject2 loadImageButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "loadImageButton")), 2000);
-        loadImageButton.click();
-
-        intended(hasAction(Intent.ACTION_PICK));
-
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
+        TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_mode);
 
         UiObject2 textureView = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
@@ -164,72 +137,13 @@ public class MainActivityUITest {
         sampleButton.click();
         UiObject2 bctButton = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
         bctButton.click();
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("BCT11")), 2000);
         bctButton.click();
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("HSV")), 2000);
     }
 
-    private void handlePermissionDialogs() {
-        // Handle permission dialogs that might appear
-        for (int i = 0; i < 3; i++) { // Try a few times for multiple permission dialogs
-            // Try by pattern matching "WHILE" (case insensitive)
-            UiObject2 permissionButton = device.wait(
-                    Until.findObject(By.text(Pattern.compile(".*WHILE.*", Pattern.CASE_INSENSITIVE))),
-                    2000);
-            if (permissionButton == null) {
-                // If not found by text, try by resource ID containing "allow_foreground"
-                permissionButton = device.wait(
-                        Until.findObject(By.res(Pattern.compile(".*allow_foreground.*"))),
-                        1000);
-            }
-            if (permissionButton != null) {
-                permissionButton.click();
-                Log.d(TAG, "Clicked permission button matching WHILE or allow_foreground");
-                // Wait for dialog to disappear
-                device.wait(Until.gone(By.text(Pattern.compile(".*WHILE.*", Pattern.CASE_INSENSITIVE))), 1000);
-                continue;
-            }
-            // Try other common permission buttons
-            String[] commonButtonTexts = {"ONLY THIS TIME", "ALLOW", "Allow", "YES", "OK"};
-            boolean buttonClicked = false;
-
-            for (String buttonText : commonButtonTexts) {
-                UiObject2 otherButton = device.wait(Until.findObject(By.text(buttonText)), 500);
-                if (otherButton != null) {
-                    otherButton.click();
-                    Log.d(TAG, "Clicked permission button: " + buttonText);
-                    device.wait(Until.gone(By.text(buttonText)), 1000);
-                    buttonClicked = true;
-                    break;
-                }
-            }
-            if (buttonClicked) {
-                continue;
-            }
-            // If we've handled all dialogs or none found, break
-            if (device.wait(Until.hasObject(By.pkg(PACKAGE_NAME).depth(0)), 1000)) {
-                break;
-            }
-        }
-    }
-
-    private String getLauncherPackageName() {
-        // Create launcher Intent
-        final Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_HOME);
-
-        // Use PackageManager to get the launcher package name
-        PackageManager pm = ApplicationProvider.getApplicationContext().getPackageManager();
-        ResolveInfo resolveInfo = pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
-        return Objects.requireNonNull(resolveInfo).activityInfo.packageName;
-    }
-
     private void clickSeek(String resourceId, double position) {
-        UiObject2 seekBar = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, resourceId)), 2000);
-        int width = seekBar.getVisibleBounds().width();
-        seekBar.drag(new android.graphics.Point((int) (width * position), 0), 30);
+        TestUtils.clickSeek(device, resourceId, position);
     }
 }
