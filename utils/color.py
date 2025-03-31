@@ -3,6 +3,7 @@
 import argparse
 import os
 import pprint
+import subprocess
 
 import colour
 import numpy as np
@@ -198,10 +199,7 @@ def make_base_data(colorspace='sRGB'):
                         key.split('RGB_COLOURSPACE_')[1].lower() == colorspace.lower()):
                     model = getattr(colour.models, key)
                     break
-            xyz = colour.RGB_to_XYZ(
-                basergb, model.primaries, model.whitepoint,
-                model.matrix_RGB_to_XYZ, gamma=None, oecf=model.oecf,
-                deduction_callable=model.use_derived_matrix_RGB_to_XYZ)
+            xyz = colour.RGB_to_XYZ(basergb, model, apply_cctf_decoding=True)
         labrgb = colour.XYZ_to_Lab(xyz)
         np.savez_compressed(filename, labrgb=labrgb)
     return labrgb, labgrid, labgray
@@ -406,6 +404,12 @@ def labdict_to_termmap(labdict, viewcolors, labrgb, basename, delta2000=False):
         flatimg[y:y + 256, x:x + 256] = catrgb[r]
     greyimg = PIL.Image.fromarray(flatimg, mode='L')
     greyimg.save(f'{basename}.png', optimize=True)
+    try:
+        subprocess.run(
+            ["optipng", f'{basename}.png'], stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, check=True)
+    except Exception:
+        pass
     palimg = PIL.Image.fromarray(flatimg, mode='P')
     palette = []
     for clr in cats.keys():
@@ -413,6 +417,12 @@ def labdict_to_termmap(labdict, viewcolors, labrgb, basename, delta2000=False):
         palette.extend(int(hx[i * 2:i * 2 + 2], 16) for i in range(3))
     palimg.putpalette(palette)
     palimg.save(f'{basename}_pal.png', optimize=True)
+    try:
+        subprocess.run(
+            ["optipng", f'{basename}_pal.png'], stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, check=True)
+    except Exception:
+        pass
     centers = find_center_indices(catrgb)
     for idx, clr in enumerate(cats.keys()):
         cref = list(int(viewcolors[clr][i * 2:i * 2 + 2], 16) for i in range(3))
@@ -442,15 +452,16 @@ if __name__ == '__main__':
         help='Use delta_E_CIE1976 for color comparisions.')
     parser.add_argument(
         '--colorspace', default='sRGB',
-        help='Specify a color space.  sRGB is the default.')
+        help='Specify a color space.  sRGB is the default.  Any of the colour '
+        'science colour.models.RGB_COLOURSPACE_... values can be used.')
     parser.add_argument(
         '--srgb', dest='colorspace', action='store_const', const='sRGB',
         help='Use the sRGB color space')
     parser.add_argument(
-        '--p3', dest='colorspace', action='store_const', const='P3',
-        help='Use the P3 color space')
+        '--p3', dest='colorspace', action='store_const', const='DISPLAY_P3',
+        help='Use the Display P3 color space')
     parser.add_argument(
-        '--bt2020', dest='colorspace', action='store_const', const='bt2020',
+        '--bt2020', dest='colorspace', action='store_const', const='BT2020',
         help='Use the BT2020 color space')
     parser.add_argument(
         '--verbose', '-v', action='count', default=0,
