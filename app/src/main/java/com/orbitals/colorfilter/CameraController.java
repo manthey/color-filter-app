@@ -81,18 +81,23 @@ public class CameraController {
         @Override
         public void onImageAvailable(ImageReader reader) {
             try (Image image = reader.acquireLatestImage()) {
-                 if (image == null) {
+                if (image == null) {
                     return;
                 }
-                ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                byte[] bytes = new byte[buffer.capacity()];
-                buffer.get(bytes);
+                Mat rgbMat;
+                if (image.getFormat() == ImageFormat.JPEG) {
+                    ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                    byte[] bytes = new byte[buffer.capacity()];
+                    buffer.get(bytes);
 
-                // Convert JPEG bytes to Bitmap
-                Bitmap inputBmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                Mat rgbMat = new Mat();
-                Utils.bitmapToMat(inputBmp, rgbMat);
-                inputBmp.recycle();
+                    // Convert JPEG bytes to Bitmap
+                    Bitmap inputBmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                    rgbMat = new Mat();
+                    Utils.bitmapToMat(inputBmp, rgbMat);
+                    inputBmp.recycle();
+                } else {
+                    rgbMat = Utilities.rgba(image);
+                }
 
                 if (filter.getSampleMode()) {
                     Mat centerChunk = Utilities.centerOfImage(context, textureView, filter, rgbMat, matrix);
@@ -288,7 +293,7 @@ public class CameraController {
 
             // Set up ImageReader for processing frames
             imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(),
-                    ImageFormat.JPEG, 2);
+                    ImageFormat.YUV_420_888, 2);
             imageReader.setOnImageAvailableListener(imageAvailableListener, backgroundHandler);
             captureRequestBuilder.addTarget(imageReader.getSurface());
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
