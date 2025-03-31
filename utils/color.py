@@ -181,27 +181,22 @@ def ansicolor(color, text):
 
 
 def make_base_data(colorspace='sRGB'):
-    filename = f'labrgb_{colorspace.lower()}.npz'
     labgrid, labgray = munsell_table()
 
-    if os.path.exists(filename):
-        labrgb = np.load(filename)['labrgb']
+    basergb = np.indices((256, 256, 256)).transpose((1, 2, 3, 0))
+    basergb = basergb.reshape(-1, 3)
+    basergb = basergb / 255.0
+    if colorspace.lower() == 'srgb':
+        xyz = colour.sRGB_to_XYZ(basergb)
     else:
-        basergb = np.indices((256, 256, 256)).transpose((1, 2, 3, 0))
-        basergb = basergb.reshape(-1, 3)
-        basergb = basergb / 255.0
-        if colorspace.lower() == 'srgb':
-            xyz = colour.sRGB_to_XYZ(basergb)
-        else:
-            model = None
-            for key in dir(colour.models):
-                if (key.startswith('RGB_COLOURSPACE_') and
-                        key.split('RGB_COLOURSPACE_')[1].lower() == colorspace.lower()):
-                    model = getattr(colour.models, key)
-                    break
-            xyz = colour.RGB_to_XYZ(basergb, model, apply_cctf_decoding=True)
-        labrgb = colour.XYZ_to_Lab(xyz)
-        np.savez_compressed(filename, labrgb=labrgb)
+        model = None
+        for key in dir(colour.models):
+            if (key.startswith('RGB_COLOURSPACE_') and
+                    key.split('RGB_COLOURSPACE_')[1].lower() == colorspace.lower()):
+                model = getattr(colour.models, key)
+                break
+        xyz = colour.RGB_to_XYZ(basergb, model, apply_cctf_decoding=True)
+    labrgb = colour.XYZ_to_Lab(xyz)
     return labrgb, labgrid, labgray
 
 

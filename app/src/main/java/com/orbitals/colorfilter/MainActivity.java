@@ -7,8 +7,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.content.res.Resources;
-import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.SurfaceTexture;
@@ -28,20 +26,19 @@ import androidx.core.app.ActivityCompat;
 import org.opencv.android.OpenCVLoader;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener {
-
-    private static final String TAG = "Color Filter";
+    /**
+     * @noinspection SpellCheckingInspection
+     */
+    private static final String TAG = "com.orbitals.colorfilter";
     public static final int REQUEST_CAMERA_PERMISSION = 200;
 
     private HashMap<Integer, String> coarseHueMap;
     private HashMap<Integer, String> fineHueMap;
 
-    ArrayList<TermMap> termMaps = new ArrayList<>();
+    ArrayList<TermMap> termMaps;
 
     private FilterProcessor filter;
     private CameraController cameraController;
@@ -76,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHueMaps();
-        loadTermMaps();
+        termMaps = TermMap.loadTermMaps(getResources(), Utilities.checkColorSpace(this));
         setContentView(R.layout.activity_main);
         textureView = findViewById(R.id.textureView);
         textureView.setSurfaceTextureListener(this);
@@ -301,32 +298,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         fineHueMap = new HashMap<>();
         for (int i = 0; i <= 24; i++) {
             fineHueMap.put(Math.max(0, i * 15 - 7), getResources().getStringArray(R.array.fine_hue_map)[i == 24 ? 0 : i]);
-        }
-    }
-
-    private void loadTermMaps() {
-        int NAME = 0;
-        int ID = 1;
-        int DESCRIPTION = 2;
-        int REFERENCE = 3;
-        int TERMS = 4;
-        int IMAGE = 5;
-
-        Resources resources = getResources();
-        try (TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids)) {
-            for (int i = 0; i < termMapIds.length(); i++) {
-                int termMapId = termMapIds.getResourceId(i, 0);
-                try (TypedArray termMapArray = resources.obtainTypedArray(termMapId)) {
-                    String name = termMapArray.getString(NAME);
-                    String id = termMapArray.getString(ID);
-                    String description = termMapArray.getString(DESCRIPTION);
-                    String reference = termMapArray.getString(REFERENCE);
-                    int termsArrayId = termMapArray.getResourceId(TERMS, 0);
-                    List<String> terms = Collections.unmodifiableList(Arrays.asList(resources.getStringArray(termsArrayId)));
-                    int termMapResourceId = termMapArray.getResourceId(IMAGE, 0);
-                    termMaps.add(new TermMap(name, id, description, reference, terms, resources, termMapResourceId));
-                }
-            }
         }
     }
 
