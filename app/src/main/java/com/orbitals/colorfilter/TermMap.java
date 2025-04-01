@@ -250,7 +250,6 @@ public class TermMap {
                             }
                         }
                     }
-                    Log.d(TAG, "TermMap Resource " + termMapResourceId);
                     termMaps.add(new TermMap(name, id, description, reference, terms, resources, termMapResourceId));
                 }
             }
