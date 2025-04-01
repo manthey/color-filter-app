@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.ColorSpace;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -29,7 +30,9 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_TERM = "term";
     public static final String KEY_SAMPLE_MODE = "sample_mode";
     public static final String KEY_SHOW_BCT_CONTROLS = "show_bct_controls";
-    /** @noinspection SpellCheckingInspection*/
+    /**
+     * @noinspection SpellCheckingInspection
+     */
     private static final String TAG = "com.orbitals.colorfilter.SettingsActivity";
     private Button setDefaultsButton;
     private boolean showBctControls = false;
@@ -105,10 +108,23 @@ public class SettingsActivity extends AppCompatActivity {
                     getString(R.string.defaults_loaded), Toast.LENGTH_SHORT).show();
         });
 
+        // Add color space information
+        TextView deviceColorSpaceValue = findViewById(R.id.deviceColorSpaceValue);
+        TextView termMapColorSpaceValue = findViewById(R.id.termMapColorSpaceValue);
+        ColorSpace deviceColorSpace = Utilities.checkColorSpace(this);
+        String deviceColorSpaceName = deviceColorSpace.getName();
+        deviceColorSpaceValue.setText(deviceColorSpaceName);
+        String termMapColorSpaceName;
+        if (TermMap.getMatchedColorSpace()) {
+            termMapColorSpaceName = deviceColorSpaceName;
+        } else {
+            termMapColorSpaceName = ColorSpace.get(ColorSpace.Named.SRGB).getName();
+        }
+        termMapColorSpaceValue.setText(termMapColorSpaceName);
+
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                // Your existing onBackPressed logic
                 Intent resultIntent = new Intent();
                 resultIntent.putExtra("settingsChanged", settingsChanged);
                 resultIntent.putExtra("defaultsLoaded", defaultsLoaded);

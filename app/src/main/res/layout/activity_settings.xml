@@ -38,7 +38,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="@string/version_format" />
+                android:text="@string/version_format"
+                android:textColor="?android:attr/textColorSecondary" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -56,7 +57,7 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:text="@string/github_link"
-                android:textColor="?android:attr/colorPrimary" />
+                android:textColor="?android:attr/textColorLink" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -77,9 +78,10 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="32dp"
+                android:layout_marginStart="16dp"
                 android:layout_marginBottom="16dp"
                 android:text="@string/bct_controls_description"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
 
             <Button
@@ -94,6 +96,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginBottom="16dp"
                 android:text="@string/load_defaults_description"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
 
             <Button
@@ -108,8 +111,61 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginBottom="16dp"
                 android:text="@string/set_defaults_description"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
 
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/color_spaces_header"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/device_color_space_label"
+                    android:textColor="?android:attr/textColorPrimary" />
+
+                <TextView
+                    android:id="@+id/deviceColorSpaceValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="?android:attr/textColorPrimary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/term_map_color_space_label"
+                    android:textColor="?android:attr/textColorPrimary" />
+
+                <TextView
+                    android:id="@+id/termMapColorSpaceValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="?android:attr/textColorPrimary" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

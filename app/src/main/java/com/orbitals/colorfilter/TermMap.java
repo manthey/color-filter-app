@@ -1,6 +1,8 @@
 package com.orbitals.colorfilter;
 
+import android.annotation.SuppressLint;
 import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
@@ -20,8 +22,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import android.graphics.ColorSpace;
+
 public class TermMap {
-    /** @noinspection SpellCheckingInspection*/
+    /**
+     * @noinspection SpellCheckingInspection
+     */
     private static final String TAG = "com.orbitals.colorfilter.TermMap";
 
     private final String name;
@@ -31,6 +37,7 @@ public class TermMap {
     private final List<String> terms;
     private final byte[] map;
     private int blur = 5;
+    private static boolean matchedColorSpace = false;
 
     /**
      * Create a TermMap.
@@ -192,5 +199,66 @@ public class TermMap {
         Mat mappedImage = new Mat(height, width, CvType.CV_8UC1);
         mappedImage.put(0, 0, mapData);
         return mappedImage;
+    }
+
+    public static ArrayList<TermMap> loadTermMaps(Resources resources, ColorSpace colorSpace) {
+        ArrayList<TermMap> termMaps = new ArrayList<>();
+
+        int NAME = 0;
+        int ID = 1;
+        int DESCRIPTION = 2;
+        int REFERENCE = 3;
+        int TERMS = 4;
+        int IMAGES = 5;
+
+        try (TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids)) {
+            for (int i = 0; i < termMapIds.length(); i++) {
+                int termMapId = termMapIds.getResourceId(i, 0);
+                try (TypedArray termMapArray = resources.obtainTypedArray(termMapId)) {
+                    String name = termMapArray.getString(NAME);
+                    String id = termMapArray.getString(ID);
+                    String description = termMapArray.getString(DESCRIPTION);
+                    String reference = termMapArray.getString(REFERENCE);
+                    int termsArrayId = termMapArray.getResourceId(TERMS, 0);
+                    List<String> terms = Collections.unmodifiableList(Arrays.asList(resources.getStringArray(termsArrayId)));
+
+                    int imagesArrayId = termMapArray.getResourceId(IMAGES, 0);
+                    int termMapResourceId = 0;
+
+                    // Get the string array instead of typed array
+                    String[] imagesArray = resources.getStringArray(imagesArrayId);
+                    for (String entry : imagesArray) {
+                        String[] parts = entry.split(",", 2);
+                        String colorSpaceName = parts[0];
+                        String resourceRef = parts[1];
+                        @SuppressLint("DiscouragedApi")
+                        int imageId = resources.getIdentifier(
+                                resourceRef.substring(1), // Remove the @ symbol
+                                null,
+                                resources.getResourcePackageName(termMapId));
+                        if (termMapResourceId == 0) {
+                            termMapResourceId = imageId;
+                        }
+                        if (colorSpaceName != null) {
+                             if (colorSpaceName.equals("SRGB")) {
+                                termMapResourceId = imageId;
+                            }
+                            if (colorSpace.equals(ColorSpace.get(ColorSpace.Named.valueOf(colorSpaceName)))) {
+                                termMapResourceId = imageId;
+                                matchedColorSpace = true;
+                                break;
+                            }
+                        }
+                    }
+                    Log.d(TAG, "TermMap Resource " + termMapResourceId);
+                    termMaps.add(new TermMap(name, id, description, reference, terms, resources, termMapResourceId));
+                }
+            }
+        }
+        return termMaps;
+    }
+
+    public static boolean getMatchedColorSpace() {
+        return matchedColorSpace;
     }
 }

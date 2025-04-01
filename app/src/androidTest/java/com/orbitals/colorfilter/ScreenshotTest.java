@@ -30,7 +30,7 @@ public class ScreenshotTest {
     /**
      * @noinspection SpellCheckingInspection
      */
-    private static final String TAG = "com.orbitals.colorfilter.screenshotTest";
+    private static final String TAG = "com.orbitals.colorfilter.ScreenshotTest";
     private static final int LAUNCH_TIMEOUT = 5000;
 
     private MainActivity mainActivity;
@@ -81,7 +81,7 @@ public class ScreenshotTest {
 
     @Test
     public void testVideoStreamScreenshot() {
-        TestUtils.sleep(0.5);
+        TestUtils.sleep(2.0);
         TestUtils.captureScreenshot(device, mainActivity, "video_stream.png");
     }
 

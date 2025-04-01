@@ -5,7 +5,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
@@ -39,7 +38,6 @@ import androidx.core.app.ActivityCompat;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -85,18 +83,10 @@ public class CameraController {
                     return;
                 }
                 Mat rgbMat;
-                if (image.getFormat() == ImageFormat.JPEG) {
-                    ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                    byte[] bytes = new byte[buffer.capacity()];
-                    buffer.get(bytes);
-
-                    // Convert JPEG bytes to Bitmap
-                    Bitmap inputBmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                    rgbMat = new Mat();
-                    Utils.bitmapToMat(inputBmp, rgbMat);
-                    inputBmp.recycle();
-                } else {
+                try {
                     rgbMat = Utilities.rgba(image);
+                } catch (IllegalStateException e) {
+                    return;
                 }
 
                 if (filter.getSampleMode()) {
@@ -209,11 +199,13 @@ public class CameraController {
             scale = Math.max(mMinZoom, Math.min(scale, maxZoom));
             // Set the zoom ratio in the capture request
             captureRequestBuilder.set(CaptureRequest.CONTROL_ZOOM_RATIO, scale);
-            // Trigger AF when zooming
+            // set common requirements
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
             captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
             captureRequestBuilder.set(CaptureRequest.FLASH_MODE,
                     lightMode && hasFlash() ? CaptureRequest.FLASH_MODE_TORCH : CaptureRequest.FLASH_MODE_OFF);
+            // It doesn't seem possible to set the color space here
+            // capture
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
 
         } catch (CameraAccessException e) {
@@ -256,13 +248,14 @@ public class CameraController {
             //noinspection DataFlowIssue
             mMaxZoom = characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
 
-            cameraOpenCloseLock.acquire(); //Acquire before opening the camera.
+            cameraOpenCloseLock.acquire();
             if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 Log.e(TAG, "CameraAccessPermission issue");
                 return;
             }
             manager.openCamera(cameraId, stateCallback, null);
             Log.d(TAG, "openCamera opened");
+
         } catch (CameraAccessException e) {
             Log.e(TAG, "CameraAccessException", e);
         } catch (InterruptedException e) {
@@ -366,22 +359,7 @@ public class CameraController {
     }
 
     protected void updatePreview() {
-        if (cameraDevice == null) {
-            Log.e(TAG, "updatePreview error, return");
-        }
-
-        // Apply zoom to the capture request
         applyZoom(mScaleFactor);
-
-        captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-        captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-        captureRequestBuilder.set(CaptureRequest.FLASH_MODE,
-                lightMode && hasFlash() ? CaptureRequest.FLASH_MODE_TORCH : CaptureRequest.FLASH_MODE_OFF);
-        try {
-            cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
-        } catch (CameraAccessException e) {
-            Log.e(TAG, "CameraAccessException", e);
-        }
     }
 
     public void closeCamera() {

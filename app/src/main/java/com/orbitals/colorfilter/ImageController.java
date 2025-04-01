@@ -9,7 +9,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.ColorSpace;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.net.Uri;
@@ -57,7 +56,7 @@ public class ImageController {
                 try {
                     InputStream inputStream = context.getContentResolver().openInputStream(imageUri);
                     BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB);
+                    options.inPreferredColorSpace = Utilities.checkColorSpace(context);
                     loadedImage = BitmapFactory.decodeStream(inputStream, null, options);
                     int orientation = getOrientation(imageUri);
                     if (orientation != 0) {
