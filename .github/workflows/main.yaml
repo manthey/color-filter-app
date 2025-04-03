@@ -56,7 +56,8 @@ jobs:
         api-level: 30
         arch: x86_64
         # S24 is -skin 1080x2340 -dpi-device 425 -prop qemu.sf.lcd_density=425
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -skin 1080x1920 -dpi-device 480 -prop qemu.sf.lcd_density=480
+        # emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -skin 1080x1920 -dpi-device 480 -prop qemu.sf.lcd_density=480
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -skin 1080x2340 -dpi-device 440 -prop qemu.sf.lcd_density=440 -device pixel_5
         script: |
           ./gradlew connectedDebugAndroidTest createDebugCoverageReport
           mkdir -p ./test_screenshots
