@@ -92,6 +92,15 @@ public class ScreenshotTest {
     }
 
     @Test
+    public void testSettingsPage() {
+        TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_mode);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "overflowMenuButton")), 2000).click();
+        device.wait(Until.findObject(By.text("Settings")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "setDefaultsButton")), 2000).click();
+        TestUtils.captureScreenshot(device, mainActivity, "settings_page_screenshot.png");
+    }
+
+    @Test
     public void testExcludeModePortrait() {
         TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_peppers);
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctSeekBar")), 2000);
@@ -141,12 +150,13 @@ public class ScreenshotTest {
 
     @Test
     public void testExcludeModeSamplingLandscape() {
+        TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_flower);
+        TestUtils.sleep(0.5);
         try {
             device.setOrientationLeft();
         } catch (Exception e) {
             Log.e(TAG, "Failed to set orientation");
         }
-        TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_flower);
         UiObject2 sampleButton = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
         sampleButton.click();

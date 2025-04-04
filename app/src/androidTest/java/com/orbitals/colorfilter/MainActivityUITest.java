@@ -67,80 +67,91 @@ public class MainActivityUITest {
 
     @Test
     public void testCameraAndFilterButtons() {
-        UiObject2 cameraButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "switchCameraButton")), 2000);
-        cameraButton.click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "switchCameraButton")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "switchCameraButton")), 2000).click();
         device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 1000);
-        cameraButton.click();
-        device.wait(Until.hasObject(By.pkg(PACKAGE_NAME)), 1000);
-
         for (int i = 0; i < 5; i++) {
-            UiObject2 filterButton = device.wait(
-                    Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000);
-            filterButton.click();
+            device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000).click();
             Log.d(TAG, "Clicked filter button");
         }
         clickSeek("bctSeekBar", 0.5);
-        UiObject2 bctButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
-        bctButton.click();
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("BCT11")), 2000);
-        bctButton.click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("BCT11")), 2000).click();
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("HSV")), 2000);
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "hueSeekBar")), 2000);
         clickSeek("hueSeekBar", 0.3);
         clickSeek("hueWidthSeekBar", 0.3);
         clickSeek("saturationSeekBar", 0.3);
         clickSeek("luminanceSeekBar", 0.3);
-        bctButton.click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000).click();
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("BCT20")), 2000);
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
-        UiObject2 sampleButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
-        sampleButton.click();
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
-        bctButton.click();
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("BCT11")), 2000);
-        bctButton.click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("BCT11")), 2000).click();
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("HSV")), 2000);
+        UiObject2 textureView = device.wait(Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
+        textureView.pinchOpen(0.20f);
+        textureView.drag(new Point(0, 140));
     }
 
     @Test
     public void testImageModeFeatures() {
         TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_mode);
-
         UiObject2 textureView = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
-
         textureView.pinchOpen(0.20f);
         textureView.drag(new Point(100, 0));
-
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000);
-
-        UiObject2 filterButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000);
-        filterButton.click();
-
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000).click();
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctSeekBar")), 2000);
         clickSeek("bctSeekBar", 0.5);
-
-        UiObject2 cameraButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "switchCameraButton")), 2000);
-        cameraButton.click();
         textureView = device.wait(
                 Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
         textureView.pinchOpen(0.20f);
         textureView.drag(new Point(0, 140));
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
-        UiObject2 sampleButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
-        sampleButton.click();
-        UiObject2 bctButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000);
-        bctButton.click();
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("BCT11")), 2000);
-        bctButton.click();
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("HSV")), 2000);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("BCT11")), 2000).click();
+        try {
+            device.setOrientationLeft();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set orientation");
+        }
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton").text("HSV")), 2000).click();
+        TestUtils.sleep(0.5);
+        try {
+            device.setOrientationNatural();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set orientation");
+        }
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "switchCameraButton")), 2000).click();
+    }
+
+    @Test
+    public void testToggleFlashlight() {
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "overflowMenuButton")), 2000).click();
+        device.wait(Until.findObject(By.text("Flashlight")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "overflowMenuButton")), 2000).click();
+        device.wait(Until.findObject(By.text("Flashlight")), 2000).click();
+    }
+
+    @Test
+    public void testSettingsFeatures() {
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "overflowMenuButton")), 2000).click();
+        device.wait(Until.findObject(By.text("Settings")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "setDefaultsButton")), 2000).click();
+        device.pressBack();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "overflowMenuButton")), 2000).click();
+        device.wait(Until.findObject(By.text("Settings")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "loadDefaultsButton")), 2000).click();
+        device.pressBack();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "overflowMenuButton")), 2000).click();
+        device.wait(Until.findObject(By.text("Settings")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctControlsSwitch")), 2000).click();
+        device.pressBack();
+        UiObject2 textureView = device.wait(Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
+        textureView.drag(new Point(0, 140));
+        textureView.drag(new Point(0, 280));
     }
 
     private void clickSeek(String resourceId, double position) {

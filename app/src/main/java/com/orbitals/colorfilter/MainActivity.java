@@ -67,7 +67,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         }
     }
 
-
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,9 +96,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         });
 
         updateControls();
-
         textureView = uiManager.getView(R.id.textureView);
-
         uiManager.initializeControls(
                 new UIComponentManager.FilterControlListener() {
                     @Override
