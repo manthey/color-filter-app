@@ -1,10 +1,10 @@
 package com.orbitals.colorfilter;
 
-import android.annotation.SuppressLint;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.ColorSpace;
 import android.util.Log;
 
 import org.opencv.android.Utils;
@@ -22,23 +22,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import android.graphics.ColorSpace;
-
 public class TermMap {
     /**
      * @noinspection SpellCheckingInspection
      */
     private static final String TAG = "com.orbitals.colorfilter.TermMap";
-
+    private static boolean matchedColorSpace = false;
     private final String name;
     private final String id;
     private final String description;
     private final String reference;
     private final List<String> terms;
     private final byte[] map;
+    private final int[] lastCenterLog = new int[]{-1, -1, -1, -1};
     private int blur = 5;
-    private static boolean matchedColorSpace = false;
-    private final int[] lastCenterLog = new int[] {-1, -1, -1, -1};
 
     /**
      * Create a TermMap.
@@ -83,6 +80,60 @@ public class TermMap {
             subMat.get(0, 0, subImageBytes);
             System.arraycopy(subImageBytes, 0, map, i * bytesPerImage, bytesPerImage);
         }
+    }
+
+    public static ArrayList<TermMap> loadTermMaps(Resources resources, ColorSpace colorSpace) {
+        ArrayList<TermMap> termMaps = new ArrayList<>();
+
+        int NAME = 0;
+        int ID = 1;
+        int DESCRIPTION = 2;
+        int REFERENCE = 3;
+        int TERMS = 4;
+        int IMAGES = 5;
+
+        int COLOR_SPACE = 0;
+        int IMAGE_ID = 1;
+
+        try (TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids)) {
+            for (int i = 0; i < termMapIds.length(); i++) {
+                int termMapId = termMapIds.getResourceId(i, 0);
+                try (TypedArray termMapArray = resources.obtainTypedArray(termMapId)) {
+                    String name = termMapArray.getString(NAME);
+                    String id = termMapArray.getString(ID);
+                    String description = termMapArray.getString(DESCRIPTION);
+                    String reference = termMapArray.getString(REFERENCE);
+                    int termsArrayId = termMapArray.getResourceId(TERMS, 0);
+                    List<String> terms = Collections.unmodifiableList(Arrays.asList(resources.getStringArray(termsArrayId)));
+
+                    int imagesArrayId = termMapArray.getResourceId(IMAGES, 0);
+                    int termMapResourceId = 0;
+                    try (TypedArray imagesArray = resources.obtainTypedArray(imagesArrayId)) {
+                        for (int j = 0; j < imagesArray.length(); j++) {
+                            int imageArrayId = imagesArray.getResourceId(j, 0);
+                            try (TypedArray imageArray = resources.obtainTypedArray(imageArrayId)) {
+                                String colorSpaceName = imageArray.getString(COLOR_SPACE);
+                                int imageId = imageArray.getResourceId(IMAGE_ID, 0);
+                                if (termMapResourceId == 0 || (colorSpaceName != null && colorSpaceName.equals("SRGB"))) {
+                                    termMapResourceId = imageId;
+                                }
+                                if (colorSpaceName != null && colorSpace.equals(ColorSpace.get(ColorSpace.Named.valueOf(colorSpaceName)))) {
+                                    termMapResourceId = imageId;
+                                    matchedColorSpace = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    termMaps.add(new TermMap(name, id, description, reference, terms, resources, termMapResourceId));
+                }
+            }
+        }
+        return termMaps;
+    }
+
+    public static boolean getMatchedColorSpace() {
+        return matchedColorSpace;
     }
 
     public String getName() {
@@ -204,65 +255,5 @@ public class TermMap {
         Mat mappedImage = new Mat(height, width, CvType.CV_8UC1);
         mappedImage.put(0, 0, mapData);
         return mappedImage;
-    }
-
-    public static ArrayList<TermMap> loadTermMaps(Resources resources, ColorSpace colorSpace) {
-        ArrayList<TermMap> termMaps = new ArrayList<>();
-
-        int NAME = 0;
-        int ID = 1;
-        int DESCRIPTION = 2;
-        int REFERENCE = 3;
-        int TERMS = 4;
-        int IMAGES = 5;
-
-        try (TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids)) {
-            for (int i = 0; i < termMapIds.length(); i++) {
-                int termMapId = termMapIds.getResourceId(i, 0);
-                try (TypedArray termMapArray = resources.obtainTypedArray(termMapId)) {
-                    String name = termMapArray.getString(NAME);
-                    String id = termMapArray.getString(ID);
-                    String description = termMapArray.getString(DESCRIPTION);
-                    String reference = termMapArray.getString(REFERENCE);
-                    int termsArrayId = termMapArray.getResourceId(TERMS, 0);
-                    List<String> terms = Collections.unmodifiableList(Arrays.asList(resources.getStringArray(termsArrayId)));
-
-                    int imagesArrayId = termMapArray.getResourceId(IMAGES, 0);
-                    int termMapResourceId = 0;
-
-                    // Get the string array instead of typed array
-                    String[] imagesArray = resources.getStringArray(imagesArrayId);
-                    for (String entry : imagesArray) {
-                        String[] parts = entry.split(",", 2);
-                        String colorSpaceName = parts[0];
-                        String resourceRef = parts[1];
-                        @SuppressLint("DiscouragedApi")
-                        int imageId = resources.getIdentifier(
-                                resourceRef.substring(1), // Remove the @ symbol
-                                null,
-                                resources.getResourcePackageName(termMapId));
-                        if (termMapResourceId == 0) {
-                            termMapResourceId = imageId;
-                        }
-                        if (colorSpaceName != null) {
-                             if (colorSpaceName.equals("SRGB")) {
-                                termMapResourceId = imageId;
-                            }
-                            if (colorSpace.equals(ColorSpace.get(ColorSpace.Named.valueOf(colorSpaceName)))) {
-                                termMapResourceId = imageId;
-                                matchedColorSpace = true;
-                                break;
-                            }
-                        }
-                    }
-                    termMaps.add(new TermMap(name, id, description, reference, terms, resources, termMapResourceId));
-                }
-            }
-        }
-        return termMaps;
-    }
-
-    public static boolean getMatchedColorSpace() {
-        return matchedColorSpace;
     }
 }
