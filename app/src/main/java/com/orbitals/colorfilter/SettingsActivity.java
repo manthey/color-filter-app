@@ -103,6 +103,7 @@ public class SettingsActivity extends AppCompatActivity {
         loadDefaultsButton.setOnClickListener(v -> {
             loadDefaultSettings();
             defaultsLoaded = true;
+            bctControlsSwitch.setChecked(showBctControls);
             loadDefaultsButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.baseline_check_24, 0);
             Toast.makeText(SettingsActivity.this,
                     getString(R.string.defaults_loaded), Toast.LENGTH_SHORT).show();
@@ -150,6 +151,7 @@ public class SettingsActivity extends AppCompatActivity {
         int term = prefs.getInt(KEY_TERM, 1);
         String termMapId = prefs.getString(KEY_TERM_MAP, null);
         boolean sampleMode = prefs.getBoolean(KEY_SAMPLE_MODE, false);
+        showBctControls = prefs.getBoolean(KEY_SHOW_BCT_CONTROLS, false);
 
         currentFilterMode = filterModeOrdinal;
         currentHue = hue;
@@ -180,6 +182,7 @@ public class SettingsActivity extends AppCompatActivity {
         editor.putInt(KEY_TERM, currentTerm);
         editor.putString(KEY_TERM_MAP, currentTermMapId);
         editor.putBoolean(KEY_SAMPLE_MODE, currentSampleMode);
+        editor.putBoolean(KEY_SHOW_BCT_CONTROLS, showBctControls);
 
         editor.apply();
     }
@@ -193,7 +196,8 @@ public class SettingsActivity extends AppCompatActivity {
                 prefs.getInt(KEY_SAT_THRESHOLD, -1) == currentSatThreshold &&
                 prefs.getInt(KEY_LUM_THRESHOLD, -1) == currentLumThreshold &&
                 prefs.getInt(KEY_TERM, -1) == currentTerm &&
-                prefs.getBoolean(KEY_SAMPLE_MODE, false) == currentSampleMode;
+                prefs.getBoolean(KEY_SAMPLE_MODE, false) == currentSampleMode &&
+                showBctControls == prefs.getBoolean(KEY_SHOW_BCT_CONTROLS, false);
 
         String savedTermMapId = prefs.getString(KEY_TERM_MAP, null);
         boolean termMapMatches = (savedTermMapId == null && currentTermMapId == null) ||

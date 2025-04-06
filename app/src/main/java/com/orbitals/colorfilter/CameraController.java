@@ -87,6 +87,9 @@ public class CameraController {
                     rgbMat = Utilities.rgba(image);
                 } catch (IllegalStateException e) {
                     return;
+                } catch (Exception e) {
+                    Log.e(TAG, "Error getting image", e);
+                    return;
                 }
 
                 if (filter.getSampleMode()) {
