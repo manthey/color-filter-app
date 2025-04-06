@@ -143,15 +143,16 @@ public class MainActivityUITest {
         device.pressBack();
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "overflowMenuButton")), 2000).click();
         device.wait(Until.findObject(By.text("Settings")), 2000).click();
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "loadDefaultsButton")), 2000).click();
-        device.pressBack();
-        device.wait(Until.findObject(By.res(PACKAGE_NAME, "overflowMenuButton")), 2000).click();
-        device.wait(Until.findObject(By.text("Settings")), 2000).click();
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctControlsSwitch")), 2000).click();
         device.pressBack();
         UiObject2 textureView = device.wait(Until.findObject(By.res(PACKAGE_NAME, "textureView")), 2000);
         textureView.drag(new Point(0, 140));
         textureView.drag(new Point(0, 280));
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "overflowMenuButton")), 2000).click();
+        device.wait(Until.findObject(By.text("Settings")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctControlsSwitch")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "loadDefaultsButton")), 2000).click();
+        device.pressBack();
     }
 
     private void clickSeek(String resourceId, double position) {

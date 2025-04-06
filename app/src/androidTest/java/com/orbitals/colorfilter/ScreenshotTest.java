@@ -124,6 +124,27 @@ public class ScreenshotTest {
     }
 
     @Test
+    public void testOffModeSamplingPortrait() {
+        TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_bananas);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000).click();
+        for (int i = 0; i < 3; i++) {
+            device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000).click();
+        }
+        TestUtils.sleep(0.5);
+        TestUtils.captureScreenshot(device, mainActivity, "sampling_portrait.png");
+    }
+
+    @Test
+    public void testHSVIncludeModeSamplingPortrait() {
+        TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_bananas);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctButton")), 2000).click();
+        TestUtils.sleep(0.5);
+        TestUtils.captureScreenshot(device, mainActivity, "hsv_portrait.png");
+    }
+
+    @Test
     public void testOffModeSamplingLandscape() {
         try {
             device.setOrientationLeft();
@@ -131,13 +152,9 @@ public class ScreenshotTest {
             Log.e(TAG, "Failed to set orientation");
         }
         TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_flower);
-        UiObject2 sampleButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
-        sampleButton.click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000).click();
         for (int i = 0; i < 3; i++) {
-            UiObject2 filterButton = device.wait(
-                    Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000);
-            filterButton.click();
+            device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000).click();
         }
         TestUtils.sleep(0.5);
         TestUtils.captureScreenshot(device, mainActivity, "sampling_landscape.png");
@@ -157,9 +174,7 @@ public class ScreenshotTest {
         } catch (Exception e) {
             Log.e(TAG, "Failed to set orientation");
         }
-        UiObject2 sampleButton = device.wait(
-                Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000);
-        sampleButton.click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000).click();
         TestUtils.sleep(0.5);
         TestUtils.captureScreenshot(device, mainActivity, "sampling_exclude_mode_landscape.png");
         try {
