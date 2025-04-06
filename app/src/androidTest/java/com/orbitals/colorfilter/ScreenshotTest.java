@@ -13,7 +13,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
-import androidx.test.uiautomator.UiObject2;
 import androidx.test.uiautomator.Until;
 
 import org.junit.After;
@@ -115,9 +114,7 @@ public class ScreenshotTest {
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "bctSeekBar")), 2000);
         TestUtils.clickSeek(device, "bctSeekBar", 4.4 / 19.0);
         for (int i = 0; i < 4; i++) {
-            UiObject2 filterButton = device.wait(
-                    Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000);
-            filterButton.click();
+            device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000).click();
         }
         TestUtils.sleep(0.5);
         TestUtils.captureScreenshot(device, mainActivity, "include_mode_portrait.png");
@@ -177,6 +174,47 @@ public class ScreenshotTest {
         device.wait(Until.findObject(By.res(PACKAGE_NAME, "sampleButton")), 2000).click();
         TestUtils.sleep(0.5);
         TestUtils.captureScreenshot(device, mainActivity, "sampling_exclude_mode_landscape.png");
+        try {
+            device.setOrientationNatural();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set orientation");
+        }
+    }
+
+    @Test
+    public void testBinaryModeLandscape() {
+        TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_vegetation);
+        TestUtils.sleep(0.5);
+        try {
+            device.setOrientationLeft();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set orientation");
+        }
+        TestUtils.clickSeek(device, "bctSeekBar", 4.4 / 19.0);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000).click();
+        TestUtils.sleep(0.5);
+        TestUtils.captureScreenshot(device, mainActivity, "sampling_binary_mode_landscape.png");
+        try {
+            device.setOrientationNatural();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set orientation");
+        }
+    }
+
+    @Test
+    public void testSaturationModeLandscape() {
+        TestUtils.loadImage(device, com.orbitals.colorfilter.test.R.drawable.test_image_vegetation);
+        TestUtils.sleep(0.5);
+        try {
+            device.setOrientationLeft();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set orientation");
+        }
+        TestUtils.clickSeek(device, "bctSeekBar", 4.4 / 19.0);
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000).click();
+        device.wait(Until.findObject(By.res(PACKAGE_NAME, "filterButton")), 2000).click();
+        TestUtils.sleep(0.5);
+        TestUtils.captureScreenshot(device, mainActivity, "sampling_saturation_mode_landscape.png");
         try {
             device.setOrientationNatural();
         } catch (Exception e) {
