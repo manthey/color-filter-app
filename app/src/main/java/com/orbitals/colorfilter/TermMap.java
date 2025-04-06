@@ -38,6 +38,7 @@ public class TermMap {
     private final byte[] map;
     private int blur = 5;
     private static boolean matchedColorSpace = false;
+    private final int[] lastCenterLog = new int[] {-1, -1, -1, -1};
 
     /**
      * Create a TermMap.
@@ -189,8 +190,12 @@ public class TermMap {
                 int g = rgbData[i + 1] & 0xFF;
                 int b = rgbData[i + 2] & 0xFF;
                 int index = (r << 16) | (g << 8) | b;
-                if (j == center) {
+                if (j == center && (r != lastCenterLog[0] || g != lastCenterLog[1] || b != lastCenterLog[2] || map[index] != lastCenterLog[3])) {
                     Log.d(TAG, "Center " + " " + r + "," + g + "," + b + " " + map[index]);
+                    lastCenterLog[0] = r;
+                    lastCenterLog[1] = g;
+                    lastCenterLog[2] = b;
+                    lastCenterLog[3] = map[index];
                 }
                 mapData[j] = map[index];
             }
