@@ -66,23 +66,14 @@ public class TermMapTest {
             int termsArrayId = termMapArray.getResourceId(4, 0);
             terms = List.of(resources.getStringArray(termsArrayId));
             int imagesArrayId = termMapArray.getResourceId(5, 0);
-            String[] imagesArray = resources.getStringArray(imagesArrayId);
-            termMapResourceId = getResourceIdFromImagesArray(resources, termMapId, imagesArray);
+            try (TypedArray imagesArray = resources.obtainTypedArray(imagesArrayId)) {
+                int imageArrayId = imagesArray.getResourceId(0, 0);
+                try (TypedArray imageArray = resources.obtainTypedArray(imageArrayId)) {
+                    termMapResourceId = imageArray.getResourceId(1, 0);
+                }
+            }
         }
         return new TermMap(name, id, description, reference, terms, resources, termMapResourceId);
-    }
-
-    private int getResourceIdFromImagesArray(Resources resources, int termMapId, String[] imagesArray) {
-        for (String entry : imagesArray) {
-            String[] parts = entry.split(",", 2);
-            String resourceRef = parts[1];
-            return resources.getIdentifier(
-                    resourceRef.substring(1), // Remove the @ symbol
-                    null,
-                    resources.getResourcePackageName(termMapId));
-
-        }
-        return 0;
     }
 
     @Test

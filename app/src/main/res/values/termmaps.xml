@@ -49,11 +49,24 @@
         <item>Lime</item>
         <item>White</item>
     </string-array>
-    <string-array name="term_map_bct20_images">
-        <item>SRGB,@raw/bct20_en_us_srgb</item>
-        <item>DISPLAY_P3,@raw/bct20_en_us_display_p3</item>
-        <item>BT2020,@raw/bct20_en_us_bt2020</item>
-    </string-array>
+    <array name="term_map_bct20_images">
+        <item>@array/term_map_bct20_srgb</item>
+        <item>@array/term_map_bct20_display_p3</item>
+        <item>@array/term_map_bct20_bt2020</item>
+    </array>
+    <array name="term_map_bct20_srgb">
+        <item>SRGB</item>
+        <item>@raw/bct20_en_us_srgb</item>
+    </array>
+    <array name="term_map_bct20_display_p3">
+        <item>DISPLAY_P3</item>
+        <item>@raw/bct20_en_us_display_p3</item>
+    </array>
+    <array name="term_map_bct20_bt2020">
+        <item>BT2020</item>
+        <item>@raw/bct20_en_us_bt2020</item>
+    </array>
+
     <array name="term_map_bct11">
         <item>BCT11</item>
         <item>en_US_BCT11</item>
@@ -78,9 +91,21 @@
         <item>Gray</item>
         <item>White</item>
     </string-array>
-    <string-array name="term_map_bct11_images">
-        <item>SRGB,@raw/bct11_en_us_srgb</item>
-        <item>DISPLAY_P3,@raw/bct11_en_us_display_p3</item>
-        <item>BT2020,@raw/bct11_en_us_bt2020</item>
-    </string-array>
+    <array name="term_map_bct11_images">
+        <item>@array/term_map_bct11_srgb</item>
+        <item>@array/term_map_bct11_display_p3</item>
+        <item>@array/term_map_bct11_bt2020</item>
+    </array>
+    <array name="term_map_bct11_srgb">
+        <item>SRGB</item>
+        <item>@raw/bct11_en_us_srgb</item>
+    </array>
+    <array name="term_map_bct11_display_p3">
+        <item>DISPLAY_P3</item>
+        <item>@raw/bct11_en_us_display_p3</item>
+    </array>
+    <array name="term_map_bct11_bt2020">
+        <item>BT2020</item>
+        <item>@raw/bct11_en_us_bt2020</item>
+    </array>
 </resources>
