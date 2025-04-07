@@ -78,10 +78,16 @@ public class Utilities {
     public static Mat rgba(Image mImage) {
         Mat mRgba = new Mat();
         Image.Plane[] planes = mImage.getPlanes();
+        if (planes == null || planes.length < 3) {
+            throw new IllegalStateException("Image does not have the expected 3 planes.");
+        }
         int w = mImage.getWidth();
         int h = mImage.getHeight();
         int chromaPixelStride = planes[1].getPixelStride();
-
+        if (chromaPixelStride != 1 && chromaPixelStride != 2) {
+            throw new UnsupportedOperationException("Unexpected chroma pixel stride: " + chromaPixelStride);
+        }
+        
         //noinspection IfStatementWithIdenticalBranches
         if (chromaPixelStride == 2) { // Chroma channels are interleaved
             assert (planes[0].getPixelStride() == 1);
