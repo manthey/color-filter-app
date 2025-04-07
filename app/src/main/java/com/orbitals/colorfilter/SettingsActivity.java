@@ -30,6 +30,7 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_TERM = "term";
     public static final String KEY_SAMPLE_MODE = "sample_mode";
     public static final String KEY_SHOW_BCT_CONTROLS = "show_bct_controls";
+    public static final String KEY_DEFAULT_SHOW_BCT_CONTROLS = "default_show_bct_controls";
     /**
      * @noinspection SpellCheckingInspection
      */
@@ -88,6 +89,7 @@ public class SettingsActivity extends AppCompatActivity {
             showBctControls = isChecked;
             saveSettings();
             settingsChanged = true;
+            updateSetDefaultsButton();
         });
 
         setDefaultsButton = findViewById(R.id.setDefaultsButton);
@@ -151,7 +153,7 @@ public class SettingsActivity extends AppCompatActivity {
         int term = prefs.getInt(KEY_TERM, 1);
         String termMapId = prefs.getString(KEY_TERM_MAP, null);
         boolean sampleMode = prefs.getBoolean(KEY_SAMPLE_MODE, false);
-        showBctControls = prefs.getBoolean(KEY_SHOW_BCT_CONTROLS, false);
+        showBctControls = prefs.getBoolean(KEY_DEFAULT_SHOW_BCT_CONTROLS, false);
 
         currentFilterMode = filterModeOrdinal;
         currentHue = hue;
@@ -183,6 +185,7 @@ public class SettingsActivity extends AppCompatActivity {
         editor.putString(KEY_TERM_MAP, currentTermMapId);
         editor.putBoolean(KEY_SAMPLE_MODE, currentSampleMode);
         editor.putBoolean(KEY_SHOW_BCT_CONTROLS, showBctControls);
+        editor.putBoolean(KEY_DEFAULT_SHOW_BCT_CONTROLS, showBctControls);
 
         editor.apply();
     }
@@ -197,7 +200,7 @@ public class SettingsActivity extends AppCompatActivity {
                 prefs.getInt(KEY_LUM_THRESHOLD, -1) == currentLumThreshold &&
                 prefs.getInt(KEY_TERM, -1) == currentTerm &&
                 prefs.getBoolean(KEY_SAMPLE_MODE, false) == currentSampleMode &&
-                showBctControls == prefs.getBoolean(KEY_SHOW_BCT_CONTROLS, false);
+                showBctControls == prefs.getBoolean(KEY_DEFAULT_SHOW_BCT_CONTROLS, false);
 
         String savedTermMapId = prefs.getString(KEY_TERM_MAP, null);
         boolean termMapMatches = (savedTermMapId == null && currentTermMapId == null) ||
