@@ -153,3 +153,23 @@ jobs:
       with:
         name: color-filter-aab
         path: app/build/outputs/bundle/release/*.aab
+    - name: Upload Release APK to GitHub Release
+      if: ${{ github.event_name == 'release' }}
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: app/build/outputs/apk/release/app-release.apk
+        asset_name: app-release.apk
+        asset_content_type: application/vnd.android.package-archive
+    - name: Upload AAB to GitHub Release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: app/build/outputs/bundle/release/app-release.aab
+        asset_name: app-release.aab
+        asset_content_type: application/octet-stream
