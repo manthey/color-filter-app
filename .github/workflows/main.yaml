@@ -40,7 +40,7 @@ jobs:
     - name: Install tools for later
       run: |
         # Install xmlstarlet to parse XML
-        sudo apt-get install -y xmlstarlet optipng
+        sudo apt-get install -y xmlstarlet optipng advancecomp
     # - name: Run Unit Tests
     #   run: ./gradlew test
     - name: Enable KVM
@@ -143,6 +143,8 @@ jobs:
       with:
         name: color-filter-debug-apk
         path: app/build/outputs/apk/debug/app-debug.apk
+    - name: Compress APK with advzip
+      run: advzip -z -4 app/build/outputs/apk/release/app-release.apk
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
