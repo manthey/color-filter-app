@@ -144,6 +144,7 @@ jobs:
         name: color-filter-debug-apk
         path: app/build/outputs/apk/debug/app-debug.apk
     - name: Compress APK with advzip
+      if: ${{ secrets.KEYSTORE_BASE64 }}
       run: advzip -k -z app/build/outputs/apk/release/app-release.apk
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
