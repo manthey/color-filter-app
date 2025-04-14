@@ -3,14 +3,12 @@ activityCompose = "1.10.1"
 agp = "8.9.1"
 appcompat = "1.7.0"
 composeBom = "2025.04.00"
-coreKtx = "1.15.0"
 espressoCore = "3.6.1"
 espressoIntents = "3.6.1"
 exifinterface = "1.4.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 leakcanaryAndroid = "2.14"
-lifecycleRuntimeKtx = "2.8.7"
 mockitoCore = "5.17.0"
 mockitoAndroid = "5.17.0"
 opencv = "4.11.0"
@@ -23,12 +21,10 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-core = { module = "androidx.test:core", version.ref = "rules" }
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-espresso-intents = { module = "androidx.test.espresso:espresso-intents", version.ref = "espressoIntents" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-rules = { module = "androidx.test:rules", version.ref = "rules" }
 androidx-runner = { module = "androidx.test:runner", version.ref = "runner" }
