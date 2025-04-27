@@ -158,9 +158,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: app/build/outputs/apk/release/app-release.apk
-        name: app-release.apk
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.event.release.name }}
+        # name: app-release.apk
         token: ${{ secrets.GITHUB_TOKEN }}
         fail_on_unmatched_files: true
     - name: Upload AAB to GitHub Release
@@ -168,8 +166,6 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: app/build/outputs/bundle/release/app-release.aab
-        name: app-release.aab
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.event.release.name }}
+        # name: app-release.aab
         token: ${{ secrets.GITHUB_TOKEN }}
         fail_on_unmatched_files: true
