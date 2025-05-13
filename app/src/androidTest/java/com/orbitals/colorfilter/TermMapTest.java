@@ -48,8 +48,11 @@ public class TermMapTest {
 
         // Load the first term map from term_map_ids array
         int termMapId;
-        try (TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids)) {
+        TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids);
+        try {
             termMapId = termMapIds.getResourceId(0, 0);
+        } finally {
+            termMapIds.recycle();
         }
 
         String name;
@@ -58,7 +61,8 @@ public class TermMapTest {
         String reference;
         List<String> terms;
         int termMapResourceId;
-        try (TypedArray termMapArray = resources.obtainTypedArray(termMapId)) {
+        TypedArray termMapArray = resources.obtainTypedArray(termMapId);
+        try {
             name = termMapArray.getString(0);
             id = termMapArray.getString(1);
             description = termMapArray.getString(2);
@@ -66,12 +70,20 @@ public class TermMapTest {
             int termsArrayId = termMapArray.getResourceId(4, 0);
             terms = List.of(resources.getStringArray(termsArrayId));
             int imagesArrayId = termMapArray.getResourceId(5, 0);
-            try (TypedArray imagesArray = resources.obtainTypedArray(imagesArrayId)) {
+            TypedArray imagesArray = resources.obtainTypedArray(imagesArrayId);
+            try {
                 int imageArrayId = imagesArray.getResourceId(0, 0);
-                try (TypedArray imageArray = resources.obtainTypedArray(imageArrayId)) {
+                TypedArray imageArray = resources.obtainTypedArray(imageArrayId);
+                try {
                     termMapResourceId = imageArray.getResourceId(1, 0);
+                } finally {
+                    imageArray.recycle();
                 }
+            } finally {
+                imagesArray.recycle();
             }
+        } finally {
+            termMapArray.recycle();
         }
         return new TermMap(name, id, description, reference, terms, resources, termMapResourceId);
     }

@@ -95,10 +95,12 @@ public class TermMap {
         int COLOR_SPACE = 0;
         int IMAGE_ID = 1;
 
-        try (TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids)) {
+        TypedArray termMapIds = resources.obtainTypedArray(R.array.term_map_ids);
+        try {
             for (int i = 0; i < termMapIds.length(); i++) {
                 int termMapId = termMapIds.getResourceId(i, 0);
-                try (TypedArray termMapArray = resources.obtainTypedArray(termMapId)) {
+                TypedArray termMapArray = resources.obtainTypedArray(termMapId);
+                try {
                     String name = termMapArray.getString(NAME);
                     String id = termMapArray.getString(ID);
                     String description = termMapArray.getString(DESCRIPTION);
@@ -108,10 +110,12 @@ public class TermMap {
 
                     int imagesArrayId = termMapArray.getResourceId(IMAGES, 0);
                     int termMapResourceId = 0;
-                    try (TypedArray imagesArray = resources.obtainTypedArray(imagesArrayId)) {
+                    TypedArray imagesArray = resources.obtainTypedArray(imagesArrayId);
+                    try {
                         for (int j = 0; j < imagesArray.length(); j++) {
                             int imageArrayId = imagesArray.getResourceId(j, 0);
-                            try (TypedArray imageArray = resources.obtainTypedArray(imageArrayId)) {
+                            TypedArray imageArray = resources.obtainTypedArray(imageArrayId);
+                            try {
                                 String colorSpaceName = imageArray.getString(COLOR_SPACE);
                                 int imageId = imageArray.getResourceId(IMAGE_ID, 0);
                                 if (termMapResourceId == 0 || (colorSpaceName != null && colorSpaceName.equals("SRGB"))) {
@@ -122,12 +126,20 @@ public class TermMap {
                                     matchedColorSpace = true;
                                     break;
                                 }
+                            } finally {
+                                imageArray.recycle();
                             }
                         }
+                    } finally {
+                        imagesArray.recycle();
                     }
                     termMaps.add(new TermMap(name, id, description, reference, terms, resources, termMapResourceId));
+                } finally {
+                    termMapArray.recycle();
                 }
             }
+        } finally {
+            termMapIds.recycle();
         }
         return termMaps;
     }
