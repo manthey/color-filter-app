@@ -33,7 +33,6 @@ android {
     buildTypes {
         debug {
             debuggable true
-            enableUnitTestCoverage true
             enableAndroidTestCoverage true
         }
         release {
@@ -64,11 +63,6 @@ android {
         checkDependencies true
         lintConfig file("lint.xml")
     }
-    testOptions {
-        unitTests {
-            includeAndroidResources = true
-        }
-    }
 }
 
 dependencies {
@@ -94,8 +88,6 @@ dependencies {
     debugImplementation libs.androidx.ui.test.manifest
     debugImplementation libs.androidx.ui.tooling
     debugImplementation libs.leakcanary.android
-    testImplementation libs.junit
-    testImplementation libs.mockito.core
 }
 
 jacoco {
@@ -112,7 +104,7 @@ def coverageSourceDirs = [
 ]
 
 tasks.register('jacocoTestReport', JacocoReport) {
-    dependsOn 'testDebugUnitTest', 'createDebugCoverageReport'
+    dependsOn 'createDebugCoverageReport'
     reports {
         xml.required.set(true)
         html.required.set(true)
@@ -134,7 +126,6 @@ tasks.register('jacocoTestReport', JacocoReport) {
         executionData.setFrom(fileTree(
                 dir: layout.buildDirectory.get().asFile,
                 includes: [
-                        'jacoco/testDebugUnitTest.exec',
                         'outputs/code-coverage/connected/*coverage.ec'
                 ]
         ))

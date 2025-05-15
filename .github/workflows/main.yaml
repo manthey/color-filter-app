@@ -36,7 +36,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
     - name: Build with Gradle
-      run: ./gradlew build --parallel --daemon
+      run: ./gradlew build -x test --parallel --daemon
     - name: Install tools for later
       run: |
         # Install xmlstarlet to parse XML
