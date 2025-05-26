@@ -3,6 +3,10 @@ plugins {
     id("jacoco")
 }
 
+configurations.all {
+    exclude group: 'net.bytebuddy', module: 'byte-buddy'
+}
+
 android {
     namespace 'com.orbitals.colorfilter'
     compileSdk 35
@@ -116,6 +120,9 @@ tasks.register('jacocoTestReport', JacocoReport) {
     sourceDirectories.setFrom(files(coverageSourceDirs))
     classDirectories.setFrom(fileTree(
             dir: layout.buildDirectory.dir("intermediates/classes/debug").get().asFile,
+            includes: [
+                    'com/orbitals/colorfilter/**'
+            ],
             excludes: ['**/R.class',
                        '**/R$*.class',
                        '**/BuildConfig.*',
