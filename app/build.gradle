@@ -116,6 +116,9 @@ tasks.register('jacocoTestReport', JacocoReport) {
     sourceDirectories.setFrom(files(coverageSourceDirs))
     classDirectories.setFrom(fileTree(
             dir: layout.buildDirectory.dir("intermediates/classes/debug").get().asFile,
+            includes: [
+                    'com/orbitals/colorfilter/**'
+            ],
             excludes: ['**/R.class',
                        '**/R$*.class',
                        '**/BuildConfig.*',
