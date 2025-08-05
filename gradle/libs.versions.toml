@@ -11,7 +11,7 @@ leakcanaryAndroid = "2.14"
 mockitoAndroid = "5.17.0"
 opencv = "4.12.0"
 rules = "1.7.0"
-runner = "1.6.2"
+runner = "1.7.0"
 uiautomator = "2.3.0"
 
 [libraries]
