@@ -6,6 +6,7 @@ composeBom = "2025.08.00"
 espressoCore = "3.7.0"
 espressoIntents = "3.7.0"
 exifinterface = "1.4.1"
+jacoco = "0.8.13"
 junitVersion = "1.3.0"
 leakcanaryAndroid = "2.14"
 mockitoAndroid = "5.17.0"
@@ -39,4 +40,4 @@ opencv = { module = "org.opencv:opencv", version.ref = "opencv" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-
+jacoco = { id = "jacoco", version.ref = "jacoco" }
