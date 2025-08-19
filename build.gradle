@@ -2,5 +2,3 @@
 plugins {
     alias(libs.plugins.android.application) apply false
 }
-plugins { id 'jacoco' }
-jacoco { toolVersion = "0.8.13" }
