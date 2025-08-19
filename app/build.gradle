@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    id("jacoco")
 }
 
 android {
@@ -88,10 +87,6 @@ dependencies {
     debugImplementation libs.androidx.ui.test.manifest
     debugImplementation libs.androidx.ui.tooling
     debugImplementation libs.leakcanary.android
-}
-
-jacoco {
-    toolVersion = "0.8.13"
 }
 
 tasks.withType(Test).configureEach {
