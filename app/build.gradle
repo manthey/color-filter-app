@@ -127,6 +127,17 @@ tasks.register('jacocoTestReport', JacocoReport) {
     }
 }
 
+configurations.configureEach {
+    if (name.toLowerCase().contains("jacoco")) {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "net.bytebuddy" && requested.name == "byte-buddy") {
+                useVersion("1.14.14") // last version Jacoco instruments reliably
+                because("Jacoco cannot transform Byte Buddy >= 1.17.x yet")
+            }
+        }
+    }
+}
+
 static def getVersionFromGit() {
     def process = new ProcessBuilder('git', 'describe', '--tags', '--long', '--match', 'v[0-9]*.[0-9]*.[0-9]*')
             .redirectErrorStream(true)
