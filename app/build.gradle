@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace 'com.orbitals.colorfilter'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.orbitals.colorfilter"
