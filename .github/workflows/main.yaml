@@ -69,12 +69,12 @@ jobs:
       if: always()
       run: cat logcat.txt | grep colorfilter
     - name: Upload Screenshot Artifacts
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: test-screenshots
         path: ./test_screenshots
     - name: Upload Jacoco Reports
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: jacoco-reports
         path: app/build/reports
@@ -134,22 +134,22 @@ jobs:
     # - name: Check
     #   run: find app/build -name "*.aab" && find app/build -name "*.apk" && find app/build -name "*.aar" && ls -lR app/build
     # - name: Upload AAR artifact
-    #   uses: actions/upload-artifact@v5
+    #   uses: actions/upload-artifact@v6
     #   with:
     #     name: color-filter-aar
     #     path: app/build/outputs/aar/*.aar
     - name: Upload Debug APK artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: color-filter-debug-apk
         path: app/build/outputs/apk/debug/app-debug.apk
     - name: Upload APK artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: color-filter-apk
         path: app/build/outputs/apk/release/*.apk
     - name: Upload AAB artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: color-filter-aab
         path: app/build/outputs/bundle/release/*.aab
