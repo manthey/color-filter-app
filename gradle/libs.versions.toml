@@ -1,6 +1,6 @@
 [versions]
 activityCompose = "1.12.2"
-agp = "8.13.2"
+agp = "9.0.0"
 appcompat = "1.7.1"
 composeBom = "2026.01.00"
 espressoCore = "3.7.0"
@@ -40,4 +40,5 @@ opencv = { module = "org.opencv:opencv", version.ref = "opencv" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version = "2.0.0" }
 jacoco = { id = "jacoco", version.ref = "jacoco" }
