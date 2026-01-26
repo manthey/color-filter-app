@@ -67,7 +67,7 @@ jobs:
           ls -l ./test_screenshots
     - name: Show logcat
       if: always()
-      run: cat logcat.txt | grep colorfilter
+      run: if [ -f logcat.txt ]; then grep colorfilter logcat.txt; fi
     - name: Upload Screenshot Artifacts
       uses: actions/upload-artifact@v6
       with:
