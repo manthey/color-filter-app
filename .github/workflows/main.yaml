@@ -36,13 +36,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
     - name: Build with Gradle
-      run: ./gradlew build -x test --parallel --daemon
+      run: ./gradlew --warning-mode all build -x test --parallel --daemon
     - name: Install tools for later
       run: |
         # Install xmlstarlet to parse XML
         sudo apt-get install -y xmlstarlet optipng
     # - name: Run Unit Tests
-    #   run: ./gradlew test
+    #   run: ./gradlew --warning-mode all test
     - name: Enable KVM
       run: |
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -58,7 +58,7 @@ jobs:
         # S24 is -skin 1080x2340 -dpi-device 425 -prop qemu.sf.lcd_density=425
         emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -skin 1080x1920 -dpi-device 480 -prop qemu.sf.lcd_density=480
         script: |
-          ./gradlew connectedDebugAndroidTest createDebugCoverageReport
+          ./gradlew --warning-mode all connectedDebugAndroidTest createDebugCoverageReport
           mkdir -p ./test_screenshots
           adb exec-out ls -al /storage/emulated/0/Pictures/test_screenshots
           adb pull /storage/emulated/0/Pictures/test_screenshots ./test_screenshots
@@ -123,14 +123,14 @@ jobs:
         SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: ./gradlew assembleRelease
+      run: ./gradlew --warning-mode all assembleRelease
     - name: Build AAB
       env:
         SIGNING_STORE_FILE: ${{ github.workspace }}/keystore.jks
         SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: ./gradlew bundleRelease
+      run: ./gradlew --warning-mode all bundleRelease
     # - name: Check
     #   run: find app/build -name "*.aab" && find app/build -name "*.apk" && find app/build -name "*.aar" && ls -lR app/build
     # - name: Upload AAR artifact

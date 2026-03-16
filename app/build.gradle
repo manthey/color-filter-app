@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace 'com.orbitals.colorfilter'
+    namespace = 'com.orbitals.colorfilter'
     compileSdk 36
 
     defaultConfig {
@@ -17,7 +17,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments logLevel: 'debug'
         vectorDrawables {
-            useSupportLibrary true
+            useSupportLibrary = true
         }
     }
     if (System.getenv("SIGNING_STORE_FILE") != null && file(System.getenv("SIGNING_STORE_FILE")).exists()) {
@@ -33,14 +33,14 @@ android {
     buildTypes {
         debug {
             debuggable true
-            enableAndroidTestCoverage true
+            enableAndroidTestCoverage = true
         }
         release {
             minifyEnabled true
-            shrinkResources true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (System.getenv("SIGNING_STORE_FILE") != null && file(System.getenv("SIGNING_STORE_FILE")).exists()) {
-                signingConfig signingConfigs.release
+                signingConfig = signingConfigs.release
             }
         }
     }
@@ -49,7 +49,7 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
     buildFeatures {
-        compose true
+        compose = true
     }
     packagingOptions {
         resources {
@@ -60,8 +60,8 @@ android {
         }
     }
     lint {
-        checkDependencies true
-        lintConfig file("lint.xml")
+        checkDependencies = true
+        lintConfig = file("lint.xml")
     }
 }
 

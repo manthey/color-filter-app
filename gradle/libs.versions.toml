@@ -14,6 +14,7 @@ opencv = "4.13.0"
 rules = "1.7.0"
 runner = "1.7.0"
 uiautomator = "2.3.0"
+kotlinCompose = "2.0.0"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -40,5 +41,5 @@ opencv = { module = "org.opencv:opencv", version.ref = "opencv" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version = "2.0.0" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlinCompose" }
 jacoco = { id = "jacoco", version.ref = "jacoco" }
