@@ -14,7 +14,7 @@ opencv = "4.13.0"
 rules = "1.7.0"
 runner = "1.7.0"
 uiautomator = "2.3.0"
-kotlinCompose = "2.0.0"
+kotlinCompose = "2.3.20"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
