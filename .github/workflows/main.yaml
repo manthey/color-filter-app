@@ -155,7 +155,7 @@ jobs:
         path: app/build/outputs/bundle/release/*.aab
     - name: Upload Release APK to GitHub Release
       if: ${{ github.event_name == 'release' }}
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: app/build/outputs/apk/release/app-release.apk
         # name: app-release.apk
@@ -163,7 +163,7 @@ jobs:
         fail_on_unmatched_files: true
     - name: Upload AAB to GitHub Release
       if: ${{ github.event_name == 'release' }}
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: app/build/outputs/bundle/release/app-release.aab
         # name: app-release.aab
