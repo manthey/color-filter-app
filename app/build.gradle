@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = 'com.orbitals.colorfilter'
-    compileSdk 36
+    compileSdk 37
 
     defaultConfig {
         applicationId "com.orbitals.colorfilter"
@@ -129,6 +129,11 @@ tasks.register('jacocoTestReport', JacocoReport) {
 }
 
 configurations.configureEach {
+    // Workaround for AGP 9.4.x requesting compose-group-mapping at its embedded
+    // Kotlin version (2.2.10), which JetBrains has never published (published
+    // versions start at 2.3.0). Force it to match the Compose plugin version.
+    // Remove once AGP embeds a Kotlin version >= 2.3.0.
+    resolutionStrategy.force 'org.jetbrains.kotlin:compose-group-mapping:2.4.21'
     if (name.toLowerCase().contains("jacoco")) {
         resolutionStrategy.eachDependency {
             if (requested.group == "net.bytebuddy" && requested.name == "byte-buddy") {
