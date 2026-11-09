@@ -14,7 +14,7 @@ mockitoAndroid = "5.24.0"
 opencv = "5.0.0.1"
 rules = "1.7.0"
 runner = "1.7.0"
-uiautomator = "2.4.0"
+uiautomator = "2.4.1"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
